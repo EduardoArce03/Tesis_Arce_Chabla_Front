@@ -3,8 +3,10 @@ import { Crud } from '@/pages/crud/crud';
 import { Empty } from '@/pages/empty/empty';
 import { Routes } from '@angular/router';
 import { MemoriaCulturalComponent } from '@/juegos/memoria-cultural/memoria-cultural.component';
+import { MapaIngapircaComponent } from '@/juegos/mapa-ingapirca/mapa-ingapirca.component';
 
 export default [
     { path: 'memoria', component: MemoriaCulturalComponent },
+    { path: 'exploracion', component: MapaIngapircaComponent },
     { path: '**', redirectTo: '/notfound' }
 ] as Routes;
