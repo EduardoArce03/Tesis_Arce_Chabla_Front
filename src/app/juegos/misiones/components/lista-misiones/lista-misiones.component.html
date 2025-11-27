@@ -1,0 +1,286 @@
+<!-- lista-misiones.component.html -->
+<div class="misiones-container">
+    <!-- Header con Estadísticas -->
+    <div class="header-misiones">
+        <p-card>
+            <div class="flex justify-content-between align-items-center">
+                <div>
+                    <h1>📜 Misiones Culturales</h1>
+                    <p class="subtitle">Descubre los secretos de Ingapirca a través de misiones guiadas</p>
+                </div>
+
+                <div class="estadisticas" *ngIf="estadisticas">
+                    <div class="stat-card">
+                        <span class="stat-value">{{ estadisticas.completadas }}</span>
+                        <span class="stat-label">Completadas</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value">{{ estadisticas.insigniasObtenidas }}</span>
+                        <span class="stat-label">Insignias</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value">{{ estadisticas.porcentajeCompletado | number:'1.0-0' }}%</span>
+                        <span class="stat-label">Progreso</span>
+                    </div>
+                </div>
+            </div>
+
+            <p-progressBar
+                [value]="estadisticas?.porcentajeCompletado || 0"
+                [showValue]="false"
+                styleClass="mt-3">
+            </p-progressBar>
+        </p-card>
+    </div>
+
+    <!-- Tabs de Misiones -->
+    <div class="contenido-misiones">
+        <p-tabs>
+            <!-- DISPONIBLES -->
+            <p-tabpanels header="Disponibles" leftIcon="pi pi-play-circle">
+                <div class="misiones-grid" *ngIf="misionesDisponibles.length > 0; else sinDisponibles">
+                    <div *ngFor="let mision of misionesDisponibles" class="mision-card-wrapper">
+                        <p-card [styleClass]="'mision-card disponible'">
+                            <!-- Imagen de portada -->
+                            <div class="mision-imagen">
+                                <img [src]="mision.imagenPortada" [alt]="mision.titulo">
+                                <div class="overlay-info">
+                                    <p-tag
+                                        [value]="mision.dificultad"
+                                        [severity]="obtenerColorDificultad(mision.dificultad)">
+                                    </p-tag>
+                                </div>
+                            </div>
+
+                            <!-- Contenido -->
+                            <div class="mision-contenido">
+                                <!-- NPC Guía -->
+                                <div class="npc-info">
+                                    <p-avatar
+                                        [image]="mision.npcGuia.avatar"
+                                        size="large"
+                                        shape="circle">
+                                    </p-avatar>
+                                    <div class="npc-texto">
+                                        <span class="npc-nombre">{{ mision.npcGuia.nombre }}</span>
+                                        <span class="npc-titulo">{{ mision.npcGuia.nombreKichwa }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Título -->
+                                <h3 class="mision-titulo">{{ mision.titulo }}</h3>
+                                <p class="mision-titulo-kichwa">{{ mision.tituloKichwa }}</p>
+
+                                <!-- Descripción -->
+                                <p class="mision-descripcion">{{ mision.descripcionCorta }}</p>
+
+                                <!-- Info Adicional -->
+                                <div class="mision-meta">
+                                    <div class="meta-item">
+                                        <i class="pi pi-clock"></i>
+                                        <span>~{{ mision.tiempoEstimado }} min</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="pi pi-star"></i>
+                                        <span>{{ obtenerIconoDificultad(mision.dificultad) }}</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="pi pi-gift"></i>
+                                        <span>+{{ mision.recompensas.experiencia }} XP</span>
+                                    </div>
+                                </div>
+
+                                <!-- Acciones -->
+                                <div class="mision-acciones">
+                                    <p-button
+                                        label="Ver Detalles"
+                                        icon="pi pi-eye"
+                                        [outlined]="true"
+                                        (onClick)="verDetalleMision(mision)">
+                                    </p-button>
+                                    <p-button
+                                        label="Iniciar Misión"
+                                        icon="pi pi-play"
+                                        (onClick)="verDetalleMision(mision)">
+                                    </p-button>
+                                </div>
+                            </div>
+                        </p-card>
+                    </div>
+                </div>
+
+                <ng-template #sinDisponibles>
+                    <div class="mensaje-vacio">
+                        <i class="pi pi-check-circle" style="font-size: 3rem; color: #22c55e;"></i>
+                        <h3>¡Has completado todas las misiones disponibles!</h3>
+                        <p>Completa misiones bloqueadas para desbloquear nuevas aventuras</p>
+                    </div>
+                </ng-template>
+            </p-tabpanels>
+
+            <!-- EN PROGRESO -->
+            <p-tabpanels header="En Progreso" leftIcon="pi pi-spinner">
+                <div class="misiones-grid" *ngIf="misionesEnProgreso.length > 0; else sinProgreso">
+                    <div *ngFor="let mision of misionesEnProgreso" class="mision-card-wrapper">
+                        <p-card [styleClass]="'mision-card en-progreso'">
+                            <div class="mision-imagen">
+                                <img [src]="mision.imagenPortada" [alt]="mision.titulo">
+                                <div class="overlay-badge">
+                                    <span class="badge-progreso">En Progreso</span>
+                                </div>
+                            </div>
+
+                            <div class="mision-contenido">
+                                <div class="npc-info">
+                                    <p-avatar [image]="mision.npcGuia.avatar" size="large" shape="circle"></p-avatar>
+                                    <div class="npc-texto">
+                                        <span class="npc-nombre">{{ mision.npcGuia.nombre }}</span>
+                                    </div>
+                                </div>
+
+                                <h3 class="mision-titulo">{{ mision.titulo }}</h3>
+
+                                <!-- Progreso -->
+                                <div class="progreso-info">
+                                    <div class="flex justify-content-between mb-2">
+                                        <span>Fase {{ mision.progreso?.faseActual }} / {{ mision.fases.length }}</span>
+                                        <span>{{ calcularProgreso(mision) | number:'1.0-0' }}%</span>
+                                    </div>
+                                    <p-progressBar [value]="calcularProgreso(mision)"></p-progressBar>
+                                </div>
+
+                                <div class="mision-stats">
+                                    <div class="stat-small">
+                                        <i class="pi pi-check text-green-500"></i>
+                                        <span>{{ mision.progreso?.respuestasCorrectas }} correctas</span>
+                                    </div>
+                                    <div class="stat-small">
+                                        <i class="pi pi-star-fill text-yellow-500"></i>
+                                        <span>{{ mision.progreso?.puntuacion }} pts</span>
+                                    </div>
+                                </div>
+
+                                <div class="mision-acciones">
+                                    <p-button
+                                        label="Continuar"
+                                        icon="pi pi-arrow-right"
+                                        (onClick)="continuarMision(mision)">
+                                    </p-button>
+                                </div>
+                            </div>
+                        </p-card>
+                    </div>
+                </div>
+
+                <ng-template #sinProgreso>
+                    <div class="mensaje-vacio">
+                        <i class="pi pi-inbox" style="font-size: 3rem; color: #94a3b8;"></i>
+                        <h3>No tienes misiones en progreso</h3>
+                        <p>Inicia una nueva misión desde la pestaña "Disponibles"</p>
+                    </div>
+                </ng-template>
+            </p-tabpanels>
+
+            <!-- COMPLETADAS -->
+            <p-tabpanel header="Completadas" leftIcon="pi pi-check">
+                <div class="misiones-grid" *ngIf="misionesCompletadas.length > 0; else sinCompletadas">
+                    <div *ngFor="let mision of misionesCompletadas" class="mision-card-wrapper">
+                        <p-card [styleClass]="'mision-card completada'">
+                            <div class="mision-imagen">
+                                <img [src]="mision.imagenPortada" [alt]="mision.titulo">
+                                <div class="overlay-completada">
+                                    <i class="pi pi-check-circle"></i>
+                                    <span>Completada</span>
+                                </div>
+                            </div>
+
+                            <div class="mision-contenido">
+                                <h3 class="mision-titulo">{{ mision.titulo }}</h3>
+
+                                <!-- Insignias obtenidas -->
+                                <div class="insignias-obtenidas" *ngIf="mision.recompensas.insignias.length > 0">
+                                    <div *ngFor="let insignia of mision.recompensas.insignias"
+                                         class="insignia-mini"
+                                         [pTooltip]="insignia.nombre">
+                                        <span class="insignia-icono">{{ insignia.icono }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="mision-stats-final">
+                                    <div class="stat-small">
+                                        <span class="label">Puntuación:</span>
+                                        <span class="valor">{{ mision.progreso?.puntuacion }}</span>
+                                    </div>
+                                    <div class="stat-small">
+                                        <span class="label">Precisión:</span>
+                                        <span class="valor">
+                      {{ (mision.progreso!.respuestasCorrectas / mision.progreso!.intentos * 100) | number:'1.0-0' }}%
+                    </span>
+                                    </div>
+                                </div>
+
+                                <div class="mision-acciones">
+                                    <p-button
+                                        label="Ver Detalles"
+                                        icon="pi pi-eye"
+                                        severity="secondary"
+                                        [outlined]="true"
+                                        (onClick)="verDetalleMision(mision)">
+                                    </p-button>
+                                </div>
+                            </div>
+                        </p-card>
+                    </div>
+                </div>
+
+                <ng-template #sinCompletadas>
+                    <div class="mensaje-vacio">
+                        <i class="pi pi-trophy" style="font-size: 3rem; color: #94a3b8;"></i>
+                        <h3>Aún no has completado ninguna misión</h3>
+                        <p>¡Completa tu primera misión para ganar insignias y experiencia!</p>
+                    </div>
+                </ng-template>
+            </p-tabpanel>
+
+            <!-- BLOQUEADAS -->
+            <p-tabpanel header="Bloqueadas" leftIcon="pi pi-lock">
+                <div class="misiones-grid" *ngIf="misionesBloqueadas.length > 0">
+                    <div *ngFor="let mision of misionesBloqueadas" class="mision-card-wrapper">
+                        <p-card [styleClass]="'mision-card bloqueada'">
+                            <div class="mision-imagen bloqueada-overlay">
+                                <img [src]="mision.imagenPortada" [alt]="mision.titulo">
+                                <div class="overlay-lock">
+                                    <i class="pi pi-lock"></i>
+                                </div>
+                            </div>
+
+                            <div class="mision-contenido">
+                                <h3 class="mision-titulo">{{ mision.titulo }}</h3>
+                                <p class="mision-descripcion">{{ mision.descripcionCorta }}</p>
+
+                                <!-- Requisitos -->
+                                <div class="requisitos-bloqueo">
+                                    <p class="requisitos-titulo">
+                                        <i class="pi pi-info-circle"></i>
+                                        Requisitos:
+                                    </p>
+                                    <ul class="requisitos-lista">
+                                        <li *ngIf="mision.requisitos.nivelMinimo">
+                                            Nivel mínimo: {{ mision.requisitos.nivelMinimo }}
+                                        </li>
+                                        <li *ngIf="mision.requisitos.misionesPrevias && mision.requisitos.misionesPrevias.length > 0">
+                                            Completar {{ mision.requisitos.misionesPrevias.length }} misiones previas
+                                        </li>
+                                        <li *ngIf="mision.requisitos.insignias && mision.requisitos.insignias.length > 0">
+                                            Obtener {{ mision.requisitos.insignias.length }} insignias específicas
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </p-card>
+                    </div>
+                </div>
+            </p-tabpanel>
+        </p-tabs>
+    </div>
+</div>
