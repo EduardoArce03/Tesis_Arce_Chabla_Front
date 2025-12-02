@@ -97,7 +97,7 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
                         summary: 'Error',
                         detail: 'Misión no iniciada o no encontrada'
                     });
-                    this.router.navigate(['/misiones', this.misionId]);
+                    this.router.navigate(['/juegos/misiones', this.misionId]);
                 }
             });
     }
@@ -272,13 +272,13 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
                 });
 
                 setTimeout(() => {
-                    this.router.navigate(['/misiones']);
+                    this.router.navigate(['/juegos/misiones']);
                 }, 1500);
             });
     }
 
     finalizarMision(): void {
-        this.router.navigate(['/misiones', this.misionId]);
+        this.router.navigate(['/juegos/misiones', this.misionId]);
     }
 
     private iniciarCronometro(): void {

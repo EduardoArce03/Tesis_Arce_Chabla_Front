@@ -68,11 +68,11 @@ export class ListaMisionesComponent implements OnInit, OnDestroy {
     }
 
     verDetalleMision(mision: Mision): void {
-        this.router.navigate(['/misiones', mision.id]);
+        this.router.navigate(['/juegos/misiones', mision.id]);
     }
 
     continuarMision(mision: Mision): void {
-        this.router.navigate(['/misiones', mision.id, 'ejecutar']);
+        this.router.navigate(['/juegos/misiones', mision.id, 'ejecutar']);
     }
 
     obtenerIconoDificultad(dificultad: DificultadMision): string {

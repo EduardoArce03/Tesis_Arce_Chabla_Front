@@ -7,7 +7,8 @@ import { MISIONES_MOCK } from '../data/misiones-mock.data';
 
 @Injectable({ providedIn: 'root' })
 export class MisionService {
-    private misionesSubject = new BehaviorSubject<Mision[]>(MISIONES_MOCK);
+    // ✅ CORRECCIÓN: Inicializar con array vacío y cargar después
+    private misionesSubject = new BehaviorSubject<Mision[]>([]);
     public misiones$ = this.misionesSubject.asObservable();
 
     private misionActualSubject = new BehaviorSubject<Mision | null>(null);
@@ -21,22 +22,38 @@ export class MisionService {
     }
 
     private inicializarEstados(): void {
+        // ✅ CORRECCIÓN: Clonar las misiones mock para no mutar el original
+        const misionesIniciales = JSON.parse(JSON.stringify(MISIONES_MOCK)) as Mision[];
+
         // Cargar progreso desde localStorage si existe
         const progresoGuardado = localStorage.getItem('misiones_progreso');
+
         if (progresoGuardado) {
-            const progresos = JSON.parse(progresoGuardado);
-            const misiones = this.misionesSubject.value;
+            try {
+                const progresos = JSON.parse(progresoGuardado);
 
-            misiones.forEach(mision => {
-                const progreso = progresos[mision.id];
-                if (progreso) {
-                    mision.estado = progreso.estado;
-                    mision.progreso = progreso.progreso;
-                }
-            });
+                misionesIniciales.forEach(mision => {
+                    const progreso = progresos[mision.id];
+                    if (progreso) {
+                        mision.estado = progreso.estado;
+                        mision.progreso = progreso.progreso;
 
-            this.misionesSubject.next([...misiones]);
+                        // ✅ CORRECCIÓN: Convertir fechas de string a Date
+                        if (mision.progreso?.fechaInicio) {
+                            mision.progreso.fechaInicio = new Date(mision.progreso.fechaInicio);
+                        }
+
+                    }
+                });
+            } catch (error) {
+                console.error('Error al cargar progreso guardado:', error);
+                // Si hay error, limpiar localStorage corrupto
+                localStorage.removeItem('misiones_progreso');
+            }
         }
+
+        // ✅ Ahora sí, actualizar el BehaviorSubject con las misiones procesadas
+        this.misionesSubject.next(misionesIniciales);
     }
 
     obtenerMisiones(): Observable<Mision[]> {
@@ -66,6 +83,13 @@ export class MisionService {
 
         if (mision.estado === EstadoMision.BLOQUEADA) {
             throw new Error('Misión bloqueada - completa los requisitos primero');
+        }
+
+        // ✅ CORRECCIÓN: Permitir reiniciar misión completada
+        // Si la misión ya está completada, resetear su estado
+        if (mision.estado === EstadoMision.COMPLETADA) {
+            mision.estado = EstadoMision.DISPONIBLE;
+            mision.progreso = undefined;
         }
 
         // Crear progreso inicial
@@ -177,6 +201,7 @@ export class MisionService {
         );
 
         mision.progreso.puntuacion += bonusTiempo + bonusPrecision;
+        //mision.progreso.fechaFinalizacion = new Date();
         mision.estado = EstadoMision.COMPLETADA;
 
         // Desbloquear misiones dependientes
@@ -205,6 +230,31 @@ export class MisionService {
         this.guardarProgreso();
 
         return of(void 0).pipe(delay(200));
+    }
+
+    // ✅ NUEVO MÉTODO: Resetear una misión completada
+    resetearMision(misionId: string): Observable<void> {
+        const misiones = this.misionesSubject.value;
+        const mision = misiones.find(m => m.id === misionId);
+
+        if (!mision) {
+            return of(void 0);
+        }
+
+        mision.estado = EstadoMision.DISPONIBLE;
+        mision.progreso = undefined;
+
+        this.misionesSubject.next([...misiones]);
+        this.guardarProgreso();
+
+        return of(void 0).pipe(delay(200));
+    }
+
+    // ✅ NUEVO MÉTODO: Resetear TODAS las misiones (útil para desarrollo)
+    resetearTodasLasMisiones(): Observable<void> {
+        localStorage.removeItem('misiones_progreso');
+        this.inicializarEstados();
+        return of(void 0);
     }
 
     private desbloquearMisionesDependientes(misionCompletadaId: string): void {

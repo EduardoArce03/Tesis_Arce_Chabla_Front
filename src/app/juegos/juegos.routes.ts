@@ -1,41 +1,5 @@
 // src/app/juegos/juegos.routes.ts
-
-import { Routes, UrlSegment } from '@angular/router';
-
-// Matcher personalizado para /misiones/:id/ejecutar
-function misionEjecutarMatcher(segments: UrlSegment[]) {
-    // Debe tener exactamente 3 segmentos: ['misiones', 'mision-001', 'ejecutar']
-    if (
-        segments.length === 3 &&
-        segments[0].path === 'misiones' &&
-        segments[2].path === 'ejecutar'
-    ) {
-        return {
-            consumed: segments,
-            posParams: {
-                id: segments[1]
-            }
-        };
-    }
-    return null;
-}
-
-// Matcher para /misiones/:id
-function misionDetalleMatcher(segments: UrlSegment[]) {
-    // Debe tener exactamente 2 segmentos: ['misiones', 'mision-001']
-    if (
-        segments.length === 2 &&
-        segments[0].path === 'misiones'
-    ) {
-        return {
-            consumed: segments,
-            posParams: {
-                id: segments[1]
-            }
-        };
-    }
-    return null;
-}
+import { Routes } from '@angular/router';
 
 export default [
     {
@@ -44,27 +8,30 @@ export default [
         pathMatch: 'full'
     },
 
-    // Ruta con matcher para ejecutar
+    // ⚠️ ORDEN CRÍTICO: Rutas más específicas primero
+
+    // 1. Ejecutar misión (más específica: 3 segmentos)
     {
-        matcher: misionEjecutarMatcher,
+        path: 'misiones/:id/ejecutar',
         loadComponent: () => import('./misiones/components/ejecutar-mision/ejecutar-mision.component')
             .then(m => m.EjecutarMisionComponent)
     },
 
-    // Ruta con matcher para detalle
+    // 2. Detalle de misión (menos específica: 2 segmentos)
     {
-        matcher: misionDetalleMatcher,
+        path: 'misiones/:id',
         loadComponent: () => import('./misiones/components/detalle-mision/detalle-mision.component')
             .then(m => m.DetalleMisionComponent)
     },
 
-    // Lista de misiones (sin matcher)
+    // 3. Lista de misiones (sin parámetros)
     {
         path: 'misiones',
         loadComponent: () => import('./misiones/components/lista-misiones/lista-misiones.component')
             .then(m => m.ListaMisionesComponent)
     },
 
+    // Otros juegos
     {
         path: 'exploracion',
         loadComponent: () => import('./mapa-ingapirca/mapa-ingapirca.component')

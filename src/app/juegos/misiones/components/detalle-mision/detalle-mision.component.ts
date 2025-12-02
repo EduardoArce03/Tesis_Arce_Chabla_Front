@@ -103,7 +103,7 @@ export class DetalleMisionComponent implements OnInit, OnDestroy {
                     });
 
                     setTimeout(() => {
-                        this.router.navigate(['/misiones', this.mision?.id, 'ejecutar']);
+                        this.router.navigate(['/juegos/misiones', this.mision?.id, 'ejecutar']); // ✅ Corregido
                     }, 1000);
                 },
                 error: (error: { message: any }) => {
@@ -117,11 +117,11 @@ export class DetalleMisionComponent implements OnInit, OnDestroy {
     }
 
     continuarMision(): void {
-        this.router.navigate(['/misiones', this.mision?.id, 'ejecutar']);
+        this.router.navigate(['/juegos/misiones', this.mision?.id, 'ejecutar']); // ✅ Corregido
     }
 
     volverALista(): void {
-        this.router.navigate(['/misiones']);
+        this.router.navigate(['/juegos/misiones']); // ✅ Corregido
     }
 
     obtenerIconoDificultad(dificultad: DificultadMision): string {
