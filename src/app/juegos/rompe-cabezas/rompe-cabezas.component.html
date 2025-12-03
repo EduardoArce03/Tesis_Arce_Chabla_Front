@@ -1,0 +1,183 @@
+<div class="puzzle-wrapper">
+  <!-- Header con estadísticas -->
+  <div class="puzzle-header">
+    <p-card>
+      <div class="flex justify-content-between align-items-center flex-wrap">
+        <div class="game-stats">
+          <div class="stat-item">
+            <i class="pi pi-clock"></i>
+            <span>{{ formatTiime(tiempoTranscurrido) }}</span>
+          </div>
+          <div class="stat-item">
+            <i class="pi pi-sync"></i>
+            <span>{{ moves }} movimientos</span>
+          </div>
+        </div>
+
+        <div class="game-controls">
+          <p-button 
+            *ngIf="!isPlaying"
+            label="Iniciar Juego"
+            icon="pi pi-play"
+            severity="success"
+            (onClick)="iniciarJuego()">
+          </p-button>
+          
+          <p-button 
+            *ngIf="isPlaying"
+            label="Reiniciar"
+            icon="pi pi-replay"
+            severity="danger"
+            (onClick)="resetGame()">
+          </p-button>
+          
+          <p-button 
+            label="Opciones"
+            icon="pi pi-cog"
+            severity="info"
+            (onClick)="toggleMenu()">
+          </p-button>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Contenedor del puzzle - DEBE OCUPAR EL RESTO DEL ESPACIO -->
+  <div class="puzzle-container" #puzzleContainer>
+    <!-- Aquí se generan dinámicamente los canvas de las piezas -->
+  </div>
+
+  <!-- Mensaje de victoria -->
+  <p-dialog
+    [(visible)]="isCompleted"
+    [modal]="true"
+    [closable]="false"
+    [style]="{width: '450px'}"
+    header="¡Allillachu! (¡Muy bien!)">
+    
+    <div class="resultados-content">
+      <div class="puntuacion-final">
+        <i class="pi pi-star-fill" style="color: gold; font-size: 3rem;"></i>
+        <h3>¡Puzzle Completado!</h3>
+      </div>
+
+      <hr class="divider">
+
+      <div class="estadisticas-finales">
+        <div class="estadistica">
+          <span class="label">Tiempo:</span>
+          <span class="valor">{{ formatTiime(tiempoTranscurrido) }}</span>
+        </div>
+        <div class="estadistica">
+          <span class="label">Movimientos:</span>
+          <span class="valor">{{ moves }}</span>
+        </div>
+        <div class="estadistica">
+          <span class="label">Dificultad:</span>
+          <span class="valor">{{ gridSize }}x{{ gridSize }} piezas</span>
+        </div>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <p-button 
+        label="Jugar de nuevo"
+        icon="pi pi-refresh"
+        severity="success"
+        (onClick)="iniciarJuego()">
+      </p-button>
+      <p-button 
+        label="Cambiar"
+        icon="pi pi-images"
+        severity="secondary"
+        (onClick)="isCompleted = false; toggleMenu()">
+      </p-button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Menu Lateral -->
+  <div class="side-menu" [class.open]="showMenu">
+    <div class="menu-header">
+      <h3><i class="pi pi-cog"></i> Configuración</h3>
+      <button class="close-btn" (click)="toggleMenu()">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+    
+    <div class="menu-content">
+      <!-- Dificultad -->
+      <div class="menu-section">
+        <h4><i class="pi pi-th"></i> Dificultad</h4>
+        <div class="difficulty-buttons">
+          <p-button 
+            label="3x3 - 9 piezas (Fácil)"
+            icon="pi pi-th-large"
+            [outlined]="gridSize !== 3"
+            [disabled]="isPlaying"
+            (onClick)="changeGridSize(3)">
+          </p-button>
+          <p-button 
+            label="4x4 - 16 piezas (Medio)"
+            icon="pi pi-table"
+            [outlined]="gridSize !== 4"
+            [disabled]="isPlaying"
+            (onClick)="changeGridSize(4)">
+          </p-button>
+          <p-button 
+            label="5x5 - 25 piezas (Difícil)"
+            icon="pi pi-th"
+            [outlined]="gridSize !== 5"
+            [disabled]="isPlaying"
+            (onClick)="changeGridSize(5)">
+          </p-button>
+        </div>
+        
+        <p *ngIf="isPlaying" class="menu-warning">
+          <i class="pi pi-info-circle"></i> 
+          Termina o reinicia el juego para cambiar la dificultad
+        </p>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Imágenes -->
+      <div class="menu-section">
+        <h4><i class="pi pi-image"></i> Imagen</h4>
+        <div class="image-buttons">
+          <p-button 
+            *ngFor="let img of imagenesDisponibles"
+            [label]="img.label"
+            icon="pi pi-image"
+            [outlined]="imagenUrl !== img.url"
+            [disabled]="isPlaying"
+            (onClick)="changeImage(img.url)">
+          </p-button>
+        </div>
+        
+        <p *ngIf="isPlaying" class="menu-warning">
+          <i class="pi pi-info-circle"></i> 
+          Termina o reinicia el juego para cambiar la imagen
+        </p>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Instrucciones -->
+      <div class="menu-section">
+        <h4><i class="pi pi-question-circle"></i> Instrucciones</h4>
+        <div class="instructions-box">
+          <p><strong>🎮 Cómo jugar:</strong></p>
+          <ul>
+            <li>Arrastra las piezas con el mouse o dedo</li>
+            <li>Las piezas correctas se pegarán automáticamente</li>
+            <li>Completa el puzzle uniendo todas las piezas</li>
+            <li>¡Hazlo en el menor tiempo posible!</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay para el menú -->
+  <div class="menu-overlay" *ngIf="showMenu" (click)="toggleMenu()"></div>
+</div>
