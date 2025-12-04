@@ -328,71 +328,144 @@ class PolyPiece {
   }
 
   drawImage(special?: boolean): void {
-    const puzzle = this.puzzle;
-    this.nx = this.pckxmax - this.pckxmin + 1;
-    this.ny = this.pckymax - this.pckymin + 1;
-    this.canvas.width = this.nx * puzzle.scalex;
-    this.canvas.height = this.ny * puzzle.scaley;
+  const puzzle = this.puzzle;
+  this.nx = this.pckxmax - this.pckxmin + 1;
+  this.ny = this.pckymax - this.pckymin + 1;
+  this.canvas.width = this.nx * puzzle.scalex;
+  this.canvas.height = this.ny * puzzle.scaley;
 
-    this.offsx = (this.pckxmin - 0.5) * puzzle.scalex;
-    this.offsy = (this.pckymin - 0.5) * puzzle.scaley;
+  this.offsx = (this.pckxmin - 0.5) * puzzle.scalex;
+  this.offsy = (this.pckymin - 0.5) * puzzle.scaley;
 
-    this.path = new Path2D();
-    this.drawPath(this.path as any, -this.offsx, -this.offsy);
+  this.path = new Path2D();
+  this.drawPath(this.path as any, -this.offsx, -this.offsy);
 
-    this.ctx.fillStyle = 'none';
-    this.ctx.shadowColor = this.selected ? (special ? 'red' : 'gold') : 'rgba(0, 0, 0, 0.5)';
-    this.ctx.shadowBlur = this.selected ? Math.min(8, puzzle.scalex / 10) : 4;
-    this.ctx.shadowOffsetX = this.selected ? 0 : -4;
-    this.ctx.shadowOffsetY = this.selected ? 0 : 4;
+  // Limpiar canvas primero
+  this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+  if (special) {
+    this.ctx.save();
+    this.ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+    this.ctx.shadowColor = 'gold';
+    this.ctx.shadowBlur = 30;
     this.ctx.fill(this.path);
-    
-    if (this.selected) {
-      for (let i = 0; i < 6; i++) this.ctx.fill(this.path);
-    }
-    
-    this.ctx.shadowColor = 'rgba(0, 0, 0, 0)';
-
-    this.pieces.forEach((pp) => {
-      this.ctx.save();
-
-      const path = new Path2D();
-      const shiftx = -this.offsx;
-      const shifty = -this.offsy;
-      pp.ts.drawPath(this.ctx, shiftx, shifty, false);
-      pp.rs.drawPath(this.ctx, shiftx, shifty, true);
-      pp.bs.drawPath(this.ctx, shiftx, shifty, true);
-      pp.ls.drawPath(this.ctx, shiftx, shifty, true);
-      (this.ctx as any).closePath();
-
-      this.ctx.clip(path);
-
-      const srcx = pp.kx ? ((pp.kx - 0.5) * puzzle.scalex) : 0;
-      const srcy = pp.ky ? ((pp.ky - 0.5) * puzzle.scaley) : 0;
-
-      const destx = (pp.kx ? 0 : puzzle.scalex / 2) + (pp.kx - this.pckxmin) * puzzle.scalex;
-      const desty = (pp.ky ? 0 : puzzle.scaley / 2) + (pp.ky - this.pckymin) * puzzle.scaley;
-
-      let w = 2 * puzzle.scalex;
-      let h = 2 * puzzle.scaley;
-      if (srcx + w > puzzle.gameCanvas.width) w = puzzle.gameCanvas.width - srcx;
-      if (srcy + h > puzzle.gameCanvas.height) h = puzzle.gameCanvas.height - srcy;
-
-      this.ctx.drawImage(puzzle.gameCanvas, srcx, srcy, w, h, destx, desty, w, h);
-
-      this.ctx.translate(puzzle.embossThickness / 2, -puzzle.embossThickness / 2);
-      this.ctx.lineWidth = puzzle.embossThickness;
-      this.ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
-      this.ctx.stroke(path);
-
-      this.ctx.translate(-puzzle.embossThickness, puzzle.embossThickness);
-      this.ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
-      this.ctx.stroke(path);
-      this.ctx.restore();
-    });
-
-    this.canvas.style.transform = `rotate(${90 * this.rot}deg)`;
+    this.ctx.restore();
   }
+
+  // Dibujar sombra
+  this.ctx.save();
+  this.ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+  
+  if (this.selected && special) {
+    this.ctx.shadowColor = 'gold';
+    this.ctx.shadowBlur = 20;
+    this.ctx.shadowOffsetX = 0;
+    this.ctx.shadowOffsetY = 0;
+    
+    // Dibujar múltiples veces para efecto más intenso
+    for (let i = 0; i < 10; i++) {
+      this.ctx.fill(this.path);
+    }
+  } else if (this.selected) {
+    // Seleccionado normal (sin merge)
+    this.ctx.shadowColor = 'rgba(102, 126, 234, 0.8)';
+    this.ctx.shadowBlur = Math.min(8, puzzle.scalex / 10);
+    this.ctx.shadowOffsetX = 0;
+    this.ctx.shadowOffsetY = 0;
+    
+    for (let i = 0; i < 6; i++) {
+      this.ctx.fill(this.path);
+    }
+  } else {
+    // Sombra normal
+    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    this.ctx.shadowBlur = 4;
+    this.ctx.shadowOffsetX = -4;
+    this.ctx.shadowOffsetY = 4;
+    this.ctx.fill(this.path);
+  }
+  
+  this.ctx.restore();
+
+  // Dibujar cada pieza
+  this.pieces.forEach((pp) => {
+    this.ctx.save();
+
+    // Crear path para esta pieza específica
+    const path = new Path2D();
+    const shiftx = -this.offsx;
+    const shifty = -this.offsy;
+    
+    pp.ts.drawPath(this.ctx, shiftx, shifty, false);
+    pp.rs.drawPath(this.ctx, shiftx, shifty, true);
+    pp.bs.drawPath(this.ctx, shiftx, shifty, true);
+    pp.ls.drawPath(this.ctx, shiftx, shifty, true);
+    path.closePath();
+
+    // Aplicar clipping
+    this.ctx.clip(this.path);
+
+    // Calcular coordenadas de origen en la imagen
+    const srcx = pp.kx ? ((pp.kx - 0.5) * puzzle.scalex) : 0;
+    const srcy = pp.ky ? ((pp.ky - 0.5) * puzzle.scaley) : 0;
+
+    const destx = (pp.kx ? 0 : puzzle.scalex / 2) + (pp.kx - this.pckxmin) * puzzle.scalex;
+    const desty = (pp.ky ? 0 : puzzle.scaley / 2) + (pp.ky - this.pckymin) * puzzle.scaley;
+
+    let w = 2 * puzzle.scalex;
+    let h = 2 * puzzle.scaley;
+    
+    // Ajustar dimensiones si exceden el canvas
+    if (srcx + w > puzzle.gameCanvas.width) w = puzzle.gameCanvas.width - srcx;
+    if (srcy + h > puzzle.gameCanvas.height) h = puzzle.gameCanvas.height - srcy;
+
+    // Dibujar la imagen del gameCanvas
+    this.ctx.drawImage(
+      puzzle.gameCanvas, 
+      srcx, srcy, w, h,
+      destx, desty, w, h
+    );
+
+    this.ctx.restore();
+  });
+
+  // Dibujar bordes con efecto 3D
+  this.pieces.forEach((pp) => {
+    this.ctx.save();
+
+    const path = new Path2D();
+    const shiftx = -this.offsx;
+    const shifty = -this.offsy;
+    
+    pp.ts.drawPath(this.ctx, shiftx, shifty, false);
+    pp.rs.drawPath(this.ctx, shiftx, shifty, true);
+    pp.bs.drawPath(this.ctx, shiftx, shifty, true);
+    pp.ls.drawPath(this.ctx, shiftx, shifty, true);
+    path.closePath();
+
+    if (special && this.selected) {
+      this.ctx.strokeStyle = "rgba(255, 215, 0, 0.8)"; // Dorado
+      this.ctx.lineWidth = puzzle.embossThickness * 1.5;
+      this.ctx.stroke(path);
+    }
+
+    // Sombra oscura
+    this.ctx.translate(puzzle.embossThickness / 2, -puzzle.embossThickness / 2);
+    this.ctx.lineWidth = puzzle.embossThickness;
+    this.ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+    this.ctx.stroke(path);
+
+    // Luz clara
+    this.ctx.translate(-puzzle.embossThickness, puzzle.embossThickness);
+    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    this.ctx.stroke(path);
+    
+    this.ctx.restore();
+  });
+
+  // Aplicar rotación si es necesario
+  this.canvas.style.transform = `rotate(${90 * this.rot}deg)`;
+}
 
   moveTo(x: number, y: number): void {
     this.x = x;
@@ -764,7 +837,6 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
   timerInterval: any;
   isPlaying: boolean = false;
   isCompleted: boolean = false;
-  imagenUrl: string = 'https://picsum.photos/800/600?random=1';
   showMenu: boolean = false;
 
   private puzzle!: Puzzle;
@@ -772,11 +844,13 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
   private mouseInitX: number = 0;
   private mouseInitY: number = 0;
 
+  imagenUrl: string = 'https://picsum.photos/800/600?random=1';
+
   imagenesDisponibles = [
-    { url: 'https://picsum.photos/800/600?random=1', label: 'Imagen 1' },
-    { url: 'https://picsum.photos/800/600?random=2', label: 'Imagen 2' },
-    { url: 'https://picsum.photos/800/600?random=3', label: 'Imagen 3' },
-    { url: 'https://picsum.photos/800/600?random=4', label: 'Imagen 4' }
+    { url: 'https://picsum.photos/800/600?random=1', label: 'Paisaje 1' },
+    { url: 'https://picsum.photos/800/600?random=2', label: 'Paisaje 2' },
+    { url: 'https://picsum.photos/800/600?random=3', label: 'Paisaje 3' },
+    { url: 'https://picsum.photos/800/600?random=4', label: 'Paisaje 4' }
   ];
 
   ngOnInit() {}
@@ -802,13 +876,40 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   loadImage() {
-    this.puzzle.srcImage.crossOrigin = 'anonymous';
-    this.puzzle.srcImage.onload = () => {
-      this.puzzle.imageLoaded = true;
-      this.setupPuzzle();
-    };
-    this.puzzle.srcImage.src = this.imagenUrl;
+  console.log('🖼️ Cargando imagen:', this.imagenUrl);
+  
+  this.puzzle.srcImage = new Image();
+  
+  // Solo usar crossOrigin para URLs externas (que empiezan con http)
+  if (this.imagenUrl.startsWith('http')) {
+    this.puzzle.srcImage.crossOrigin = 'Anonymous';
+    console.log('🌐 Usando CORS para URL externa');
+  } else {
+    console.log('📁 Cargando imagen local');
   }
+  
+  this.puzzle.srcImage.onload = () => {
+    console.log('✅ Imagen cargada exitosamente');
+    console.log('📐 Dimensiones:', this.puzzle.srcImage.naturalWidth, 'x', this.puzzle.srcImage.naturalHeight);
+    this.puzzle.imageLoaded = true;
+    
+    // Verificar que la imagen no esté vacía
+    if (this.puzzle.srcImage.naturalWidth === 0 || this.puzzle.srcImage.naturalHeight === 0) {
+      console.error('❌ La imagen está vacía o corrupta');
+      return;
+    }
+    
+    this.setupPuzzle();
+  };
+  
+  this.puzzle.srcImage.onerror = (error) => {
+    console.error('❌ Error al cargar imagen:', error);
+    console.error('URL intentada:', this.imagenUrl);
+  };
+  
+  // Importante: establecer src al final
+  this.puzzle.srcImage.src = this.imagenUrl;
+}
 
   setupPuzzle() {
     this.puzzle.create();
