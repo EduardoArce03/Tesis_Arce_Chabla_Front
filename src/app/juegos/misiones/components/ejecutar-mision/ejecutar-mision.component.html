@@ -1,0 +1,499 @@
+<!-- ejecutar-mision.component.html -->
+<div class="ejecutar-mision-container" *ngIf="mision && faseActual">
+    <!-- Header con Progreso -->
+    <div class="header-ejecucion">
+        <p-card>
+            <div class="flex justify-content-between align-items-center flex-wrap">
+                <!-- Info de la Misión -->
+                <div class="info-mision">
+                    <h2>{{ mision.titulo }}</h2>
+                    <p class="fase-actual-texto">
+                        Fase {{ progreso!.faseActual + 1 }} de {{ mision.fases.length }}:
+                        {{ faseActual.titulo || 'Fase ' + (progreso!.faseActual + 1) }}
+                    </p>
+                </div>
+
+                <!-- Stats en Tiempo Real -->
+                <div class="stats-tiempo-real">
+                    <div class="stat-item">
+                        <i class="pi pi-clock"></i>
+                        <span>{{ formatearTiempo(progreso!.tiempoTranscurrido) }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="pi pi-check text-green-500"></i>
+                        <span>{{ progreso!.respuestasCorrectas }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="pi pi-times text-red-500"></i>
+                        <span>{{ progreso!.respuestasIncorrectas }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="pi pi-star-fill text-yellow-500"></i>
+                        <span>{{ progreso!.puntuacion }}</span>
+                    </div>
+                </div>
+
+                <!-- Acciones Rápidas -->
+                <div class="acciones-rapidas">
+                    <p-button
+                        icon="pi pi-question-circle"
+                        [rounded]="true"
+                        [outlined]="true"
+                        [disabled]="!faseActual.pregunta"
+                        pTooltip="Usar Pista (-10 pts)"
+                        (onClick)="usarPista()">
+                    </p-button>
+                    <p-button
+                        icon="pi pi-times"
+                        [rounded]="true"
+                        severity="danger"
+                        [outlined]="true"
+                        pTooltip="Abandonar Misión"
+                        (onClick)="mostrarDialogAbandonar = true">
+                    </p-button>
+                </div>
+            </div>
+
+            <!-- Barra de Progreso General -->
+            <p-progressBar
+                [value]="calcularProgreso()"
+                [showValue]="false"
+                styleClass="mt-3">
+            </p-progressBar>
+        </p-card>
+    </div>
+
+    <!-- Contenido de la Fase -->
+    <div class="contenido-fase">
+        <div class="grid">
+            <!-- Columna Principal -->
+            <div class="col-12 lg:col-8">
+
+                <!-- FASE TIPO: INTRODUCCIÓN / CONCLUSIÓN -->
+                <p-card *ngIf="faseActual.tipo === TipoFase.INTRODUCCION ||
+                       faseActual.tipo === TipoFase.CONCLUSION">
+
+                    <!-- Imagen si existe -->
+                    <div class="fase-imagen" *ngIf="faseActual.imagenUrl">
+                        <img [src]="faseActual.imagenUrl" [alt]="faseActual.titulo">
+                    </div>
+
+                    <!-- Narrativa con efecto typing -->
+                    <div class="narrativa-contenedor" (click)="saltarAnimacion()">
+                        <p class="narrativa-texto">{{ narrativaVisible }}</p>
+
+                        <small *ngIf="!narrativaCompleta" class="typing-hint">
+                            <i class="pi pi-forward"></i> Click para mostrar todo
+                        </small>
+                    </div>
+
+                    <!-- Botón continuar -->
+                    <div class="acciones-fase" *ngIf="narrativaCompleta">
+                        <p-button
+                            label="Continuar"
+                            icon="pi pi-arrow-right"
+                            iconPos="right"
+                            (onClick)="avanzarFase()">
+                        </p-button>
+                    </div>
+                </p-card>
+
+                <!-- FASE TIPO: ANÁLISIS IMAGEN -->
+                <p-card *ngIf="faseActual.tipo === TipoFase.ANALISIS_IMAGEN">
+                    <h3>{{ faseActual.titulo }}</h3>
+
+                    <p *ngIf="faseActual.textoNarrativa" class="intro-texto">
+                        {{ faseActual.textoNarrativa }}
+                    </p>
+
+                    <!-- Imagen a analizar -->
+                    <div class="imagen-analisis">
+                        <img [src]="faseActual.imagenUrl" alt="Imagen para análisis">
+                    </div>
+
+                    <!-- Estado: Cargando análisis -->
+                    <div *ngIf="cargandoAnalisis" class="analisis-cargando">
+                        <p-progressSpinner
+                            strokeWidth="4"
+                            [style]="{width: '60px', height: '60px'}">
+                        </p-progressSpinner>
+                        <p class="mt-3">
+                            <i class="pi pi-spin pi-spinner"></i>
+                            Analizando imagen con IA...
+                        </p>
+                        <p class="text-sm text-500">
+                            El modelo BLIP-2 está procesando la imagen
+                        </p>
+                    </div>
+
+                    <!-- Resultado del análisis -->
+                    <div *ngIf="analisisCompleto && !cargandoAnalisis" class="analisis-resultado">
+                        <div class="analisis-header">
+                            <i class="pi pi-check-circle text-green-500"></i>
+                            <h4>Análisis Completado</h4>
+                        </div>
+
+                        <div class="analisis-texto" (click)="saltarAnimacion()">
+                            <p>{{ narrativaVisible }}</p>
+
+                            <small *ngIf="!narrativaCompleta" class="typing-hint">
+                                <i class="pi pi-forward"></i> Click para mostrar todo
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Botón continuar -->
+                    <div class="acciones-fase" *ngIf="narrativaCompleta">
+                        <p-button
+                            label="Continuar"
+                            icon="pi pi-arrow-right"
+                            iconPos="right"
+                            (onClick)="avanzarFase()">
+                        </p-button>
+                    </div>
+                </p-card>
+
+                <!-- FASE TIPO: PREGUNTA MÚLTIPLE -->
+                <p-card *ngIf="faseActual.tipo === TipoFase.PREGUNTA_MULTIPLE && faseActual.pregunta">
+                    <h3>{{ faseActual.titulo }}</h3>
+
+                    <p *ngIf="faseActual.textoNarrativa" class="intro-texto">
+                        {{ faseActual.textoNarrativa }}
+                    </p>
+
+                    <!-- Imagen relacionada -->
+                    <div class="imagen-pregunta" *ngIf="faseActual.imagenUrl">
+                        <img [src]="faseActual.imagenUrl" alt="Contexto visual">
+                    </div>
+
+                    <!-- Pregunta -->
+                    <div class="pregunta-contenedor">
+                        <h4 class="pregunta-texto">{{ faseActual.pregunta.textoPregunta }}</h4>
+
+                        <!-- Opciones -->
+                        <div class="opciones-lista">
+                            <div *ngFor="let opcion of faseActual.pregunta.opciones"
+                                 class="opcion-item"
+                                 [class.opcion-seleccionada]="respuestaSeleccionada === opcion.id"
+                                 [class.opcion-correcta]="mostrandoFeedback && opcion.correcta"
+                                 [class.opcion-incorrecta]="mostrandoFeedback && !opcion.correcta && respuestaSeleccionada === opcion.id">
+
+                                <p-radioButton
+                                    [value]="opcion.id"
+                                    [(ngModel)]="respuestaSeleccionada"
+                                    [inputId]="opcion.id"
+                                    [disabled]="mostrandoFeedback">
+                                </p-radioButton>
+
+                                <label [for]="opcion.id" class="opcion-label">
+                                    <span class="opcion-letra">{{ opcion.id }}</span>
+                                    <span class="opcion-texto">{{ opcion.texto }}</span>
+                                </label>
+
+                                <!-- Icono de resultado -->
+                                <i *ngIf="mostrandoFeedback && opcion.correcta"
+                                   class="pi pi-check-circle resultado-icono correcto"></i>
+                                <i *ngIf="mostrandoFeedback && !opcion.correcta && respuestaSeleccionada === opcion.id"
+                                   class="pi pi-times-circle resultado-icono incorrecto"></i>
+                            </div>
+                        </div>
+
+                        <!-- Feedback -->
+                        <div *ngIf="mostrandoFeedback" class="feedback-contenedor"
+                             [class.feedback-correcto]="feedbackCorrecto"
+                             [class.feedback-incorrecto]="!feedbackCorrecto">
+
+                            <div class="feedback-header">
+                                <i [class]="feedbackCorrecto ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
+                                <h4>{{ feedbackCorrecto ? '¡Correcto!' : 'Incorrecto' }}</h4>
+                            </div>
+
+                            <p class="feedback-texto">{{ feedbackMensaje }}</p>
+
+                            <!-- Elementos clave aprendidos -->
+                            <div *ngIf="feedbackCorrecto && faseActual.pregunta.elementosClave"
+                                 class="elementos-clave">
+                                <p class="elementos-titulo">🔑 Conceptos clave:</p>
+                                <div class="elementos-lista">
+                  <span *ngFor="let elemento of faseActual.pregunta.elementosClave"
+                        class="elemento-tag">
+                    {{ elemento }}
+                  </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Acciones -->
+                        <div class="acciones-fase">
+                            <p-button
+                                *ngIf="!mostrandoFeedback"
+                                label="Verificar Respuesta"
+                                icon="pi pi-check"
+                                [disabled]="!respuestaSeleccionada"
+                                (onClick)="verificarRespuesta()">
+                            </p-button>
+
+                            <p-button
+                                *ngIf="mostrandoFeedback && !feedbackCorrecto"
+                                label="Intentar de Nuevo"
+                                icon="pi pi-refresh"
+                                severity="warn"
+                                (onClick)="mostrandoFeedback = false; respuestaSeleccionada = ''">
+                            </p-button>
+
+                            <p-button
+                                *ngIf="mostrandoFeedback && feedbackCorrecto"
+                                label="Continuar"
+                                icon="pi pi-arrow-right"
+                                iconPos="right"
+                                (onClick)="avanzarFase()">
+                            </p-button>
+                        </div>
+                    </div>
+                </p-card>
+
+                <!-- FASE TIPO: PREGUNTA ABIERTA -->
+                <p-card *ngIf="faseActual.tipo === TipoFase.PREGUNTA_ABIERTA && faseActual.pregunta">
+                    <h3>{{ faseActual.titulo }}</h3>
+
+                    <div class="pregunta-contenedor">
+                        <h4 class="pregunta-texto">{{ faseActual.pregunta.textoPregunta }}</h4>
+
+                        <div class="respuesta-abierta-contenedor">
+              <textarea
+                  pInputTextarea
+                  [(ngModel)]="respuestaAbierta"
+                  [rows]="5"
+                  [disabled]="mostrandoFeedback"
+                  placeholder="Escribe tu respuesta aquí..."
+                  class="respuesta-textarea">
+              </textarea>
+
+                            <small class="ayuda-texto">
+                                💡 Tip: Sé específico y usa los conceptos aprendidos
+                            </small>
+                        </div>
+
+                        <!-- Feedback -->
+                        <div *ngIf="mostrandoFeedback" class="feedback-contenedor"
+                             [class.feedback-correcto]="feedbackCorrecto"
+                             [class.feedback-incorrecto]="!feedbackCorrecto">
+
+                            <div class="feedback-header">
+                                <i [class]="feedbackCorrecto ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
+                                <h4>{{ feedbackCorrecto ? '¡Excelente!' : 'Revisa tu respuesta' }}</h4>
+                            </div>
+
+                            <p class="feedback-texto">{{ feedbackMensaje }}</p>
+                        </div>
+
+                        <!-- Acciones -->
+                        <div class="acciones-fase">
+                            <p-button
+                                *ngIf="!mostrandoFeedback"
+                                label="Enviar Respuesta"
+                                icon="pi pi-send"
+                                [disabled]="respuestaAbierta.length < 10"
+                                (onClick)="verificarRespuesta()">
+                            </p-button>
+
+                            <p-button
+                                *ngIf="mostrandoFeedback"
+                                label="Continuar"
+                                icon="pi pi-arrow-right"
+                                iconPos="right"
+                                (onClick)="avanzarFase()">
+                            </p-button>
+                        </div>
+                    </div>
+                </p-card>
+
+            </div>
+
+            <!-- Columna Lateral: Info Contextual -->
+            <div class="col-12 lg:col-4">
+                <!-- NPC Guía -->
+                <p-card header="Tu Guía" styleClass="mb-3">
+                    <div class="npc-lateral">
+                        <img [src]="mision.npcGuia.avatar" [alt]="mision.npcGuia.nombre" class="npc-avatar">
+                        <h4>{{ mision.npcGuia.nombre }}</h4>
+                        <p class="npc-nombre-kichwa">{{ mision.npcGuia.nombreKichwa }}</p>
+                    </div>
+                </p-card>
+
+                <!-- Progreso Detallado -->
+                <p-card header="Tu Progreso" styleClass="mb-3">
+                    <div class="progreso-detallado">
+                        <div class="progreso-item">
+                            <span class="label">Fases Completadas:</span>
+                            <span class="valor">{{ progreso!.faseActual }} / {{ mision.fases.length }}</span>
+                        </div>
+                        <div class="progreso-item">
+                            <span class="label">Precisión:</span>
+                            <span class="valor">
+                {{ progreso!.intentos > 0 ?
+                                (progreso!.respuestasCorrectas / progreso!.intentos * 100 | number:'1.0-0') : 0 }}%
+              </span>
+                        </div>
+                        <div class="progreso-item">
+                            <span class="label">Pistas Usadas:</span>
+                            <span class="valor">{{ progreso!.pistasUsadas }}</span>
+                        </div>
+                    </div>
+                </p-card>
+
+                <!-- Recompensas Pendientes -->
+                <p-card header="Recompensas al Completar">
+                    <div class="recompensas-preview">
+                        <div class="recompensa-item">
+                            <i class="pi pi-bolt text-yellow-500"></i>
+                            <span>+{{ mision.recompensas.experiencia }} XP</span>
+                        </div>
+                        <div class="recompensa-item">
+                            <i class="pi pi-star text-blue-500"></i>
+                            <span>+{{ mision.recompensas.puntos }} Puntos</span>
+                        </div>
+                        <p-divider></p-divider>
+                        <div class="insignias-preview">
+                            <p class="insignias-titulo">🏆 Insignias:</p>
+                            <div *ngFor="let insignia of mision.recompensas.insignias" class="insignia-mini">
+                                <span class="insignia-icono">{{ insignia.icono }}</span>
+                                <span class="insignia-nombre">{{ insignia.nombre }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </p-card>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dialog: Pista -->
+<p-dialog
+    [(visible)]="mostrarDialogPista"
+    [modal]="true"
+    [style]="{width: '400px'}"
+    header="💡 Pista">
+
+    <div class="pista-contenido">
+        <p>{{ pistaTexto }}</p>
+        <p class="pista-penalizacion">
+            <i class="pi pi-exclamation-triangle"></i>
+            Se han restado 10 puntos
+        </p>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <p-button
+            label="Entendido"
+            (onClick)="mostrarDialogPista = false">
+        </p-button>
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog: Abandonar Misión -->
+<p-dialog
+    [(visible)]="mostrarDialogAbandonar"
+    [modal]="true"
+    [style]="{width: '450px'}"
+    header="⚠️ Abandonar Misión">
+
+    <div class="abandonar-contenido">
+        <p>¿Estás seguro de que quieres abandonar esta misión?</p>
+        <p class="advertencia">
+            Tu progreso actual se perderá y deberás comenzar desde el inicio.
+        </p>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <p-button
+            label="Cancelar"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="mostrarDialogAbandonar = false">
+        </p-button>
+        <p-button
+            label="Abandonar"
+            severity="danger"
+            icon="pi pi-times"
+            (onClick)="abandonarMision()">
+        </p-button>
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog: Misión Completada -->
+<p-dialog
+    [(visible)]="mostrarDialogCompletada"
+    [modal]="true"
+    [closable]="false"
+    [style]="{width: '500px'}">
+
+    <ng-template pTemplate="header">
+        <div class="completada-header">
+            <i class="pi pi-check-circle"></i>
+            <h2>¡Misión Completada!</h2>
+        </div>
+    </ng-template>
+
+    <div class="completada-contenido" *ngIf="mision">
+        <h3>{{ mision.titulo }}</h3>
+
+        <div class="resultados-finales">
+            <div class="resultado-item">
+                <i class="pi pi-clock"></i>
+                <div>
+                    <span class="label">Tiempo:</span>
+                    <span class="valor">{{ formatearTiempo(progreso!.tiempoTranscurrido) }}</span>
+                </div>
+            </div>
+
+            <div class="resultado-item">
+                <i class="pi pi-percentage"></i>
+                <div>
+                    <span class="label">Precisión:</span>
+                    <span class="valor">
+            {{ (progreso!.respuestasCorrectas / progreso!.intentos * 100) | number:'1.0-0' }}%
+          </span>
+                </div>
+            </div>
+
+            <div class="resultado-item destacado">
+                <i class="pi pi-star-fill"></i>
+                <div>
+                    <span class="label">Puntuación Final:</span>
+                    <span class="valor">{{ progreso!.puntuacion }}</span>
+                </div>
+            </div>
+        </div>
+
+        <p-divider></p-divider>
+
+        <div class="recompensas-obtenidas">
+            <h4>🎁 Recompensas Obtenidas:</h4>
+
+            <div class="recompensa-grande">
+                <i class="pi pi-bolt"></i>
+                <span>+{{ mision.recompensas.experiencia }} Experiencia</span>
+            </div>
+
+            <div class="insignias-obtenidas">
+                <div *ngFor="let insignia of mision.recompensas.insignias" class="insignia-obtenida">
+                    <span class="insignia-icono-xl">{{ insignia.icono }}</span>
+                    <p class="insignia-nombre">{{ insignia.nombre }}</p>
+                    <p class="insignia-desc">{{ insignia.nombreKichwa }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <p-button
+            label="Ver Resultados Detallados"
+            icon="pi pi-eye"
+            styleClass="w-full"
+            (onClick)="finalizarMision()">
+        </p-button>
+    </ng-template>
+</p-dialog>
+
+<p-toast position="top-center"></p-toast>
