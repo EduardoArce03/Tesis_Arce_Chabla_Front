@@ -253,3 +253,23 @@
         }
     }
 }
+
+.mapa-mision-container {
+    width: 100%;
+    height: calc(90vh - 150px);
+    overflow: auto;
+
+    ::ng-deep app-mapa-ingapirca {
+        display: block;
+        min-height: 100%;
+
+        .exploracion-container {
+            background: transparent;
+            padding: 0;
+        }
+
+        .header-exploracion {
+            display: none; // Ocultar header en modo misión
+        }
+    }
+}

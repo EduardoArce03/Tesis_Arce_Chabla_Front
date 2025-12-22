@@ -1,45 +1,56 @@
-// components/mapa-ingapirca/mapa-ingapirca.component.ts
-import { Component, OnInit, OnDestroy } from '@angular/core';
+// mapa-ingapirca.component.ts - REEMPLAZAR COMPLETO
+
+import { Component, OnInit, OnDestroy, Input, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CardModule } from 'primeng/card';
-import { ButtonModule } from 'primeng/button';
-import { TooltipModule } from 'primeng/tooltip';
-import { DialogModule } from 'primeng/dialog';
-import { ProgressBarModule } from 'primeng/progressbar';
+import { Card } from 'primeng/card';
+import { Button } from 'primeng/button';
+import { Tooltip } from 'primeng/tooltip';
+import { Dialog } from 'primeng/dialog';
+import { ProgressBar } from 'primeng/progressbar';
+import { Subject, takeUntil } from 'rxjs';
+
 import { ExploracionService } from '@/services/exploracion.service';
 import { PuntoInteres, CategoriaPunto, NivelDescubrimiento } from '@/models/exploracion.model';
-import { Subject, takeUntil } from 'rxjs';
 import { FilterPipe } from '@/juegos/mapa-ingapirca/filter.pipe';
+import { PrimeTemplate } from 'primeng/api';
 
 @Component({
     selector: 'app-mapa-ingapirca',
     standalone: true,
     imports: [
         CommonModule,
-        CardModule,
-        ButtonModule,
-        TooltipModule,
-        DialogModule,
-        ProgressBarModule,
-        FilterPipe
+        Card,
+        Button,
+        Tooltip,
+        Dialog,
+        ProgressBar,
+        FilterPipe,
+        PrimeTemplate
     ],
     templateUrl: './mapa-ingapirca.component.html',
     styleUrls: ['./mapa-ingapirca.component.scss']
 })
 export class MapaIngapircaComponent implements OnInit, OnDestroy {
+    // ✅ INPUTS/OUTPUTS PARA MODO MISIÓN
+    @Input() puntoDestacado: number | null = null;
+    @Input() modoVisita: boolean = false;
+    @Input() puntosDisponibles: number[] = [];
+    @Output() puntoVisitado = new EventEmitter<number>();
+
     puntos: PuntoInteres[] = [];
     puntoSeleccionado: PuntoInteres | null = null;
     mostrarDetalle = false;
     cargandoNarrativa = false;
-    narrativaActual = '';
 
     // Para animación de typing
+    narrativaActual: string = '';
     narrativaVisible = '';
+    narrativaCompleta = false;
     typingInterval: any;
 
     private destroy$ = new Subject<void>();
 
-    // Enum para el template
+    // Enums para template
     CategoriaPunto = CategoriaPunto;
     NivelDescubrimiento = NivelDescubrimiento;
 
@@ -47,6 +58,13 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.cargarPuntos();
+
+        // ✅ Si hay punto destacado, auto-seleccionarlo
+        if (this.puntoDestacado) {
+            setTimeout(() => {
+                this.seleccionarPuntoAutomaticamente(this.puntoDestacado!);
+            }, 500);
+        }
     }
 
     cargarPuntos(): void {
@@ -54,18 +72,33 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe(puntos => {
                 this.puntos = puntos;
+
+                // ✅ En modo misión, solo habilitar puntos específicos
+                if (this.modoVisita && this.puntosDisponibles.length > 0) {
+                    this.puntos.forEach(punto => {
+                        punto.desbloqueado = this.puntosDisponibles.includes(punto.id);
+                    });
+                }
             });
+    }
+
+    // ✅ NUEVO: Auto-seleccionar punto para misión
+    seleccionarPuntoAutomaticamente(puntoId: number): void {
+        const punto = this.puntos.find(p => p.id === puntoId);
+        if (punto && punto.desbloqueado) {
+            this.seleccionarPunto(punto);
+        }
     }
 
     seleccionarPunto(punto: PuntoInteres): void {
         if (!punto.desbloqueado) {
-            // Mostrar mensaje de requisitos
             return;
         }
 
         this.puntoSeleccionado = punto;
         this.mostrarDetalle = true;
         this.narrativaVisible = '';
+        this.narrativaCompleta = false;
 
         // Determinar nivel de narrativa
         const nivel = this.determinarNivel(punto);
@@ -97,6 +130,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     private animarTexto(texto: string): void {
         let index = 0;
         this.narrativaVisible = '';
+        this.narrativaCompleta = false;
 
         if (this.typingInterval) {
             clearInterval(this.typingInterval);
@@ -108,14 +142,16 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                 index++;
             } else {
                 clearInterval(this.typingInterval);
+                this.narrativaCompleta = true;
             }
-        }, 30); // 30ms por carácter
+        }, 20); // Más rápido
     }
 
     saltarAnimacion(): void {
         if (this.typingInterval) {
             clearInterval(this.typingInterval);
             this.narrativaVisible = this.narrativaActual;
+            this.narrativaCompleta = true;
         }
     }
 
@@ -127,25 +163,29 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         }
     }
 
+    // ✅ ACTUALIZAR: Confirmar visita
     completarVisita(): void {
-        if (this.puntoSeleccionado) {
-            // Marcar como visitado y actualizar nivel
-            this.puntoSeleccionado.visitado = true;
+        if (!this.puntoSeleccionado) return;
 
-            if (this.puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.NO_VISITADO) {
-                this.puntoSeleccionado.nivelDescubrimiento = NivelDescubrimiento.BRONCE;
-            } else if (this.puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.BRONCE) {
-                this.puntoSeleccionado.nivelDescubrimiento = NivelDescubrimiento.PLATA;
-            } else if (this.puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.PLATA) {
-                this.puntoSeleccionado.nivelDescubrimiento = NivelDescubrimiento.ORO;
-            }
+        // Marcar como visitado
+        this.puntoSeleccionado.visitado = true;
 
-            // Desbloquear puntos dependientes
+        // Actualizar nivel
+        if (this.puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.NO_VISITADO) {
+            this.puntoSeleccionado.nivelDescubrimiento = NivelDescubrimiento.BRONCE;
+        } else if (this.puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.BRONCE) {
+            this.puntoSeleccionado.nivelDescubrimiento = NivelDescubrimiento.PLATA;
+        } else if (this.puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.PLATA) {
+            this.puntoSeleccionado.nivelDescubrimiento = NivelDescubrimiento.ORO;
+        }
+
+        // ✅ Si estamos en modo misión, emitir evento
+        if (this.modoVisita) {
+            this.puntoVisitado.emit(this.puntoSeleccionado.id);
+            this.cerrarDetalle();
+        } else {
+            // Modo exploración normal
             this.desbloquearPuntosDependientes(this.puntoSeleccionado.id);
-
-            // Aquí harías el POST al backend
-            // this.exploracionService.visitarPunto(userId, puntoId).subscribe(...)
-
             this.cerrarDetalle();
         }
     }

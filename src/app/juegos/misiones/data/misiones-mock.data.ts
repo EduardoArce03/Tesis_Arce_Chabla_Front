@@ -268,14 +268,14 @@ Te mira fijamente:
                     tipo: 'ordenar',
                     elementos: [
                         {
+                            id: 'punto-pileta',
+                            contenido: 'Pileta Ceremonial - El agua nace pura, representa el amanecer',
+                            imagen: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400'
+                        },
+                        {
                             id: 'punto-canal',
                             contenido: 'Canal Subterráneo - El agua desciende a Uku Pacha (inframundo)',
                             imagen: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400'
-                        },
-                        {
-                            id: 'punto-qolqa',
-                            contenido: 'Qolqa (Depósitos) - El agua almacenada asciende como ofrenda a Hanan Pacha',
-                            imagen: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400'
                         },
                         {
                             id: 'punto-fuente',
@@ -283,9 +283,9 @@ Te mira fijamente:
                             imagen: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400'
                         },
                         {
-                            id: 'punto-pileta',
-                            contenido: 'Pileta Ceremonial - El agua nace pura, representa el amanecer',
-                            imagen: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400'
+                            id: 'punto-qolqa',
+                            contenido: 'Qolqa (Depósitos) - El agua almacenada asciende como ofrenda a Hanan Pacha',
+                            imagen: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400'
                         }
                     ],
                     solucion: ['punto-pileta', 'punto-canal', 'punto-fuente', 'punto-qolqa'],

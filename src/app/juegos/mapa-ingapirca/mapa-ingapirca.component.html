@@ -197,20 +197,37 @@
             </div>
         </div>
 
+        <!-- mapa-ingapirca.component.html -->
+
         <ng-template pTemplate="footer">
             <div class="dialog-footer">
-                <p-button
-                    label="Cerrar"
-                    icon="pi pi-times"
-                    severity="secondary"
-                    (onClick)="cerrarDetalle()">
-                </p-button>
-                <p-button
-                    *ngIf="!cargandoNarrativa"
-                    label="Completar Visita"
-                    icon="pi pi-check"
-                    (onClick)="completarVisita()">
-                </p-button>
+                <!-- ✅ Modo Exploración: Cerrar + Completar -->
+                <ng-container *ngIf="!modoVisita">
+                    <p-button
+                        label="Cerrar"
+                        icon="pi pi-times"
+                        severity="secondary"
+                        (onClick)="cerrarDetalle()">
+                    </p-button>
+                    <p-button
+                        *ngIf="!cargandoNarrativa && narrativaCompleta"
+                        label="Completar Visita"
+                        icon="pi pi-check"
+                        (onClick)="completarVisita()">
+                    </p-button>
+                </ng-container>
+
+                <!-- ✅ Modo Misión: Solo Confirmar Visita -->
+                <ng-container *ngIf="modoVisita">
+                    <p-button
+                        *ngIf="!cargandoNarrativa && narrativaCompleta"
+                        label="Confirmar Visita"
+                        icon="pi pi-check-circle"
+                        styleClass="w-full"
+                        size="large"
+                        (onClick)="completarVisita()">
+                    </p-button>
+                </ng-container>
             </div>
         </ng-template>
     </p-dialog>

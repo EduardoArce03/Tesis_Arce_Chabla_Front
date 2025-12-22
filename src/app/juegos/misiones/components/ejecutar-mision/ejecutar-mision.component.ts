@@ -5,9 +5,9 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, interval } from 'rxjs';
-
-import { CardModule } from 'primeng/card';
-import { ButtonModule } from 'primeng/button';
+import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-drop';
+import { Card, CardModule } from 'primeng/card';
+import { Button, ButtonModule } from 'primeng/button';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { DialogModule } from 'primeng/dialog';
 import { RadioButtonModule } from 'primeng/radiobutton';
@@ -18,15 +18,16 @@ import { DividerModule } from 'primeng/divider';
 
 import { Blip2MockService } from '../../services/blip2-mock.service';
 import { Mision, ProgresoMision } from '../../models/mision.model';
-import { FaseMision, TipoFase, OpcionRespuesta } from '../../models/fase-mision.model';
+import { FaseMision, TipoFase, OpcionRespuesta, ElementoPuzzle } from '../../models/fase-mision.model';
 import { MisionService } from '@/juegos/misiones/services/mision..service';
 import { Textarea } from 'primeng/textarea';
 import { Tooltip } from 'primeng/tooltip';
+import { MapaIngapircaComponent } from '@/juegos/mapa-ingapirca/mapa-ingapirca.component';
 
 @Component({
     selector: 'app-ejecutar-mision',
     standalone: true,
-    imports: [CommonModule, FormsModule, CardModule, ButtonModule, ProgressBarModule, DialogModule, RadioButtonModule, ToastModule, ProgressSpinnerModule, DividerModule, Textarea, Tooltip],
+    imports: [CommonModule, FormsModule, Card, Button, ProgressBarModule, DialogModule, RadioButtonModule, ToastModule, ProgressSpinnerModule, DividerModule, Textarea, Tooltip, DragDropModule, MapaIngapircaComponent],
     providers: [MessageService],
     templateUrl: './ejecutar-mision.component.html',
     styleUrls: ['./ejecutar-mision.component.scss']
@@ -41,6 +42,13 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
     cargandoAnalisis = false;
     analisisTexto = '';
     analisisCompleto = false;
+
+    elementosOrdenamiento: ElementoPuzzle[] = [];
+    ordenOriginal: string[] = [];
+    ordenCorrecto: string[] = [];
+    ordenCambiado = false;
+    mostrandoResultadoOrden = false;
+    ordenEsCorrecto = false;
 
     // Respuestas
     respuestaSeleccionada: string = '';
@@ -120,6 +128,23 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
         this.procesarFase();
     }
 
+    // ejecutar-mision.component.ts
+
+// Agregar estas propiedades al componente
+    puntosObjetivo: number[] = [];
+    puntosVisitados: number[] = [];
+    pistaActualBusqueda = '';
+
+// Agregar este método
+    procesarFaseBusqueda(): void {
+        if (!this.faseActual || !this.faseActual.puntosObjetivo) return;
+
+        this.puntosObjetivo = this.faseActual.puntosObjetivo;
+        this.puntosVisitados = [];
+        this.pistaActualBusqueda = '';
+    }
+
+// Actualizar procesarFase() para incluir BUSQUEDA_PUNTO
     procesarFase(): void {
         if (!this.faseActual) return;
 
@@ -142,7 +167,21 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
             case TipoFase.PREGUNTA_ABIERTA:
                 // Mostrar pregunta directamente
                 break;
+
+            // ✅ AGREGAR ESTO
+            case TipoFase.BUSQUEDA_PUNTO:
+                this.procesarFaseBusqueda();
+                break;
+
+            case TipoFase.ORDENAMIENTO:
+                this.procesarFaseOrdenamiento();
+                break;
         }
+    }
+
+    calcularProgresoBusqueda(): number {
+        if (this.puntosObjetivo.length === 0) return 0;
+        return (this.puntosVisitados.length / this.puntosObjetivo.length) * 100;
     }
 
     ejecutarAnalisisBlip2(): void {
@@ -317,5 +356,111 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
         }
 
         this.detenerCronometro();
+    }
+
+    // ejecutar-mision.component.ts - AGREGAR ESTOS MÉTODOS
+
+    procesarFaseOrdenamiento(): void {
+        if (!this.faseActual || !this.faseActual.puzzle) return;
+
+        // Copiar elementos y desordenar
+        this.elementosOrdenamiento = [...this.faseActual.puzzle.elementos]
+            .sort(() => Math.random() - 0.5);
+
+        this.ordenOriginal = this.elementosOrdenamiento.map(e => e.id);
+        this.ordenCorrecto = this.faseActual.puzzle.solucion as string[];
+        this.ordenCambiado = false;
+        this.mostrandoResultadoOrden = false;
+        this.ordenEsCorrecto = false;
+    }
+
+    onDropOrdenamiento(event: CdkDragDrop<ElementoPuzzle[]>): void {
+        moveItemInArray(
+            this.elementosOrdenamiento,
+            event.previousIndex,
+            event.currentIndex
+        );
+        this.ordenCambiado = true;
+    }
+
+    verificarOrdenamiento(): void {
+        const ordenActual = this.elementosOrdenamiento.map(e => e.id);
+        this.ordenEsCorrecto = JSON.stringify(ordenActual) === JSON.stringify(this.ordenCorrecto);
+        this.mostrandoResultadoOrden = true;
+
+        if (this.ordenEsCorrecto) {
+            this.misionService.registrarRespuesta(this.misionId, true)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe();
+
+            this.messageService.add({
+                severity: 'success',
+                summary: '¡Correcto!',
+                detail: 'Has ordenado el ciclo correctamente',
+                life: 3000
+            });
+        } else {
+            this.misionService.registrarRespuesta(this.misionId, false)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe();
+
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Incorrecto',
+                detail: 'El orden no es correcto. Intenta de nuevo.',
+                life: 3000
+            });
+        }
+    }
+
+    reintentar(): void {
+        this.procesarFaseOrdenamiento();
+    }
+
+    // ejecutar-mision.component.ts
+
+// Agregar estas propiedades
+    mostrarDialogMapa = false;
+    puntoActualMapa: number | null = null;
+
+    visitarPunto(puntoId: number): void {
+        if (this.puntosVisitados.includes(puntoId)) return;
+
+        // ✅ Abrir dialog con el mapa
+        this.puntoActualMapa = puntoId;
+        this.mostrarDialogMapa = true;
+    }
+
+    onPuntoVisitadoEnMapa(): void {
+        if (this.puntoActualMapa === null) return;
+
+        // Marcar como visitado
+        this.puntosVisitados.push(this.puntoActualMapa);
+
+        const index = this.puntosVisitados.length - 1;
+        if (this.faseActual?.pistasProgreso) {
+            this.pistaActualBusqueda = this.faseActual.pistasProgreso[index];
+        }
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Punto Visitado',
+            detail: this.pistaActualBusqueda,
+            life: 3000
+        });
+
+        // Cerrar dialog
+        this.mostrarDialogMapa = false;
+        this.puntoActualMapa = null;
+
+        // Si visitó todos los puntos
+        if (this.puntosVisitados.length === this.puntosObjetivo.length) {
+            this.messageService.add({
+                severity: 'info',
+                summary: '¡Búsqueda Completada!',
+                detail: 'Has visitado todos los puntos. Continúa con la siguiente fase.',
+                life: 3000
+            });
+        }
     }
 }

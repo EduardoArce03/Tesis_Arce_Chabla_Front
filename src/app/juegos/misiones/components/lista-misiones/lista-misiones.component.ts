@@ -85,11 +85,11 @@ export class ListaMisionesComponent implements OnInit, OnDestroy {
         return iconos[dificultad];
     }
 
-    obtenerColorDificultad(dificultad: DificultadMision): string {
-        const colores = {
+    obtenerColorDificultad(dificultad: DificultadMision): 'success' | 'info' | 'warn' | 'danger' {
+        const colores: Record<DificultadMision, 'success' | 'info' | 'warn' | 'danger'> = {
             [DificultadMision.FACIL]: 'success',
             [DificultadMision.MEDIO]: 'info',
-            [DificultadMision.DIFICIL]: 'warning',
+            [DificultadMision.DIFICIL]: 'warn',      // ← Cambié 'warning' a 'warn'
             [DificultadMision.EXPERTO]: 'danger'
         };
         return colores[dificultad];

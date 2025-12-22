@@ -153,6 +153,185 @@
                     </div>
                 </p-card>
 
+                <!-- FASE TIPO: BÚSQUEDA DE PUNTOS -->
+                <p-card *ngIf="faseActual.tipo === TipoFase.BUSQUEDA_PUNTO">
+                    <h3>{{ faseActual.titulo }}</h3>
+
+                    <p *ngIf="faseActual.textoNarrativa" class="intro-texto">
+                        {{ faseActual.textoNarrativa }}
+                    </p>
+
+                    <!-- Progreso de Búsqueda -->
+                    <div class="progreso-busqueda">
+                        <div class="flex justify-content-between mb-2">
+                            <span>Puntos visitados:</span>
+                            <span><strong>{{ puntosVisitados.length }} / {{ puntosObjetivo.length }}</strong></span>
+                        </div>
+                        <p-progressBar
+                            [value]="calcularProgresoBusqueda()"
+                            [showValue]="false">
+                        </p-progressBar>
+                    </div>
+
+                    <!-- Lista de Puntos -->
+                    <div class="puntos-objetivo-lista">
+                        <div
+                            *ngFor="let puntoId of puntosObjetivo; let i = index"
+                            class="punto-objetivo-item"
+                            [class.punto-visitado]="puntosVisitados.includes(puntoId)"
+                            [class.punto-actual]="puntosVisitados.length === i">
+
+                            <div class="punto-numero">
+                                <i *ngIf="!puntosVisitados.includes(puntoId)" class="pi pi-map-marker"></i>
+                                <i *ngIf="puntosVisitados.includes(puntoId)" class="pi pi-check-circle"></i>
+                            </div>
+
+                            <div class="punto-info">
+                                <h4>Punto {{ i + 1 }}</h4>
+                                <p *ngIf="!puntosVisitados.includes(puntoId)" class="punto-estado">
+                                    Pendiente de visita
+                                </p>
+                                <p *ngIf="puntosVisitados.includes(puntoId)" class="punto-estado visitado">
+                                    ✅ Visitado
+                                </p>
+                            </div>
+
+                            <p-button
+                                *ngIf="!puntosVisitados.includes(puntoId)"
+                                label="Visitar"
+                                icon="pi pi-arrow-right"
+                                [disabled]="puntosVisitados.length !== i"
+                                (onClick)="visitarPunto(puntoId)">
+                            </p-button>
+                        </div>
+                    </div>
+
+                    <!-- Pista Actual -->
+                    <p-card
+                        *ngIf="pistaActualBusqueda"
+                        header="Descubrimiento"
+                        styleClass="mt-3 pista-busqueda">
+                        <p>{{ pistaActualBusqueda }}</p>
+                    </p-card>
+
+                    <!-- Botón Continuar -->
+                    <div class="acciones-fase" *ngIf="puntosVisitados.length === puntosObjetivo.length">
+                        <p-button
+                            label="Continuar"
+                            icon="pi pi-arrow-right"
+                            iconPos="right"
+                            (onClick)="avanzarFase()">
+                        </p-button>
+                    </div>
+                </p-card>
+
+                <!-- FASE TIPO: ORDENAMIENTO -->
+                <p-card *ngIf="faseActual.tipo === TipoFase.ORDENAMIENTO && faseActual.puzzle">
+                    <h3>{{ faseActual.titulo }}</h3>
+
+                    <p *ngIf="faseActual.textoNarrativa" class="intro-texto">
+                        {{ faseActual.textoNarrativa }}
+                    </p>
+
+                    <!-- Instrucciones -->
+                    <div class="instrucciones-ordenamiento">
+                        <i class="pi pi-info-circle"></i>
+                        <p>Arrastra los elementos para ordenarlos cronológicamente en el ciclo sagrado del agua</p>
+                    </div>
+
+                    <!-- Ayuda Visual (si existe) -->
+                    <div *ngIf="faseActual.puzzle.ayudaVisual" class="ayuda-visual">
+                        <i class="pi pi-lightbulb"></i>
+                        <p>{{ faseActual.puzzle.ayudaVisual }}</p>
+                    </div>
+
+                    <!-- Lista de Elementos Ordenables -->
+                    <div
+                        cdkDropList
+                        class="elementos-ordenamiento-lista"
+                        (cdkDropListDropped)="onDropOrdenamiento($event)">
+
+                        <div
+                            *ngFor="let elemento of elementosOrdenamiento; let i = index"
+                            cdkDrag
+                            class="elemento-ordenamiento"
+                            [class.elemento-correcto]="mostrandoResultadoOrden && ordenEsCorrecto"
+                            [class.elemento-incorrecto]="mostrandoResultadoOrden && !ordenEsCorrecto">
+
+                            <!-- Número de orden -->
+                            <div class="elemento-numero">{{ i + 1 }}</div>
+
+                            <!-- Imagen (si existe) -->
+                            <div class="elemento-imagen" *ngIf="elemento.imagen">
+                                <img [src]="elemento.imagen" [alt]="elemento.contenido">
+                            </div>
+
+                            <!-- Contenido -->
+                            <div class="elemento-contenido">
+                                <p>{{ elemento.contenido }}</p>
+                            </div>
+
+                            <!-- Handle de arrastre -->
+                            <div class="drag-handle" cdkDragHandle>
+                                <i class="pi pi-bars"></i>
+                            </div>
+
+                            <!-- Placeholder mientras se arrastra -->
+                            <div class="elemento-placeholder" *cdkDragPlaceholder></div>
+                        </div>
+                    </div>
+
+                    <!-- Feedback de Resultado -->
+                    <div *ngIf="mostrandoResultadoOrden" class="feedback-ordenamiento"
+                         [class.feedback-correcto]="ordenEsCorrecto"
+                         [class.feedback-incorrecto]="!ordenEsCorrecto">
+
+                        <div class="feedback-header">
+                            <i [class]="ordenEsCorrecto ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
+                            <h4>{{ ordenEsCorrecto ? '¡Orden Correcto!' : 'Orden Incorrecto' }}</h4>
+                        </div>
+
+                        <p *ngIf="ordenEsCorrecto">
+                            Has comprendido perfectamente el ciclo sagrado del agua en la cosmovisión andina.
+                            El agua fluye desde su nacimiento puro, desciende al inframundo para purificarse,
+                            renace en el mundo presente, y finalmente asciende como ofrenda al mundo celestial.
+                        </p>
+
+                        <p *ngIf="!ordenEsCorrecto">
+                            El orden no es correcto. Recuerda: el ciclo representa el viaje del agua a través
+                            de los tres mundos andinos. Piensa en el ciclo de la vida: nacimiento → muerte →
+                            renacimiento → trascendencia.
+                        </p>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="acciones-fase">
+                        <p-button
+                            *ngIf="!mostrandoResultadoOrden"
+                            label="Verificar Orden"
+                            icon="pi pi-check"
+                            [disabled]="!ordenCambiado"
+                            (onClick)="verificarOrdenamiento()">
+                        </p-button>
+
+                        <p-button
+                            *ngIf="mostrandoResultadoOrden && !ordenEsCorrecto"
+                            label="Intentar de Nuevo"
+                            icon="pi pi-refresh"
+                            severity="warn"
+                            (onClick)="reintentar()">
+                        </p-button>
+
+                        <p-button
+                            *ngIf="mostrandoResultadoOrden && ordenEsCorrecto"
+                            label="Continuar"
+                            icon="pi pi-arrow-right"
+                            iconPos="right"
+                            (onClick)="avanzarFase()">
+                        </p-button>
+                    </div>
+                </p-card>
+
                 <!-- FASE TIPO: PREGUNTA MÚLTIPLE -->
                 <p-card *ngIf="faseActual.tipo === TipoFase.PREGUNTA_MULTIPLE && faseActual.pregunta">
                     <h3>{{ faseActual.titulo }}</h3>
@@ -494,6 +673,39 @@
             (onClick)="finalizarMision()">
         </p-button>
     </ng-template>
+</p-dialog>
+
+<!-- Al final de ejecutar-mision.component.html, después del dialog de "Misión Completada" -->
+
+<!-- Dialog: Mapa de Exploración -->
+<p-dialog
+    [(visible)]="mostrarDialogMapa"
+    [modal]="true"
+    [closable]="true"
+    [style]="{width: '90vw', height: '90vh'}"
+    header="Explorar Ingapirca">
+
+    <div class="mapa-exploracion-container">
+        <!-- Aquí iría el componente del mapa -->
+        <app-mapa-ingapirca
+            *ngIf="puntoActualMapa"
+            [puntoDestacado]="puntoActualMapa"
+            [modoVisita]="true"
+            (puntoVisitado)="onPuntoVisitadoEnMapa()">
+        </app-mapa-ingapirca>
+
+        <!-- O si no tienes el componente listo, un placeholder -->
+        <div class="mapa-placeholder">
+            <i class="pi pi-map" style="font-size: 5rem; color: #cbd5e1;"></i>
+            <h3>Mapa de Ingapirca</h3>
+            <p>Punto a visitar: #{{ puntoActualMapa }}</p>
+            <p-button
+                label="Marcar como Visitado"
+                icon="pi pi-check"
+                (onClick)="onPuntoVisitadoEnMapa()">
+            </p-button>
+        </div>
+    </div>
 </p-dialog>
 
 <p-toast position="top-center"></p-toast>

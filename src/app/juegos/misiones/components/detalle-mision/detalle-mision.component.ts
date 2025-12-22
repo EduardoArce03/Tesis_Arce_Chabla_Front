@@ -134,11 +134,11 @@ export class DetalleMisionComponent implements OnInit, OnDestroy {
         return iconos[dificultad];
     }
 
-    obtenerColorDificultad(dificultad: DificultadMision): string {
-        const colores = {
+    obtenerColorDificultad(dificultad: DificultadMision): 'success' | 'info' | 'warn' | 'danger' {
+        const colores: Record<DificultadMision, 'success' | 'info' | 'warn' | 'danger'> = {
             [DificultadMision.FACIL]: 'success',
             [DificultadMision.MEDIO]: 'info',
-            [DificultadMision.DIFICIL]: 'warning',
+            [DificultadMision.DIFICIL]: 'warn',      // ← CAMBIO: 'warning' → 'warn'
             [DificultadMision.EXPERTO]: 'danger'
         };
         return colores[dificultad];
@@ -181,11 +181,11 @@ export class DetalleMisionComponent implements OnInit, OnDestroy {
         return nombres[tipoFase] || tipoFase;
     }
 
-    obtenerColorRareza(rareza: string): string {
-        const colores: Record<string, string> = {
+    obtenerColorRareza(rareza: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+        const colores: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
             'comun': 'secondary',
             'raro': 'info',
-            'epico': 'warning',
+            'epico': 'warn',        // ← Cambié 'warning' a 'warn'
             'legendario': 'danger'
         };
         return colores[rareza] || 'secondary';
