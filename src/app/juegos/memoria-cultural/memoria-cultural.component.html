@@ -1,72 +1,117 @@
 <div class="memoria-game-container">
-    <div class="game-header">
+    <!-- Panel de configuración (solo visible si no hay juego iniciado) -->
+    <div class="config-panel" *ngIf="!juegoIniciado">
         <p-card>
-            <div class="flex justify-content-between align-items-center">
-                <div class="game-stats">
-                    <div class="stat-item">
-                        <i class="pi pi-clock"></i>
-                        <span>{{ tiempoTranscurrido }}s</span>
-                    </div>
-                    <div class="stat-item">
-                        <i class="pi pi-sync"></i>
-                        <span>{{ intentos }} intentos</span>
-                    </div>
-                    <div class="stat-item">
-                        <i class="pi pi-check"></i>
-                        <span>{{ parejasEncontradas }} / {{ tarjetas.length / 2 }}</span>
-                    </div>
+            <ng-template pTemplate="header">
+                <div class="card-header">
+                    <h2>🎮 Juego de Memoria Cultural</h2>
+                    <p>Aprende sobre la cultura Cañari e Inca mientras juegas</p>
+                </div>
+            </ng-template>
+
+            <div class="config-content">
+                <!-- Selector de Nivel -->
+                <div class="field">
+                    <label for="nivel">Nivel de Dificultad</label>
+                    <p-select
+                        id="nivel"
+                        [options]="nivelesDisponibles"
+                        [(ngModel)]="nivelSeleccionado"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Selecciona un nivel"
+                        [style]="{'width':'100%'}">
+                    </p-select>
                 </div>
 
-                <div class="game-controls">
-                    <p-select
-                        [(ngModel)]="categoriaSeleccionada"
-                        [options]="categoriasDisponibles"
-                        optionLabel="label"
-                        optionValue="value"
-                        placeholder="Categoría"
-                        (onChange)="inicializarJuego()"
-                        [disabled]="!juegoTerminado"
-                        [style]="{'margin-right': '1rem'}">
-                    </p-select>
-
+                <!-- Selector de Categoría -->
+                <div class="field">
+                    <label for="categoria">Categoría Cultural</label>
                     <p-selectButton
-                        [(ngModel)]="dificultad"
-                        [options]="opcionesDificultad"
+                        id="categoria"
+                        [options]="categoriasDisponibles"
+                        [(ngModel)]="categoriaSeleccionada"
                         optionLabel="label"
-                        optionValue="value"
-                        (onChange)="inicializarJuego()"
-                        [disabled]="!juegoTerminado">
+                        optionValue="value">
                     </p-selectButton>
+                </div>
+
+                <!-- Botón Iniciar -->
+                <div class="field">
+                    <p-button
+                        label="Iniciar Juego"
+                        icon="pi pi-play"
+                        (onClick)="iniciarJuego()"
+                        [style]="{'width':'100%'}"
+                        styleClass="p-button-lg p-button-success">
+                    </p-button>
                 </div>
             </div>
         </p-card>
     </div>
 
-    <div class="game-board" [ngClass]="'grid-' + dificultad">
-        <div *ngFor="let tarjeta of tarjetas"
-             class="memory-card"
-             [ngClass]="{
-               'flipped': tarjeta.volteada,
-               'matched': tarjeta.emparejada
-             }"
-             (click)="voltearTarjeta(tarjeta)">
+    <!-- Panel de juego (solo visible si el juego está iniciado) -->
+    <div class="game-panel" *ngIf="juegoIniciado && !juegoTerminado">
+        <div class="game-header">
+            <p-card>
+                <div class="flex justify-content-between align-items-center">
+                    <div class="game-stats">
+                        <div class="stat-item">
+                            <i class="pi pi-clock"></i>
+                            <span>{{ tiempoTranscurrido }}s</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="pi pi-sync"></i>
+                            <span>{{ intentos }} intentos</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="pi pi-check"></i>
+                            <span>{{ parejasEncontradas }} / {{ tarjetas.length / 2 }}</span>
+                        </div>
+                    </div>
 
-            <div class="card-inner">
-                <div class="card-back">
-                    <div class="back-pattern">?</div>
+                    <div class="game-controls">
+                        <p-button
+                            icon="pi pi-refresh"
+                            label="Reiniciar"
+                            (onClick)="reiniciarJuego()"
+                            severity="secondary">
+                        </p-button>
+                    </div>
                 </div>
+            </p-card>
+        </div>
 
-                <div class="card-front">
-                    <img [src]="tarjeta.imagen" [alt]="tarjeta.nombreEspanol">
-                    <div class="card-label">
-                        <p class="kichwa-name">{{ tarjeta.nombreKichwa }}</p>
-                        <p class="spanish-name">{{ tarjeta.nombreEspanol }}</p>
+        <div class="game-board" [ngClass]="getGridClass()">
+            <div *ngFor="let tarjeta of tarjetas"
+                 class="memory-card"
+                 [ngClass]="{
+                   'flipped': tarjeta.volteada,
+                   'matched': tarjeta.emparejada
+                 }"
+                 (click)="voltearTarjeta(tarjeta)">
+
+                <div class="card-inner">
+                    <div class="card-back">
+                        <div class="back-pattern">
+                            <i class="pi pi-star-fill"></i>
+                            <span class="chakana">✦</span>
+                        </div>
+                    </div>
+
+                    <div class="card-front">
+                        <img [src]="tarjeta.imagen" [alt]="tarjeta.nombreEspanol">
+                        <div class="card-label">
+                            <p class="kichwa-name">{{ tarjeta.nombreKichwa }}</p>
+                            <p class="spanish-name">{{ tarjeta.nombreEspanol }}</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Diálogo de victoria -->
     <p-dialog
         [(visible)]="juegoTerminado"
         [modal]="true"

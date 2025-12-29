@@ -35,9 +35,19 @@ export default [
     },
 
     {
-        path: 'memoria',
+        path: 'memoria-cultural',
         loadComponent: () => import('./memoria-cultural/memoria-cultural.component')
             .then(m => m.MemoriaCulturalComponent)
+    },
+    {
+        path: 'ranking',
+        loadComponent: () => import('../components/ranking/ranking.component')
+            .then(m => m.RankingComponent)
+    },
+    {
+        path: 'estadisticas',
+        loadComponent: () => import('../components/estadisticas/estadisticas-jugador.component')
+            .then(m => m.EstadisticasJugadorComponent)
     },
     {path:'rompe-cabezas', component: RompeCabezasComponent},
     { path: '**', redirectTo: '/notfound' }

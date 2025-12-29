@@ -25,22 +25,12 @@ export class AppMenu {
     ngOnInit() {
         this.model = [
             {
-                label: '🎮 Juegos Culturales',
+                label: '📊 Panel de Control',
                 items: [
                     {
-                        label: 'Misiones',
-                        icon: 'pi pi-book',
-                        routerLink: '/juegos/misiones' // ✅ Correcto
-                    },
-                    {
-                        label: 'Exploración Ingapirca',
-                        icon: 'pi pi-map',
-                        routerLink: '/juegos/exploracion' // ✅ Correcto
-                    },
-                    {
-                        label: 'Memoria Cultural',
-                        icon: 'pi pi-th-large',
-                        routerLink: '/juegos/memoria' // ✅ Correcto
+                        label: 'Dashboard',
+                        icon: 'pi pi-home',
+                        routerLink: '/'
                     }
                 ]
             },
@@ -48,12 +38,40 @@ export class AppMenu {
                 separator: true
             },
             {
-                label: '📊 Panel de Control',
+                label: '🎮 Juegos Culturales',
                 items: [
                     {
-                        label: 'Dashboard',
-                        icon: 'pi pi-home',
-                        routerLink: '/'
+                        label: 'Misiones',
+                        icon: 'pi pi-book',
+                        routerLink: '/juegos/misiones'
+                    },
+                    {
+                        label: 'Exploración Ingapirca',
+                        icon: 'pi pi-map',
+                        routerLink: '/juegos/exploracion'
+                    },
+                    {
+                        label: 'Memoria Cultural',
+                        icon: 'pi pi-th-large',
+                        routerLink: '/juegos/memoria-cultural'  // 👈 Cambié de '/juegos/memoria' a '/juegos/memoria-cultural'
+                    }
+                ]
+            },
+            {
+                separator: true
+            },
+            {
+                label: '📈 Estadísticas & Ranking',
+                items: [
+                    {
+                        label: 'Mis Estadísticas',
+                        icon: 'pi pi-chart-bar',
+                        routerLink: '/juegos/estadisticas'  // 👈 Nuevo
+                    },
+                    {
+                        label: 'Tabla de Clasificación',
+                        icon: 'pi pi-trophy',
+                        routerLink: '/juegos/ranking'  // 👈 Nuevo
                     }
                 ]
             }
