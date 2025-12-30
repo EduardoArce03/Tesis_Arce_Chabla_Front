@@ -525,6 +525,14 @@ export class AppMenu implements OnInit {
                         badgeSeverity: 'success'
                     },
                     {
+                        label: 'Rompecabezas',
+                        icon: 'pi pi-map',
+                        routerLink: '/juegos/rompe-cabezas',
+                        description: 'Descubre el rompecabezas',
+                        disabled: false,
+                        tooltip: 'Juegalo ya!'
+                    },
+                    {
                         label: 'Misiones',
                         icon: 'pi pi-book',
                         routerLink: '/juegos/misiones',
@@ -539,7 +547,8 @@ export class AppMenu implements OnInit {
                         description: 'Descubre el sitio arqueológico',
                         disabled: true,
                         tooltip: 'Próximamente disponible'
-                    }
+                    },
+
                 ]
             },
             {
