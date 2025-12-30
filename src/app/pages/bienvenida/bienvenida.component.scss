@@ -1,0 +1,225 @@
+.bienvenida-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8f4e6 0%, #e8dcc4 100%);
+    padding: 2rem;
+
+    .bienvenida-content {
+        max-width: 600px;
+        width: 100%;
+
+        // Header
+        .header-section {
+            text-align: center;
+            margin-bottom: 3rem;
+
+            .logo-container {
+                margin-bottom: 1rem;
+                animation: bounce 2s infinite;
+            }
+
+            .titulo-principal {
+                font-size: 2.5rem;
+                color: #8B4513;
+                margin: 0 0 0.5rem 0;
+                font-weight: 700;
+            }
+
+            .subtitulo {
+                font-size: 1.2rem;
+                color: #666;
+                margin: 0;
+            }
+        }
+
+        // Selector de modo
+        .modo-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+
+            ::ng-deep .modo-button {
+                padding: 1rem;
+                font-size: 1.1rem;
+                font-weight: 600;
+                transition: all 0.3s ease;
+
+                &:hover {
+                    transform: translateY(-2px);
+                }
+            }
+        }
+
+        // Formularios
+        .formulario-section {
+            animation: fadeInUp 0.5s ease;
+
+            ::ng-deep .p-card {
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+                border-radius: 16px;
+
+                .p-card-header {
+                    background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
+                    color: white;
+                    padding: 2rem;
+                    border-radius: 16px 16px 0 0;
+
+                    .card-header {
+                        h2 {
+                            margin: 0 0 0.5rem 0;
+                            font-size: 1.8rem;
+                        }
+
+                        p {
+                            margin: 0;
+                            opacity: 0.9;
+                            font-size: 1rem;
+                        }
+                    }
+                }
+
+                .p-card-body {
+                    padding: 2rem;
+                }
+
+                .p-card-footer {
+                    padding: 0 2rem 2rem 2rem;
+                    border-top: none;
+                }
+            }
+
+            .form-content {
+                .field {
+                    margin-bottom: 1.5rem;
+
+                    label {
+                        display: block;
+                        margin-bottom: 0.5rem;
+                        font-weight: 600;
+                        color: #333;
+                        font-size: 1rem;
+                    }
+
+                    input {
+                        font-size: 1.1rem;
+                        padding: 0.75rem;
+
+                        &.codigo-input {
+                            font-family: 'Courier New', monospace;
+                            letter-spacing: 1px;
+                        }
+                    }
+
+                    .helper-text {
+                        display: block;
+                        margin-top: 0.25rem;
+                        color: #666;
+                        font-size: 0.85rem;
+                    }
+                }
+
+                ::ng-deep .info-message {
+                    margin-top: 1rem;
+                    border-radius: 8px;
+                }
+            }
+
+            .card-footer {
+                ::ng-deep .p-button {
+                    font-size: 1.1rem;
+                    padding: 0.75rem;
+                }
+            }
+        }
+
+        // Footer informativo
+        .footer-info {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+
+            p {
+                margin: 0;
+                color: #666;
+                font-size: 0.95rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+
+                i {
+                    color: #8B4513;
+                    font-size: 1.2rem;
+                }
+            }
+        }
+    }
+}
+
+// Animaciones
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .bienvenida-container {
+        padding: 1rem;
+
+        .bienvenida-content {
+            .header-section {
+                margin-bottom: 2rem;
+
+                .titulo-principal {
+                    font-size: 1.8rem;
+                }
+
+                .subtitulo {
+                    font-size: 1rem;
+                }
+            }
+
+            .modo-selector {
+                grid-template-columns: 1fr;
+            }
+
+            .formulario-section {
+                ::ng-deep .p-card {
+                    .p-card-header {
+                        padding: 1.5rem;
+
+                        .card-header h2 {
+                            font-size: 1.5rem;
+                        }
+                    }
+
+                    .p-card-body {
+                        padding: 1.5rem;
+                    }
+                }
+            }
+        }
+    }
+}

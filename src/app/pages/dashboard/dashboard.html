@@ -1,0 +1,285 @@
+<div class="dashboard-container">
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="cargando">
+        <p-card>
+            <p-skeleton width="100%" height="150px"></p-skeleton>
+        </p-card>
+        <div class="grid mt-4">
+            <div class="col-12 md:col-6 lg:col-3" *ngFor="let i of [1,2,3,4]">
+                <p-card>
+                    <p-skeleton width="100%" height="100px"></p-skeleton>
+                </p-card>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div class="dashboard-content" *ngIf="!cargando && dashboardData">
+
+        <!-- Header de Bienvenida -->
+        <div class="welcome-header">
+            <p-card styleClass="welcome-card">
+                <div class="welcome-content">
+                    <div class="user-info">
+                        <h1>👋 ¡Bienvenido, {{ dashboardData.usuario.nombre }}!</h1>
+                        <p class="user-code">
+                            <i class="pi pi-id-card"></i>
+                            {{ dashboardData.usuario.codigoJugador }}
+                        </p>
+                    </div>
+
+                    <div class="level-info">
+                        <div class="level-badge">
+                            <span class="level-number">{{ dashboardData.usuario.nivel }}</span>
+                            <span class="level-label">NIVEL</span>
+                        </div>
+                        <div class="experience-bar">
+                            <div class="exp-text">
+                                <span>{{ dashboardData.usuario.experiencia }} XP</span>
+                                <span class="next-level">{{ dashboardData.usuario.experienciaParaSiguienteNivel }} XP</span>
+                            </div>
+                            <p-progressBar
+                                [value]="getPorcentajeExperiencia()"
+                                [showValue]="false"
+                                styleClass="exp-progress">
+                            </p-progressBar>
+                        </div>
+                    </div>
+                </div>
+            </p-card>
+        </div>
+
+        <!-- Estadísticas Principales -->
+        <div class="stats-section">
+            <h2 class="section-title">
+                <i class="pi pi-chart-line"></i>
+                Tu Progreso
+            </h2>
+
+            <div class="grid">
+                <!-- Partidas Jugadas -->
+                <div class="col-12 md:col-6 lg:col-3">
+                    <p-card styleClass="stat-card partidas-card">
+                        <div class="stat-content">
+                            <div class="stat-icon">
+                                <i class="pi pi-play-circle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value">{{ dashboardData.estadisticas.partidasCompletadas }}</span>
+                                <span class="stat-label">Partidas Completadas</span>
+                                <span class="stat-detail">de {{ dashboardData.estadisticas.totalPartidas }} jugadas</span>
+                            </div>
+                        </div>
+                    </p-card>
+                </div>
+
+                <!-- Puntuación Total -->
+                <div class="col-12 md:col-6 lg:col-3">
+                    <p-card styleClass="stat-card puntos-card">
+                        <div class="stat-content">
+                            <div class="stat-icon">
+                                <i class="pi pi-star-fill"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value">{{ dashboardData.estadisticas.puntuacionTotal }}</span>
+                                <span class="stat-label">Puntos Totales</span>
+                                <span class="stat-detail" *ngIf="dashboardData.estadisticas.mejorPuntuacion">
+                                    Mejor: {{ dashboardData.estadisticas.mejorPuntuacion }}
+                                </span>
+                            </div>
+                        </div>
+                    </p-card>
+                </div>
+
+                <!-- Tiempo Total -->
+                <div class="col-12 md:col-6 lg:col-3">
+                    <p-card styleClass="stat-card tiempo-card">
+                        <div class="stat-content">
+                            <div class="stat-icon">
+                                <i class="pi pi-clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value">{{ formatearTiempo(dashboardData.estadisticas.tiempoTotalMinutos) }}</span>
+                                <span class="stat-label">Tiempo Jugado</span>
+                                <span class="stat-detail">aprendiendo cultura</span>
+                            </div>
+                        </div>
+                    </p-card>
+                </div>
+
+                <!-- Precisión -->
+                <div class="col-12 md:col-6 lg:col-3">
+                    <p-card styleClass="stat-card precision-card">
+                        <div class="stat-content">
+                            <div class="stat-icon">
+                                <i class="pi pi-chart-bar"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value">{{ dashboardData.estadisticas.precisionPromedio.toFixed(0) }}%</span>
+                                <span class="stat-label">Precisión</span>
+                                <span class="stat-detail">promedio</span>
+                            </div>
+                        </div>
+                    </p-card>
+                </div>
+            </div>
+        </div>
+
+        <!-- Juegos Disponibles -->
+        <div class="games-section">
+            <h2 class="section-title">
+                <i class="pi pi-gamepad"></i>
+                Juegos Disponibles
+            </h2>
+
+            <div class="grid">
+                <div class="col-12 md:col-6 lg:col-4" *ngFor="let juego of dashboardData.juegosDisponibles">
+                    <p-card
+                        styleClass="game-card"
+                        [ngClass]="{'disabled-game': !juego.disponible}">
+                        <div class="game-content">
+                            <div class="game-icon">{{ juego.icono }}</div>
+                            <h3>{{ juego.nombre }}</h3>
+                            <p>{{ juego.descripcion }}</p>
+
+                            <div class="game-footer">
+                                <p-button
+                                    [label]="juego.disponible ? 'Jugar Ahora' : 'Próximamente'"
+                                    [icon]="juego.disponible ? 'pi pi-play' : 'pi pi-lock'"
+                                    (onClick)="irAJuego(juego.ruta, juego.disponible)"
+                                    [disabled]="!juego.disponible"
+                                    [styleClass]="juego.disponible ? 'p-button-success' : 'p-button-secondary'"
+                                    [style]="{'width':'100%'}">
+                                </p-button>
+                            </div>
+                        </div>
+                    </p-card>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ranking y Logros -->
+        <div class="grid">
+            <!-- Ranking -->
+            <div class="col-12 lg:col-6">
+                <div class="ranking-section">
+                    <h2 class="section-title">
+                        <i class="pi pi-trophy"></i>
+                        Tu Ranking
+                    </h2>
+
+                    <p-card>
+                        <div class="ranking-position">
+                            <div class="position-badge">
+                                <span class="position-number">#{{ dashboardData.rankingPosicion.posicionGlobal || 'N/A' }}</span>
+                                <span class="position-label">Posición Global</span>
+                            </div>
+                            <div class="total-players">
+                                de {{ dashboardData.rankingPosicion.totalJugadores }} jugadores
+                            </div>
+                        </div>
+
+                        <div class="top-players" *ngIf="dashboardData.rankingPosicion.top3.length > 0">
+                            <h4>🏆 Top 3 Jugadores</h4>
+                            <div class="player-item" *ngFor="let item of dashboardData.rankingPosicion.top3">
+                                <span class="player-medal">{{ getMedalla(item.posicion) }}</span>
+                                <div class="player-info">
+                                    <span class="player-name">{{ item.nombre }}</span>
+                                    <span class="player-code">{{ item.codigoJugador }}</span>
+                                </div>
+                                <span class="player-score">{{ item.puntuacion }} pts</span>
+                            </div>
+                        </div>
+
+                        <div class="ranking-actions">
+                            <p-button
+                                label="Ver Ranking Completo"
+                                icon="pi pi-arrow-right"
+                                iconPos="right"
+                                routerLink="/juegos/ranking"
+                                [outlined]="true"
+                                [style]="{'width':'100%'}">
+                            </p-button>
+                        </div>
+                    </p-card>
+                </div>
+            </div>
+
+            <!-- Logros -->
+            <div class="col-12 lg:col-6">
+                <div class="achievements-section">
+                    <h2 class="section-title">
+                        <i class="pi pi-star"></i>
+                        Logros Recientes
+                    </h2>
+
+                    <p-card>
+                        <div class="achievements-grid" *ngIf="dashboardData.logrosRecientes.length > 0">
+                            <div class="achievement-item" *ngFor="let logro of dashboardData.logrosRecientes">
+                                <div class="achievement-icon">
+                                    {{ logro.icono }}
+                                    <p-badge
+                                        *ngIf="logro.nuevo"
+                                        value="NUEVO"
+                                        severity="success"
+                                        styleClass="achievement-badge">
+                                    </p-badge>
+                                </div>
+                                <div class="achievement-info">
+                                    <h4>{{ logro.nombre }}</h4>
+                                    <p>{{ logro.descripcion }}</p>
+                                    <span class="achievement-date">{{ logro.fechaObtenido }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="no-achievements" *ngIf="dashboardData.logrosRecientes.length === 0">
+                            <i class="pi pi-info-circle"></i>
+                            <p>¡Juega para desbloquear logros!</p>
+                        </div>
+
+                        <div class="achievements-actions">
+                            <p-button
+                                label="Ver Todos los Logros"
+                                icon="pi pi-arrow-right"
+                                iconPos="right"
+                                [outlined]="true"
+                                [style]="{'width':'100%'}">
+                            </p-button>
+                        </div>
+                    </p-card>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <p-card>
+                <div class="actions-content">
+                    <h3>Acciones Rápidas</h3>
+                    <div class="actions-buttons">
+                        <p-button
+                            label="Mis Estadísticas"
+                            icon="pi pi-chart-bar"
+                            routerLink="/juegos/estadisticas"
+                            [outlined]="true">
+                        </p-button>
+                        <p-button
+                            label="Ver Ranking"
+                            icon="pi pi-trophy"
+                            routerLink="/juegos/ranking"
+                            [outlined]="true">
+                        </p-button>
+                        <p-button
+                            label="Jugar Ahora"
+                            icon="pi pi-play"
+                            routerLink="/juegos/memoria-cultural"
+                            severity="success">
+                        </p-button>
+                    </div>
+                </div>
+            </p-card>
+        </div>
+
+    </div>
+</div>

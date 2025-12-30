@@ -1,0 +1,139 @@
+<div class="bienvenida-container">
+    <div class="bienvenida-content">
+        <!-- Header con logo/título -->
+        <div class="header-section">
+            <div class="logo-container">
+                <i class="pi pi-star-fill" style="font-size: 4rem; color: #8B4513;"></i>
+            </div>
+            <h1 class="titulo-principal">Sistema de Aprendizaje Cultural</h1>
+            <p class="subtitulo">Aprende sobre las culturas Inca y Cañari de forma interactiva</p>
+        </div>
+
+        <!-- Selector de modo -->
+        <div class="modo-selector">
+            <p-button
+                [label]="'👤 Primera vez'"
+                [outlined]="modo !== 'nuevo'"
+                [raised]="modo === 'nuevo'"
+                (onClick)="cambiarModo('nuevo')"
+                styleClass="modo-button">
+            </p-button>
+
+            <p-button
+                [label]="'🔑 Ya tengo código'"
+                [outlined]="modo !== 'retorno'"
+                [raised]="modo === 'retorno'"
+                (onClick)="cambiarModo('retorno')"
+                styleClass="modo-button">
+            </p-button>
+        </div>
+
+        <!-- Formulario Nuevo Usuario -->
+        <div class="formulario-section" *ngIf="modo === 'nuevo'">
+            <p-card>
+                <ng-template pTemplate="header">
+                    <div class="card-header">
+                        <h2>¡Bienvenido!</h2>
+                        <p>Ingresa tu nombre para comenzar tu aventura de aprendizaje</p>
+                    </div>
+                </ng-template>
+
+                <div class="form-content">
+                    <div class="field">
+                        <label for="nombre">Tu nombre</label>
+                        <input
+                            pInputText
+                            id="nombre"
+                            type="text"
+                            [(ngModel)]="nombre"
+                            placeholder="Ejemplo: María"
+                            [disabled]="cargando"
+                            (keyup.enter)="registrarUsuario()"
+                            class="w-full">
+                        <small class="helper-text">Mínimo 2 caracteres, máximo 50</small>
+                    </div>
+
+                    <p-message
+                        severity="info"
+                        text="Al finalizar, recibirás un código único para continuar tu progreso después."
+                        styleClass="info-message">
+                    </p-message>
+                </div>
+
+                <ng-template pTemplate="footer">
+                    <div class="card-footer">
+                        <p-button
+                            label="Comenzar a Aprender"
+                            icon="pi pi-arrow-right"
+                            iconPos="right"
+                            (onClick)="registrarUsuario()"
+                            [loading]="cargando"
+                            [disabled]="!nombre || nombre.trim().length < 2"
+                            styleClass="p-button-lg w-full">
+                        </p-button>
+                    </div>
+                </ng-template>
+            </p-card>
+        </div>
+
+        <!-- Formulario Usuario Retornando -->
+        <div class="formulario-section" *ngIf="modo === 'retorno'">
+            <p-card>
+                <ng-template pTemplate="header">
+                    <div class="card-header">
+                        <h2>¡Qué bueno verte de nuevo!</h2>
+                        <p>Ingresa tu código de jugador para continuar</p>
+                    </div>
+                </ng-template>
+
+                <div class="form-content">
+                    <div class="field">
+                        <label for="codigo">Código de Jugador</label>
+                        <input
+                            pInputText
+                            id="codigo"
+                            type="text"
+                            [(ngModel)]="codigoJugador"
+                            (input)="formatearCodigo()"
+                            placeholder="Ejemplo: MARIA-20241228-1430"
+                            [disabled]="cargando"
+                            (keyup.enter)="loginConCodigo()"
+                            class="w-full codigo-input">
+                        <small class="helper-text">Formato: NOMBRE-FECHA-HORA</small>
+                    </div>
+
+                    <p-message
+                        severity="info"
+                        text="Tu código fue generado cuando te registraste por primera vez."
+                        styleClass="info-message">
+                    </p-message>
+                </div>
+
+                <ng-template pTemplate="footer">
+                    <div class="card-footer">
+                        <p-button
+                            label="Continuar"
+                            icon="pi pi-sign-in"
+                            iconPos="right"
+                            (onClick)="loginConCodigo()"
+                            [loading]="cargando"
+                            [disabled]="!codigoJugador || codigoJugador.trim().length === 0"
+                            styleClass="p-button-lg w-full">
+                        </p-button>
+                    </div>
+                </ng-template>
+            </p-card>
+        </div>
+
+        <!-- Footer informativo -->
+        <div class="footer-info">
+            <p>
+                <i class="pi pi-info-circle"></i>
+                Este sistema no requiere contraseña. Tu código de jugador es tu única identificación.
+            </p>
+        </div>
+    </div>
+
+    <!-- Toast para mensajes -->
+    <p-toast position="top-center"></p-toast>
+</div>
