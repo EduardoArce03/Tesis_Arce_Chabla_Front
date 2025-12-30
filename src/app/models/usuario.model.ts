@@ -7,15 +7,26 @@ class PreferenciasUsuario {}
 export interface Usuario {
     id: number;
     nombre: string;
-    email: string;
-    avatar: string;
-    jerarquiaActual: JerarquiaCanari;
-    puntosAcumulados: number;
-    nivel: number;
-    experiencia: number;
-    insignias: Insignia[];
-    estadisticas: EstadisticasUsuario;
-    preferencias: PreferenciasUsuario;
+    codigoJugador: string;
+    fechaCreacion: string;
+}
+
+export interface CrearUsuarioRequest {
+    nombre: string;
+    edadAproximada?: number;
+    nivelEducativo?: string;
+}
+
+export interface LoginConCodigoRequest {
+    codigoJugador: string;
+}
+
+export interface UsuarioResponse {
+    id: number;
+    nombre: string;
+    codigoJugador: string;
+    fechaCreacion: string;
+    mensaje: string;
 }
 
 export enum JerarquiaCanari {
