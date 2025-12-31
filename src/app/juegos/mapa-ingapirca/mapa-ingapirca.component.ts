@@ -204,15 +204,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     }
 
     obtenerIconoCategoria(categoria: CategoriaPunto): string {
-        const iconos = {
-            [CategoriaPunto.TEMPLO]: 'pi-sun',
-            [CategoriaPunto.PLAZA]: 'pi-map',
-            [CategoriaPunto.VIVIENDA]: 'pi-home',
-            [CategoriaPunto.DEPOSITO]: 'pi-box',
-            [CategoriaPunto.OBSERVATORIO]: 'pi-eye',
-            [CategoriaPunto.CEREMONIAL]: 'pi-sparkles'
-        };
-        return iconos[categoria] || 'pi-circle';
+        return ''
     }
 
     obtenerColorNivel(nivel: NivelDescubrimiento): string {

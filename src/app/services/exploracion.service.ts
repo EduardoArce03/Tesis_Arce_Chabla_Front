@@ -9,6 +9,10 @@ import {
     NivelDescubrimiento,
     CategoriaPunto
 } from '@/models/exploracion.model';
+import { BuscarArtefactoRequest,
+    DetallePuntoResponse, ResponderQuizRequest, ResultadoBusquedaResponse, ResultadoQuizResponse,
+    VisitaPuntoResponse, VisitarPuntoRequest
+} from '@/models/explorasion.model';
 
 @Injectable({ providedIn: 'root' })
 export class ExploracionService {
@@ -35,8 +39,8 @@ export class ExploracionService {
             .pipe(tap(progreso => this.progresoSubject.next(progreso)));
     }
 
-    visitarPunto(usuarioId: number, puntoId: number): Observable<any> {
-        return this.http.post(`${this.apiUrl}/visitar`, { usuarioId, puntoId });
+    visitarPunto(request: VisitarPuntoRequest): Observable<VisitaPuntoResponse> {
+        return this.http.post<VisitaPuntoResponse>(`${this.apiUrl}/visitar`, request);
     }
 
     generarNarrativa(puntoId: number, nivel: string): Observable<NarrativaGenerada> {
@@ -149,5 +153,20 @@ export class ExploracionService {
             elementosClave: ['Arquitectura inca', 'Ceremonias solares', 'Piedra pulida'],
             timestamp: new Date()
         };
+    }
+
+    responderQuiz(request: ResponderQuizRequest): Observable<ResultadoQuizResponse> {
+        return this.http.post<ResultadoQuizResponse>(`${this.apiUrl}/quiz/responder`, request);
+    }
+
+    // 👇 AGREGAR ESTE MÉTODO
+    buscarArtefacto(request: BuscarArtefactoRequest): Observable<ResultadoBusquedaResponse> {
+        return this.http.post<ResultadoBusquedaResponse>(`${this.apiUrl}/artefacto/buscar`, request);
+    }
+
+    obtenerDetallePunto(puntoId: number, usuarioId: number): Observable<DetallePuntoResponse> {
+        return this.http.get<DetallePuntoResponse>(
+            `${this.apiUrl}/punto/${puntoId}/detalle?usuarioId=${usuarioId}`
+        );
     }
 }

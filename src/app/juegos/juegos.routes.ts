@@ -29,9 +29,15 @@ export default [
     },
 
     {
-        path: 'exploracion',
+        path: 'exploracion2',
         loadComponent: () => import('./mapa-ingapirca/mapa-ingapirca.component')
             .then(m => m.MapaIngapircaComponent)
+    },
+
+    {
+        path: 'exploracion',
+        loadComponent: () => import('../components/exploracion/exploracion-ingapirca.component')
+            .then(m => m.ExploracionIngapircaComponent)
     },
 
     {

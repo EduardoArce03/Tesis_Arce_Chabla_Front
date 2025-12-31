@@ -1,0 +1,729 @@
+.exploracion-container {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f8f4e6 0%, #e8dcc4 100%);
+    min-height: 100vh;
+
+    // Header
+    .exploracion-header {
+        margin-bottom: 2rem;
+
+        ::ng-deep .p-card {
+            border-radius: 16px;
+            background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
+            color: white;
+            box-shadow: 0 8px 24px rgba(139, 69, 19, 0.3);
+
+            .p-card-body {
+                padding: 2rem;
+            }
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 2rem;
+
+            .header-info {
+                flex: 1;
+
+                .title-section {
+                    margin-bottom: 1.5rem;
+
+                    h1 {
+                        margin: 0 0 0.5rem 0;
+                        font-size: 2rem;
+                        font-weight: 700;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.75rem;
+
+                        i {
+                            font-size: 2.5rem;
+                        }
+                    }
+
+                    .subtitle {
+                        margin: 0;
+                        opacity: 0.9;
+                        font-size: 1.1rem;
+                    }
+                }
+
+                .progress-section {
+                    display: flex;
+                    gap: 2rem;
+                    align-items: center;
+
+                    .archaeologist-level {
+                        flex: 1;
+
+                        .level-badge {
+                            display: flex;
+                            align-items: center;
+                            gap: 1rem;
+                            margin-bottom: 1rem;
+
+                            .level-icon {
+                                font-size: 3rem;
+                            }
+
+                            .level-info {
+                                display: flex;
+                                flex-direction: column;
+
+                                .level-number {
+                                    font-size: 1.5rem;
+                                    font-weight: 700;
+                                    line-height: 1;
+                                }
+
+                                .level-label {
+                                    font-size: 0.9rem;
+                                    opacity: 0.9;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.5px;
+                                }
+                            }
+                        }
+
+                        .exp-bar {
+                            .exp-text {
+                                display: flex;
+                                justify-content: space-between;
+                                margin-bottom: 0.5rem;
+                                font-size: 0.9rem;
+                                opacity: 0.9;
+                            }
+
+                            ::ng-deep .p-progressbar {
+                                height: 12px;
+                                border-radius: 6px;
+                                background: rgba(255, 255, 255, 0.2);
+
+                                .p-progressbar-value {
+                                    background: linear-gradient(90deg, #FFD700 0%, #FFA500 100%);
+                                    border-radius: 6px;
+                                }
+                            }
+                        }
+                    }
+
+                    .stats-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 1rem;
+
+                        .stat-item {
+                            display: flex;
+                            align-items: center;
+                            gap: 0.75rem;
+                            padding: 1rem;
+                            background: rgba(255, 255, 255, 0.15);
+                            border-radius: 8px;
+                            backdrop-filter: blur(10px);
+
+                            i {
+                                font-size: 2rem;
+                                color: #FFD700;
+                            }
+
+                            .stat-info {
+                                display: flex;
+                                flex-direction: column;
+                                gap: 0.25rem;
+
+                                .stat-value {
+                                    font-size: 1.25rem;
+                                    font-weight: 700;
+                                    line-height: 1;
+                                }
+
+                                .stat-label {
+                                    font-size: 0.8rem;
+                                    opacity: 0.9;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.5px;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            .header-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+
+                ::ng-deep .p-button {
+                    background: rgba(255, 255, 255, 0.2);
+                    border-color: rgba(255, 255, 255, 0.3);
+
+                    &:hover {
+                        background: rgba(255, 255, 255, 0.3);
+                    }
+                }
+            }
+        }
+    }
+
+    // Loading
+    .loading-container {
+        margin: 4rem auto;
+        max-width: 500px;
+
+        .loading-content {
+            text-align: center;
+            padding: 3rem 2rem;
+
+            i {
+                color: #8B4513;
+                margin-bottom: 1.5rem;
+            }
+
+            p {
+                margin: 0;
+                color: #666;
+                font-size: 1.1rem;
+            }
+        }
+    }
+
+    // Mapa
+    .mapa-section {
+        margin-bottom: 3rem;
+
+        ::ng-deep .mapa-card {
+            border-radius: 16px;
+
+            .p-card-header {
+                padding: 1.5rem;
+                background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(255, 215, 0, 0.1));
+                border-bottom: 2px solid rgba(139, 69, 19, 0.2);
+
+                .mapa-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+
+                    h2 {
+                        margin: 0;
+                        color: #8B4513;
+                        font-size: 1.5rem;
+                        font-weight: 700;
+                    }
+
+                    .leyenda {
+                        display: flex;
+                        gap: 1.5rem;
+
+                        .leyenda-item {
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                            font-size: 0.9rem;
+                            color: #666;
+
+                            .badge-nivel {
+                                width: 20px;
+                                height: 20px;
+                                border-radius: 50%;
+                                border: 2px solid #fff;
+
+                                &.bronce {
+                                    background: #CD7F32;
+                                }
+
+                                &.plata {
+                                    background: #C0C0C0;
+                                }
+
+                                &.oro {
+                                    background: #FFD700;
+                                }
+
+                                &.bloqueado {
+                                    background: #999;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        .mapa-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 8px;
+
+            .mapa-svg {
+                width: 100%;
+                height: auto;
+                display: block;
+
+                .punto-interes {
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+
+                    &.visitado {
+                        .punto-circulo {
+                            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+                        }
+
+                        &:hover {
+                            transform: scale(1.1);
+
+                            .glow-pulse {
+                                opacity: 0.4 !important;
+                            }
+                        }
+                    }
+
+                    &.disponible {
+                        .punto-circulo {
+                            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+                        }
+
+                        &:hover {
+                            transform: scale(1.15);
+
+                            .pulse-animation {
+                                opacity: 0.3 !important;
+                            }
+                        }
+
+                        .pulse-animation {
+                            animation: pulse 2s ease-in-out infinite;
+                        }
+                    }
+                }
+
+                .glow-pulse {
+                    animation: glow 3s ease-in-out infinite;
+                }
+
+                @keyframes pulse {
+                    0%, 100% {
+                        r: 35;
+                        opacity: 0.15;
+                    }
+                    50% {
+                        r: 40;
+                        opacity: 0.25;
+                    }
+                }
+
+                @keyframes glow {
+                    0%, 100% {
+                        opacity: 0.2;
+                    }
+                    50% {
+                        opacity: 0.35;
+                    }
+                }
+            }
+        }
+    }
+
+    // Sección de títulos
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #8B4513;
+        margin-bottom: 1.5rem;
+
+        i {
+            font-size: 1.8rem;
+        }
+    }
+
+    // Artefactos Recientes
+    .artefactos-section {
+        margin-bottom: 3rem;
+
+        .artefactos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+
+            ::ng-deep .artefacto-card {
+                border-radius: 12px;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+
+                &:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+                }
+
+                .p-card-body {
+                    padding: 1.5rem;
+                }
+
+                .artefacto-content {
+                    text-align: center;
+
+                    .artefacto-icon {
+                        font-size: 3rem;
+                        margin-bottom: 0.75rem;
+                    }
+
+                    h3 {
+                        margin: 0 0 0.25rem 0;
+                        font-size: 1.1rem;
+                        font-weight: 700;
+                        color: #8B4513;
+                    }
+
+                    .kichwa {
+                        margin: 0 0 0.75rem 0;
+                        font-size: 0.85rem;
+                        color: #999;
+                        font-style: italic;
+                    }
+
+                    .rareza {
+                        margin: 0.5rem 0;
+                        font-size: 1.2rem;
+                    }
+
+                    small {
+                        color: #666;
+                        font-size: 0.8rem;
+                    }
+                }
+            }
+        }
+    }
+
+    // Modal Detalle
+    ::ng-deep .p-dialog {
+        .dialog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+
+            .punto-title {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+
+                .punto-emoji {
+                    font-size: 3rem;
+                }
+
+                h2 {
+                    margin: 0;
+                    font-size: 1.75rem;
+                    color: #8B4513;
+                }
+
+                .kichwa-name {
+                    margin: 0.25rem 0 0 0;
+                    font-size: 1rem;
+                    color: #999;
+                    font-style: italic;
+                }
+            }
+        }
+
+        .detalle-content {
+            .historia-tab {
+                .narrativa {
+                    padding: 1.5rem;
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    border-radius: 8px;
+                    margin-bottom: 2rem;
+
+                    p {
+                        margin: 0;
+                        line-height: 1.8;
+                        font-size: 1.05rem;
+                        color: #333;
+                    }
+                }
+
+                .historia-completa {
+                    h3 {
+                        color: #8B4513;
+                        margin-bottom: 1rem;
+                    }
+
+                    p {
+                        line-height: 1.8;
+                        color: #555;
+                        white-space: pre-line;
+                    }
+                }
+            }
+
+            .artefactos-tab {
+                .artefactos-info {
+                    text-align: center;
+                    padding: 1.5rem;
+                    background: linear-gradient(135deg, rgba(139, 69, 19, 0.05), rgba(255, 215, 0, 0.05));
+                    border-radius: 8px;
+                    margin-bottom: 2rem;
+
+                    p {
+                        margin: 0;
+                        font-size: 1.1rem;
+                        color: #666;
+                    }
+                }
+
+                .artefactos-lista {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                    margin-bottom: 2rem;
+
+                    .artefacto-item {
+                        display: flex;
+                        gap: 1.5rem;
+                        padding: 1.5rem;
+                        background: #f8f9fa;
+                        border-radius: 8px;
+                        transition: all 0.3s ease;
+
+                        &.encontrado {
+                            background: linear-gradient(135deg, #fff9e6 0%, #fff3cc 100%);
+                            border-left: 4px solid #FFD700;
+                        }
+
+                        &:not(.encontrado) {
+                            opacity: 0.6;
+                        }
+
+                        .artefacto-icon-large {
+                            width: 80px;
+                            height: 80px;
+                            background: white;
+                            border-radius: 12px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 3rem;
+                            flex-shrink: 0;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                        }
+
+                        .artefacto-info {
+                            flex: 1;
+
+                            h4 {
+                                margin: 0 0 0.5rem 0;
+                                color: #8B4513;
+                                font-size: 1.25rem;
+                            }
+
+                            p {
+                                margin: 0.25rem 0;
+                                color: #666;
+
+                                &:first-of-type {
+                                    font-style: italic;
+                                    color: #999;
+                                    font-size: 0.9rem;
+                                }
+                            }
+
+                            .rareza {
+                                margin-top: 0.5rem;
+                                font-size: 1.1rem;
+                            }
+                        }
+                    }
+                }
+
+                .buscar-artefacto {
+                    margin-top: 2rem;
+                }
+            }
+
+            .quiz-tab {
+                .quiz-info {
+                    padding: 1.5rem;
+                    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+                    border-radius: 8px;
+                    margin-bottom: 2rem;
+                    text-align: center;
+
+                    p {
+                        margin: 0 0 1rem 0;
+                        color: #333;
+                    }
+                }
+            }
+
+            .stats-tab {
+                .stat-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 1rem;
+                    margin-bottom: 0.5rem;
+                    background: #f8f9fa;
+                    border-radius: 6px;
+
+                    .label {
+                        font-weight: 600;
+                        color: #666;
+                    }
+
+                    .value {
+                        font-size: 1.1rem;
+                        font-weight: 700;
+                        color: #8B4513;
+                    }
+                }
+            }
+
+            .cronometro {
+                margin-top: 2rem;
+                padding: 1rem;
+                background: linear-gradient(135deg, rgba(139, 69, 19, 0.05), rgba(255, 215, 0, 0.05));
+                border-radius: 8px;
+                text-align: center;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.75rem;
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: #8B4513;
+
+                i {
+                    font-size: 1.5rem;
+                }
+            }
+        }
+    }
+
+    // Modal Quiz
+    .quiz-content {
+        .pregunta {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 8px;
+
+            h3 {
+                margin: 0 0 1rem 0;
+                color: #333;
+                font-size: 1.25rem;
+            }
+
+            .dificultad {
+                color: #666;
+                font-size: 0.9rem;
+            }
+        }
+
+        .opciones {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+
+            .opcion-item {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 1.25rem;
+                background: #f8f9fa;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+                cursor: pointer;
+
+                &:hover {
+                    background: #e9ecef;
+                    transform: translateX(4px);
+                }
+
+                .opcion-label {
+                    cursor: pointer;
+                    flex: 1;
+                    font-size: 1rem;
+                    color: #333;
+
+                    strong {
+                        color: #8B4513;
+                        margin-right: 0.5rem;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Responsive
+@media (max-width: 1200px) {
+    .exploracion-container {
+        .exploracion-header {
+            .header-content {
+                flex-direction: column;
+
+                .progress-section {
+                    flex-direction: column;
+                    width: 100%;
+
+                    .stats-grid {
+                        width: 100%;
+                        grid-template-columns: 1fr;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .exploracion-container {
+        padding: 1rem;
+
+        .exploracion-header {
+            .header-content {
+                .title-section {
+                    h1 {
+                        font-size: 1.5rem;
+                    }
+
+                    .subtitle {
+                        font-size: 1rem;
+                    }
+                }
+
+                .header-actions {
+                    width: 100%;
+
+                    ::ng-deep .p-button {
+                        width: 100%;
+                    }
+                }
+            }
+        }
+
+        .mapa-section {
+            ::ng-deep .mapa-card .p-card-header .mapa-header {
+                flex-direction: column;
+                gap: 1rem;
+
+                .leyenda {
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                }
+            }
+        }
+
+        .artefactos-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+}

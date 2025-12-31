@@ -1,219 +1,212 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Card } from 'primeng/card';
-import { Table, TableModule } from 'primeng/table';
-import { Tag } from 'primeng/tag';
+import { Router } from '@angular/router';
+import { CardModule } from 'primeng/card';
+import { ButtonModule } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { ProgressBarModule } from 'primeng/progressbar';
+import { ChartModule } from 'primeng/chart';
+import { SkeletonModule } from 'primeng/skeleton';
+import { TooltipModule } from 'primeng/tooltip';
 
-import { EstadisticasJugadorResponse, PartidaResponse, NivelDificultad } from '@/models/juego.model';
-import { PartidaService } from '@/components/partida.service';
+import { EstadisticasService } from '@/services/estadisticas.service';
+import { SesionService } from '@/services/sesion.service';
+import {
+    EstadisticasDetalladasResponse,
+} from '@/models/estadisticas.model';
+import { CategoriasCultural, NivelDificultad } from '@/models/juego.model';
 
 @Component({
-  standalone: true,
-  imports: [CommonModule, Card, Tag, TableModule],
-  selector: 'app-estadisticas-jugador',
-  template: `
-    <div class="estadisticas-container">
-      <h2>📊 Mis Estadísticas</h2>
-
-      <!-- Resumen de Estadísticas -->
-      <div class="stats-grid" *ngIf="estadisticas">
-        <p-card>
-          <div class="stat-card">
-            <i class="pi pi-play-circle"></i>
-            <span class="stat-value">{{ estadisticas.totalPartidas }}</span>
-            <span class="stat-label">Partidas Jugadas</span>
-          </div>
-        </p-card>
-
-        <p-card>
-          <div class="stat-card">
-            <i class="pi pi-check-circle"></i>
-            <span class="stat-value">{{ estadisticas.partidasCompletadas }}</span>
-            <span class="stat-label">Completadas</span>
-          </div>
-        </p-card>
-
-        <p-card>
-          <div class="stat-card">
-            <i class="pi pi-star-fill"></i>
-            <span class="stat-value">{{ estadisticas.puntuacionPromedio.toFixed(0) }}</span>
-            <span class="stat-label">Puntuación Promedio</span>
-          </div>
-        </p-card>
-
-        <p-card>
-          <div class="stat-card">
-            <i class="pi pi-trophy"></i>
-            <span class="stat-value">{{ estadisticas.mejorPuntuacion || 0 }}</span>
-            <span class="stat-label">Mejor Puntuación</span>
-          </div>
-        </p-card>
-
-        <p-card>
-          <div class="stat-card">
-            <i class="pi pi-clock"></i>
-            <span class="stat-value">{{ formatearTiempo(estadisticas.tiempoPromedioSegundos) }}</span>
-            <span class="stat-label">Tiempo Promedio</span>
-          </div>
-        </p-card>
-
-        <p-card>
-          <div class="stat-card">
-            <i class="pi pi-sync"></i>
-            <span class="stat-value">{{ estadisticas.intentosPromedio.toFixed(1) }}</span>
-            <span class="stat-label">Intentos Promedio</span>
-          </div>
-        </p-card>
-      </div>
-
-      <!-- Historial de Partidas -->
-      <p-card header="Historial de Partidas" styleClass="historial-card">
-        <p-table [value]="historial" [paginator]="true" [rows]="10">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Fecha</th>
-              <th>Nivel</th>
-              <th>Categoría</th>
-              <th>Intentos</th>
-              <th>Tiempo</th>
-              <th>Puntuación</th>
-              <th>Estado</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-partida>
-            <tr>
-              <td>{{ formatearFecha(partida.fechaInicio) }}</td>
-              <td>
-                <p-tag [value]="getNivelLabel(partida.nivel)" [severity]="getNivelSeverity(partida.nivel)"></p-tag>
-              </td>
-              <td>{{ partida.categoria }}</td>
-              <td>{{ partida.intentos }}</td>
-              <td>{{ formatearTiempo(partida.tiempoSegundos) }}</td>
-              <td><strong>{{ partida.puntuacion }}</strong></td>
-              <td>
-                <p-tag
-                  [value]="partida.completada ? 'Completada' : 'Incompleta'"
-                  [severity]="partida.completada ? 'success' : 'warn'">
-                </p-tag>
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </p-card>
-    </div>
-  `,
-  styles: [`
-    .estadisticas-container {
-      padding: 2rem;
-      max-width: 1400px;
-      margin: 0 auto;
-
-      h2 {
-        margin-bottom: 2rem;
-        color: #2c3e50;
-      }
-
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-
-        .stat-card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 1.5rem;
-          text-align: center;
-
-          i {
-            font-size: 3rem;
-            color: #3498db;
-            margin-bottom: 1rem;
-          }
-
-          .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 0.5rem;
-          }
-
-          .stat-label {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-          }
-        }
-      }
-
-      .historial-card {
-        margin-top: 2rem;
-      }
-    }
-  `]
+    selector: 'app-estadisticas-jugador',
+    standalone: true,
+    imports: [
+        CommonModule,
+        CardModule,
+        ButtonModule,
+        TableModule,
+        TagModule,
+        ProgressBarModule,
+        ChartModule,
+        SkeletonModule,
+        TooltipModule
+    ],
+    templateUrl: './estadisticas-jugador.component.html',
+    styleUrls: ['./estadisticas-jugador.component.scss']
 })
 export class EstadisticasJugadorComponent implements OnInit {
-  estadisticas?: EstadisticasJugadorResponse;
-  historial: PartidaResponse[] = [];
-  jugadorId: string = '';
+    estadisticas?: EstadisticasDetalladasResponse;
+    cargando = true;
 
-  constructor(private partidaService: PartidaService) {}
+    // Datos para gráficos
+    chartPuntuaciones: any;
+    chartPorNivel: any;
+    chartPorCategoria: any;
 
-  ngOnInit() {
-    this.jugadorId = localStorage.getItem('jugadorId') || '';
-    if (this.jugadorId) {
-      this.cargarEstadisticas();
-      this.cargarHistorial();
+    // Opciones de gráficos
+    chartOptions: any;
+
+    constructor(
+        private estadisticasService: EstadisticasService,
+        private sesionService: SesionService,
+        private router: Router
+    ) {
+        this.configurarGraficos();
     }
-  }
 
-  cargarEstadisticas() {
-    this.partidaService.obtenerEstadisticas(this.jugadorId).subscribe({
-      next: (data) => this.estadisticas = data,
-      error: (error) => console.error('Error al cargar estadísticas:', error)
-    });
-  }
+    ngOnInit() {
+        const usuario = this.sesionService.getUsuario();
 
-  cargarHistorial() {
-    this.partidaService.obtenerHistorial(this.jugadorId).subscribe({
-      next: (data) => this.historial = data,
-      error: (error) => console.error('Error al cargar historial:', error)
-    });
-  }
+        if (!usuario) {
+            this.router.navigate(['/bienvenida']);
+            return;
+        }
 
-  formatearTiempo(segundos: number): string {
-    const minutos = Math.floor(segundos / 60);
-    const segs = Math.floor(segundos % 60);
-    return `${minutos}:${segs.toString().padStart(2, '0')}`;
-  }
+        this.cargarEstadisticas(usuario.id);
+    }
 
-  formatearFecha(fecha: string): string {
-    return new Date(fecha).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
+    cargarEstadisticas(usuarioId: number) {
+        this.cargando = true;
 
-  getNivelLabel(nivel: NivelDificultad): string {
-    const labels = {
-      [NivelDificultad.FACIL]: 'Fácil',
-      [NivelDificultad.MEDIO]: 'Medio',
-      [NivelDificultad.DIFICIL]: 'Difícil'
-    };
-    return labels[nivel];
-  }
+        this.estadisticasService.obtenerEstadisticasDetalladas(usuarioId).subscribe({
+            next: (data) => {
+                this.estadisticas = data;
+                this.generarGraficos();
+                this.cargando = false;
+            },
+            error: (error) => {
+                console.error('Error al cargar estadísticas:', error);
+                this.cargando = false;
+            }
+        });
+    }
+
+    configurarGraficos() {
+        const documentStyle = getComputedStyle(document.documentElement);
+        const textColor = documentStyle.getPropertyValue('--text-color');
+        const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
+        const surfaceBorder = documentStyle.getPropertyValue('--surface-border');
+
+        this.chartOptions = {
+            plugins: {
+                legend: {
+                    labels: {
+                        color: textColor
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: textColorSecondary
+                    },
+                    grid: {
+                        color: surfaceBorder,
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: textColorSecondary
+                    },
+                    grid: {
+                        color: surfaceBorder,
+                        drawBorder: false
+                    }
+                }
+            }
+        };
+    }
+
+    generarGraficos() {
+        if (!this.estadisticas) return;
+
+        // Gráfico de puntuaciones a lo largo del tiempo
+        this.chartPuntuaciones = {
+            labels: this.estadisticas.graficoPuntuaciones.map(p => p.fecha),
+            datasets: [
+                {
+                    label: 'Puntuación',
+                    data: this.estadisticas.graficoPuntuaciones.map(p => p.puntuacion),
+                    fill: true,
+                    borderColor: '#8B4513',
+                    backgroundColor: 'rgba(139, 69, 19, 0.2)',
+                    tension: 0.4
+                }
+            ]
+        };
+
+        // Gráfico por nivel
+        this.chartPorNivel = {
+            labels: this.estadisticas.estadisticasPorNivel.map(e => this.getNivelLabel(e.nivel)),
+            datasets: [
+                {
+                    label: 'Partidas Jugadas',
+                    data: this.estadisticas.estadisticasPorNivel.map(e => e.partidasJugadas),
+                    backgroundColor: ['#667eea', '#FFA500', '#dc3545']
+                }
+            ]
+        };
+
+        // Gráfico por categoría
+        this.chartPorCategoria = {
+            labels: this.estadisticas.estadisticasPorCategoria.map(e => this.getCategoriaLabel(e.categoria)),
+            datasets: [
+                {
+                    label: 'Puntuación Promedio',
+                    data: this.estadisticas.estadisticasPorCategoria.map(e => e.puntuacionPromedio),
+                    backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe']
+                }
+            ]
+        };
+    }
+
+    getNivelLabel(nivel: NivelDificultad): string {
+        const labels: Record<NivelDificultad, string> = {
+            [NivelDificultad.FACIL]: 'Fácil',
+            [NivelDificultad.MEDIO]: 'Medio',
+            [NivelDificultad.DIFICIL]: 'Difícil'
+        };
+        return labels[nivel];
+    }
 
     getNivelSeverity(nivel: NivelDificultad): 'success' | 'warn' | 'danger' {
         const severities: Record<NivelDificultad, 'success' | 'warn' | 'danger'> = {
             [NivelDificultad.FACIL]: 'success',
-            [NivelDificultad.MEDIO]: 'warn',      // 👈 'warn' en vez de 'warning'
+            [NivelDificultad.MEDIO]: 'warn',
             [NivelDificultad.DIFICIL]: 'danger'
         };
         return severities[nivel];
+    }
+
+    getCategoriaLabel(categoria: CategoriasCultural): string {
+        const labels: Record<CategoriasCultural, string> = {
+            [CategoriasCultural.VESTIMENTA]: 'Vestimenta',
+            [CategoriasCultural.MUSICA]: 'Música',
+            [CategoriasCultural.LUGARES]: 'Lugares',
+            [CategoriasCultural.FESTIVIDADES]: 'Festividades'
+        };
+        return labels[categoria];
+    }
+
+    formatearTiempo(segundos: number): string {
+        const minutos = Math.floor(segundos / 60);
+        const segs = segundos % 60;
+        return `${minutos}:${segs.toString().padStart(2, '0')}`;
+    }
+
+    formatearFecha(fecha: string): string {
+        return new Date(fecha).toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    volverAlDashboard() {
+        this.router.navigate(['/']);
     }
 }

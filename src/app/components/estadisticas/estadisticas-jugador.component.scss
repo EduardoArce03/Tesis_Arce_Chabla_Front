@@ -1,0 +1,605 @@
+.estadisticas-container {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f8f4e6 0%, #e8dcc4 100%);
+    min-height: 100vh;
+
+    // Header
+    .estadisticas-header {
+        margin-bottom: 2rem;
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
+            border-radius: 16px;
+            color: white;
+            box-shadow: 0 8px 24px rgba(139, 69, 19, 0.3);
+
+            .header-info {
+                h1 {
+                    margin: 0 0 0.5rem 0;
+                    font-size: 2rem;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+
+                    i {
+                        font-size: 2.5rem;
+                    }
+                }
+
+                p {
+                    margin: 0;
+                    opacity: 0.9;
+                    font-size: 1.1rem;
+                }
+            }
+
+            ::ng-deep .p-button {
+                background: rgba(255, 255, 255, 0.2);
+                border-color: rgba(255, 255, 255, 0.3);
+
+                &:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                }
+            }
+        }
+    }
+
+    // Loading State
+    .loading-state {
+        .grid {
+            margin-bottom: 2rem;
+        }
+    }
+
+    // Content
+    .estadisticas-content {
+        max-width: 1400px;
+        margin: 0 auto;
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #8B4513;
+            margin-bottom: 1.5rem;
+
+            i {
+                font-size: 1.8rem;
+            }
+        }
+    }
+
+    // Resumen General
+    .resumen-section {
+        margin-bottom: 3rem;
+
+        ::ng-deep .stat-card {
+            height: 100%;
+            border-radius: 12px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+            &:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            }
+
+            .p-card-body {
+                padding: 1.5rem;
+            }
+
+            .stat-content {
+                display: flex;
+                gap: 1rem;
+                margin-bottom: 1rem;
+
+                .stat-icon {
+                    width: 60px;
+                    height: 60px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 12px;
+                    font-size: 2rem;
+                    flex-shrink: 0;
+                }
+
+                .stat-info {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    flex: 1;
+
+                    .stat-value {
+                        font-size: 2rem;
+                        font-weight: 700;
+                        line-height: 1.2;
+                        margin-bottom: 0.25rem;
+                    }
+
+                    .stat-label {
+                        font-size: 0.9rem;
+                        font-weight: 600;
+                        color: #666;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+
+                    .stat-detail {
+                        font-size: 0.8rem;
+                        color: #999;
+                        margin-top: 0.25rem;
+                    }
+                }
+            }
+
+            .stat-progress {
+                ::ng-deep .p-progressbar {
+                    height: 8px;
+                    border-radius: 4px;
+                    margin-bottom: 0.5rem;
+                }
+
+                .progress-text {
+                    font-size: 0.8rem;
+                    color: #666;
+                }
+            }
+
+            .best-score {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.5rem;
+                background: rgba(255, 215, 0, 0.1);
+                border-radius: 6px;
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: #8B4513;
+
+                i {
+                    color: #FFD700;
+                }
+            }
+
+            &.total-card .stat-icon {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+
+            &.total-card .stat-value {
+                color: #667eea;
+            }
+
+            &.puntos-card .stat-icon {
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                color: white;
+            }
+
+            &.puntos-card .stat-value {
+                color: #f5576c;
+            }
+
+            &.tiempo-card .stat-icon {
+                background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                color: white;
+            }
+
+            &.tiempo-card .stat-value {
+                color: #4facfe;
+            }
+
+            &.precision-card .stat-icon {
+                background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+                color: white;
+            }
+
+            &.precision-card .stat-value {
+                color: #43e97b;
+            }
+        }
+    }
+
+    // Rachas
+    .rachas-section {
+        margin-bottom: 3rem;
+
+        ::ng-deep .racha-card {
+            border-radius: 12px;
+            transition: transform 0.3s ease;
+
+            &:hover {
+                transform: translateY(-4px);
+            }
+
+            .p-card-body {
+                padding: 2rem;
+            }
+
+            .racha-content {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+
+                .racha-icon {
+                    font-size: 3rem;
+                }
+
+                .racha-info {
+                    text-align: center;
+
+                    .racha-value {
+                        display: block;
+                        font-size: 2.5rem;
+                        font-weight: 700;
+                        line-height: 1;
+                        margin-bottom: 0.5rem;
+                    }
+
+                    .racha-label {
+                        font-size: 0.9rem;
+                        color: #666;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                }
+            }
+
+            &.actual {
+                background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+                border-left: 4px solid #ff6b6b;
+
+                .racha-value {
+                    color: #ff6b6b;
+                }
+            }
+
+            &.mejor {
+                background: linear-gradient(135deg, #fff9e6 0%, #fff3cc 100%);
+                border-left: 4px solid #FFD700;
+
+                .racha-value {
+                    color: #FFD700;
+                }
+            }
+
+            &.consecutivas {
+                background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+                border-left: 4px solid #3b82f6;
+
+                .racha-value {
+                    color: #3b82f6;
+                }
+            }
+        }
+    }
+
+    // Gráficos
+    .graficos-section {
+        margin-bottom: 3rem;
+
+        ::ng-deep .p-card {
+            border-radius: 12px;
+
+            .p-card-header {
+                padding: 1.5rem 1.5rem 0;
+
+                .card-header {
+                    h3 {
+                        margin: 0 0 0.25rem 0;
+                        font-size: 1.25rem;
+                        font-weight: 700;
+                        color: #8B4513;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                    }
+
+                    p {
+                        margin: 0;
+                        color: #999;
+                        font-size: 0.9rem;
+                    }
+                }
+            }
+
+            .p-card-body {
+                padding: 1.5rem;
+            }
+        }
+    }
+
+    // Mejores Partidas
+    .mejores-section {
+        margin-bottom: 3rem;
+
+        ::ng-deep .mejores-table {
+            .position-badge {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                font-size: 1.5rem;
+                font-weight: 700;
+
+                &.position-1 {
+                    background: linear-gradient(135deg, #FFD700, #FFA500);
+                }
+
+                &.position-2 {
+                    background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
+                }
+
+                &.position-3 {
+                    background: linear-gradient(135deg, #CD7F32, #A0522D);
+                }
+            }
+
+            .puntuacion-cell {
+                font-size: 1.1rem;
+                color: #8B4513;
+            }
+
+            .precision-bar {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+
+                ::ng-deep .p-progressbar {
+                    flex: 1;
+                    height: 8px;
+                    border-radius: 4px;
+                }
+
+                span {
+                    font-weight: 600;
+                    color: #8B4513;
+                    min-width: 40px;
+                }
+            }
+        }
+    }
+
+    // Historial
+    .historial-section {
+        margin-bottom: 3rem;
+
+        ::ng-deep .p-table {
+            .partida-completada {
+                background: rgba(39, 174, 96, 0.05);
+            }
+
+            .puntuacion-cell {
+                font-weight: 700;
+                color: #8B4513;
+            }
+
+            .empty-state {
+                text-align: center;
+                padding: 3rem 1rem;
+
+                i {
+                    font-size: 4rem;
+                    color: #999;
+                    margin-bottom: 1rem;
+                    display: block;
+                }
+
+                h2 {
+                    margin: 0 0 0.5rem 0;
+                    color: #333;
+                }
+
+                p {
+                    margin: 0 0 1.5rem 0;
+                    color: #666;
+                }
+            }
+        }
+    }
+
+    // Detalle por Nivel
+    .detalle-nivel-section {
+        margin-bottom: 3rem;
+
+        ::ng-deep .nivel-detail-card {
+            border-radius: 12px;
+            height: 100%;
+            transition: transform 0.3s ease;
+
+            &:hover {
+                transform: translateY(-4px);
+            }
+
+            .p-card-body {
+                padding: 1.5rem;
+            }
+
+            &.facil {
+                border-left: 4px solid #27ae60;
+                background: linear-gradient(135deg, #f0fff4 0%, #dcfce7 100%);
+            }
+
+            &.medio {
+                border-left: 4px solid #f39c12;
+                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            }
+
+            &.dificil {
+                border-left: 4px solid #e74c3c;
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            }
+
+            .nivel-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+                padding-bottom: 1rem;
+                border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+
+                h3 {
+                    margin: 0;
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    color: #8B4513;
+                }
+            }
+
+            .nivel-stats {
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+                margin-bottom: 1rem;
+
+                .stat-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+
+                    .label {
+                        font-size: 0.9rem;
+                        color: #666;
+                    }
+
+                    .value {
+                        font-size: 1.1rem;
+                        font-weight: 700;
+                        color: #8B4513;
+                    }
+                }
+            }
+
+            .nivel-progress {
+                ::ng-deep .p-progressbar {
+                    height: 8px;
+                    border-radius: 4px;
+                }
+            }
+        }
+    }
+
+    // Empty State Container
+    .empty-state-container {
+        max-width: 600px;
+        margin: 4rem auto;
+
+        ::ng-deep .p-card {
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .empty-content {
+            text-align: center;
+            padding: 3rem 2rem;
+
+            i {
+                margin-bottom: 1.5rem;
+                display: block;
+            }
+
+            h2 {
+                margin: 0 0 0.5rem 0;
+                color: #333;
+                font-size: 1.75rem;
+            }
+
+            p {
+                margin: 0 0 2rem 0;
+                color: #666;
+                font-size: 1.1rem;
+            }
+        }
+    }
+}
+
+// Responsive
+@media (max-width: 1200px) {
+    .estadisticas-container {
+        .graficos-section {
+            .grid {
+                .col-12.lg\\:col-8,
+                .col-12.lg\\:col-4 {
+                    width: 100%;
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .estadisticas-container {
+        padding: 1rem;
+
+        .estadisticas-header {
+            .header-content {
+                flex-direction: column;
+                gap: 1.5rem;
+                padding: 1.5rem;
+                text-align: center;
+
+                .header-info {
+                    h1 {
+                        font-size: 1.5rem;
+                        justify-content: center;
+                    }
+                }
+
+                ::ng-deep .p-button {
+                    width: 100%;
+                }
+            }
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+        }
+
+        .resumen-section {
+            ::ng-deep .stat-card {
+                .stat-content {
+                    .stat-icon {
+                        width: 50px;
+                        height: 50px;
+                        font-size: 1.5rem;
+                    }
+
+                    .stat-info {
+                        .stat-value {
+                            font-size: 1.5rem;
+                        }
+                    }
+                }
+            }
+        }
+
+        .rachas-section {
+            ::ng-deep .racha-card {
+                .p-card-body {
+                    padding: 1.5rem;
+                }
+
+                .racha-content {
+                    .racha-icon {
+                        font-size: 2.5rem;
+                    }
+
+                    .racha-info {
+                        .racha-value {
+                            font-size: 2rem;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

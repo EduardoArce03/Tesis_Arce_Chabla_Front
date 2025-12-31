@@ -18,7 +18,9 @@ export enum CategoriaPunto {
     VIVIENDA = 'VIVIENDA',
     DEPOSITO = 'DEPOSITO',
     OBSERVATORIO = 'OBSERVATORIO',
-    CEREMONIAL = 'CEREMONIAL'
+    CEREMONIAL = 'CEREMONIAL',
+    CAMINO = 'CAMINO',
+    FUENTE = 'FUENTE',
 }
 
 export enum NivelDescubrimiento {

@@ -1,0 +1,335 @@
+<div class="exploracion-container">
+    <p-toast></p-toast>
+
+    <!-- Header con Progreso -->
+    <div class="exploracion-header">
+        <p-card>
+            <div class="header-content">
+                <div class="header-info" *ngIf="dashboard">
+                    <div class="title-section">
+                        <h1>
+                            <i class="pi pi-map"></i>
+                            Exploración de Ingapirca
+                        </h1>
+                        <p class="subtitle">Descubre los secretos del complejo arqueológico Cañari-Inca</p>
+                    </div>
+
+                    <div class="progress-section">
+                        <div class="archaeologist-level">
+                            <div class="level-badge">
+                                <span class="level-icon">🏺</span>
+                                <div class="level-info">
+                                    <span class="level-number">Nivel {{ dashboard.progreso.nivelArqueologo }}</span>
+                                    <span class="level-label">Arqueólogo</span>
+                                </div>
+                            </div>
+                            <div class="exp-bar">
+                                <div class="exp-text">
+                                    <span>{{ dashboard.progreso.experienciaActual }} XP</span>
+                                    <span>{{ dashboard.progreso.experienciaParaSiguienteNivel }} XP</span>
+                                </div>
+                                <p-progressbar
+                                    [value]="dashboard.progreso.porcentajeProgreso"
+                                    [showValue]="false">
+                                </p-progressbar>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <i class="pi pi-map-marker"></i>
+                                <div class="stat-info">
+                                    <span class="stat-value">{{ dashboard.progreso.puntosDescubiertos }}/{{ dashboard.progreso.totalPuntos }}</span>
+                                    <span class="stat-label">Puntos</span>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="pi pi-diamond"></i>
+                                <div class="stat-info">
+                                    <span class="stat-value">{{ dashboard.progreso.artefactosEncontrados }}/{{ dashboard.progreso.totalArtefactos }}</span>
+                                    <span class="stat-label">Artefactos</span>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="pi pi-flag"></i>
+                                <div class="stat-info">
+                                    <span class="stat-value">{{ dashboard.progreso.misionesCompletadas }}</span>
+                                    <span class="stat-label">Misiones</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <p-button
+                        label="Mi Colección"
+                        icon="pi pi-book"
+                        (onClick)="verColeccion()"
+                        [outlined]="true">
+                    </p-button>
+                    <p-button
+                        label="Volver"
+                        icon="pi pi-arrow-left"
+                        routerLink="/"
+                        severity="secondary"
+                        [outlined]="true">
+                    </p-button>
+                </div>
+            </div>
+        </p-card>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-container" *ngIf="cargando">
+        <p-card>
+            <div class="loading-content">
+                <i class="pi pi-spin pi-spinner" style="font-size: 3rem;"></i>
+                <p>Cargando mapa de Ingapirca...</p>
+            </div>
+        </p-card>
+    </div>
+
+    <!-- Mapa Interactivo -->
+    <div class="mapa-section" *ngIf="!cargando && dashboard">
+        <p-card styleClass="mapa-card">
+            <ng-template pTemplate="header">
+                <div class="mapa-header">
+                    <h2>Mapa Arqueológico</h2>
+                    <div class="leyenda">
+                        <div class="leyenda-item">
+                            <span class="badge-nivel bronce"></span>
+                            <span>Bronce</span>
+                        </div>
+                        <div class="leyenda-item">
+                            <span class="badge-nivel plata"></span>
+                            <span>Plata</span>
+                        </div>
+                        <div class="leyenda-item">
+                            <span class="badge-nivel oro"></span>
+                            <span>Oro</span>
+                        </div>
+                        <div class="leyenda-item">
+                            <span class="badge-nivel bloqueado"></span>
+                            <span>Bloqueado</span>
+                        </div>
+                    </div>
+                </div>
+            </ng-template>
+
+            <div class="mapa-container">
+                <svg viewBox="0 0 1000 700" class="mapa-svg">
+                    <defs>
+                        <pattern id="terreno" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                            <rect width="100" height="100" fill="#f8f4e6"/>
+                            <circle cx="20" cy="20" r="2" fill="#d4c4a8" opacity="0.3"/>
+                            <circle cx="60" cy="50" r="2" fill="#d4c4a8" opacity="0.3"/>
+                            <circle cx="80" cy="80" r="2" fill="#d4c4a8" opacity="0.3"/>
+                        </pattern>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+
+                    <rect width="1000" height="700" fill="url(#terreno)"/>
+
+                    <path d="M 300,400 Q 500,300 700,500" stroke="#8B4513" stroke-width="3" fill="none" stroke-dasharray="10,5" opacity="0.3"/>
+                    <path d="M 350,550 Q 450,450 650,300" stroke="#8B4513" stroke-width="3" fill="none" stroke-dasharray="10,5" opacity="0.3"/>
+
+                    <g *ngFor="let punto of dashboard.puntosDescubiertos"
+                       [attr.transform]="'translate(' + (punto.coordenadaX * 10) + ',' + (punto.coordenadaY * 10) + ')'"
+                       class="punto-interes visitado"
+                       (click)="seleccionarPunto(punto)"
+                       [pTooltip]="punto.nombre + ' (' + punto.nombreKichwa + ')'"
+                       tooltipPosition="top">
+
+                        <circle r="35" [attr.fill]="getNivelColor(punto.nivelDescubrimiento)" opacity="0.2" class="glow-pulse" filter="url(#glow)"/>
+                        <circle r="25" [attr.fill]="getNivelColor(punto.nivelDescubrimiento)" [attr.stroke]="'#fff'" stroke-width="3" class="punto-circulo"/>
+                        <text text-anchor="middle" dy="8" font-size="24" fill="#ffffff">{{ getCategoriaIcono(punto.categoria) }}</text>
+                        <circle cx="20" cy="-20" r="12" [attr.fill]="getNivelColor(punto.nivelDescubrimiento)" stroke="#ffffff" stroke-width="2"/>
+                        <text x="20" y="-15" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">{{ punto.visitas }}</text>
+                    </g>
+
+                    <g *ngFor="let punto of dashboard.puntosDisponibles"
+                       [attr.transform]="'translate(' + (punto.coordenadaX * 10) + ',' + (punto.coordenadaY * 10) + ')'"
+                       class="punto-interes disponible"
+                       (click)="seleccionarPunto(punto)"
+                       [pTooltip]="punto.nombre"
+                       tooltipPosition="top">
+
+                        <circle r="35" fill="#8B4513" opacity="0.15" class="pulse-animation"/>
+                        <circle r="25" fill="#8B4513" stroke="#654321" stroke-width="3" class="punto-circulo"/>
+                        <text text-anchor="middle" dy="8" font-size="24" fill="#ffffff">{{ getCategoriaIcono(punto.categoria) }}</text>
+                        <text x="0" y="-35" text-anchor="middle" font-size="14" fill="#8B4513" font-weight="bold">¡NUEVO!</text>
+                    </g>
+                </svg>
+            </div>
+        </p-card>
+    </div>
+
+    <!-- Artefactos Recientes -->
+    <div class="artefactos-section" *ngIf="!cargando && dashboard && dashboard.artefactosRecientes.length > 0">
+        <h2 class="section-title">
+            <i class="pi pi-star"></i>
+            Artefactos Recientes
+        </h2>
+        <div class="artefactos-grid">
+            <p-card *ngFor="let artefacto of dashboard.artefactosRecientes" styleClass="artefacto-card">
+                <div class="artefacto-content">
+                    <div class="artefacto-icon">{{ artefacto.rareza === 5 ? '💎' : artefacto.rareza === 4 ? '🏺' : '⚱️' }}</div>
+                    <h3>{{ artefacto.nombre }}</h3>
+                    <p class="kichwa">{{ artefacto.nombreKichwa }}</p>
+                    <div class="rareza">{{ getRarezaEstrellas(artefacto.rareza) }}</div>
+                    <small>{{ artefacto.puntoInteres }}</small>
+                </div>
+            </p-card>
+        </div>
+    </div>
+
+    <!-- Modal: Detalle del Punto -->
+    <p-dialog [(visible)]="mostrarDetalle" [modal]="true" [style]="{width: '90vw', maxWidth: '1000px'}" [closable]="true" (onHide)="cerrarDetalle()">
+        <ng-template pTemplate="header">
+            <div class="dialog-header" *ngIf="puntoSeleccionado">
+                <div class="punto-title">
+                    <span class="punto-emoji">{{ getCategoriaIcono(puntoSeleccionado.categoria) }}</span>
+                    <div>
+                        <h2>{{ puntoSeleccionado.nombre }}</h2>
+                        <p class="kichwa-name">{{ puntoSeleccionado.nombreKichwa }}</p>
+                    </div>
+                </div>
+                <p-tag [value]="getNivelLabel(puntoSeleccionado.nivelDescubrimiento)" [style]="{'background': getNivelColor(puntoSeleccionado.nivelDescubrimiento)}"></p-tag>
+            </div>
+        </ng-template>
+
+        <div class="detalle-content" *ngIf="detallePunto">
+            <!-- 👇 TABS CORREGIDOS PARA PRIMENG 20 -->
+            <p-tabs value="0">
+                <p-tablist>
+                    <p-tab value="0"><i class="pi pi-book mr-2"></i>Historia</p-tab>
+                    <p-tab value="1"><i class="pi pi-diamond mr-2"></i>Artefactos</p-tab>
+                    <p-tab value="2" *ngIf="detallePunto.quiz && detallePunto.quiz.length > 0"><i class="pi pi-question-circle mr-2"></i>Quiz</p-tab>
+                    <p-tab value="3"><i class="pi pi-chart-bar mr-2"></i>Estadísticas</p-tab>
+                </p-tablist>
+                <p-tabpanels>
+                    <!-- Tab Historia -->
+                    <p-tabpanel value="0">
+                        <div class="historia-tab">
+                            <div class="narrativa">
+                                <p>{{ detallePunto.narrativa.texto }}</p>
+                            </div>
+                            <div class="historia-completa" *ngIf="puntoSeleccionado && puntoSeleccionado.visitas > 0">
+                                <h3>Historia Detallada</h3>
+                                <p>{{ detallePunto.historiaCompleta }}</p>
+                            </div>
+                        </div>
+                    </p-tabpanel>
+
+                    <!-- Tab Artefactos -->
+                    <p-tabpanel value="1">
+                        <div class="artefactos-tab">
+                            <div class="artefactos-info">
+                                <p><strong>{{ puntoSeleccionado?.artefactosEncontrados || 0 }}</strong> de <strong>{{ puntoSeleccionado?.artefactosDisponibles || 0 }}</strong> artefactos encontrados</p>
+                            </div>
+                            <div class="artefactos-lista">
+                                <div class="artefacto-item" *ngFor="let artefacto of detallePunto.artefactosDisponibles" [class.encontrado]="artefacto.encontrado">
+                                    <div class="artefacto-icon-large">{{ artefacto.encontrado ? '✨' : '❓' }}</div>
+                                    <div class="artefacto-info">
+                                        <h4>{{ artefacto.encontrado ? artefacto.nombre : '???' }}</h4>
+                                        <p *ngIf="artefacto.encontrado">{{ artefacto.nombreKichwa }}</p>
+                                        <p *ngIf="artefacto.encontrado">{{ artefacto.descripcion }}</p>
+                                        <div class="rareza" *ngIf="artefacto.encontrado">{{ getRarezaEstrellas(artefacto.rareza) }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="buscar-artefacto">
+                                <p-button label="Buscar Artefacto" icon="pi pi-search" (onClick)="buscarArtefacto()" [loading]="buscandoArtefacto" [disabled]="buscandoArtefacto" styleClass="p-button-lg w-full"></p-button>
+                            </div>
+                        </div>
+                    </p-tabpanel>
+
+                    <!-- Tab Quiz -->
+                    <p-tabpanel value="2" *ngIf="detallePunto.quiz && detallePunto.quiz.length > 0">
+                        <div class="quiz-tab">
+                            <div class="quiz-info">
+                                <p>Responde preguntas sobre este punto para ganar experiencia y desbloquear niveles superiores.</p>
+                                <p-tag [value]="puntoSeleccionado?.quizCompletado ? '✅ Quiz Completado' : '📝 Pendiente'" [severity]="puntoSeleccionado?.quizCompletado ? 'success' : 'warn'"></p-tag>
+                            </div>
+                            <p-button label="Responder Quiz" icon="pi pi-play" (onClick)="iniciarQuiz()" severity="success" styleClass="p-button-lg w-full"></p-button>
+                        </div>
+                    </p-tabpanel>
+
+                    <!-- Tab Estadísticas -->
+                    <p-tabpanel value="3">
+                        <div class="stats-tab" *ngIf="puntoSeleccionado">
+                            <div class="stat-row">
+                                <span class="label">Visitas:</span>
+                                <span class="value">{{ puntoSeleccionado.visitas }}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="label">Tiempo explorado:</span>
+                                <span class="value">{{ formatearTiempo(puntoSeleccionado.tiempoExplorado) }}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="label">Nivel de descubrimiento:</span>
+                                <span class="value">
+                                    <p-tag [value]="getNivelLabel(puntoSeleccionado.nivelDescubrimiento)" [style]="{'background': getNivelColor(puntoSeleccionado.nivelDescubrimiento)}"></p-tag>
+                                </span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="label">XP por visita:</span>
+                                <span class="value">{{ puntoSeleccionado.puntosPorDescubrir }} XP</span>
+                            </div>
+                        </div>
+                    </p-tabpanel>
+                </p-tabpanels>
+            </p-tabs>
+
+            <div class="cronometro">
+                <i class="pi pi-clock"></i>
+                <span>Tiempo en este punto: {{ formatearTiempo(tiempoTranscurrido) }}</span>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <p-button label="Cerrar" icon="pi pi-times" (onClick)="cerrarDetalle()" severity="secondary" [outlined]="true"></p-button>
+            <p-button label="Completar Exploración" icon="pi pi-check" (onClick)="completarVisita()" severity="success"></p-button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Modal: Quiz -->
+    <p-dialog [(visible)]="mostrarQuiz" [modal]="true" [style]="{width: '700px'}" [closable]="false">
+        <ng-template pTemplate="header">
+            <h2>Quiz Cultural</h2>
+        </ng-template>
+        <div class="quiz-content" *ngIf="preguntaActual">
+            <div class="pregunta">
+                <h3>{{ preguntaActual.pregunta }}</h3>
+                <div class="dificultad">Dificultad: {{ getRarezaEstrellas(preguntaActual.dificultad) }}</div>
+            </div>
+            <div class="opciones">
+                <div class="opcion-item" *ngFor="let opcion of preguntaActual.opciones">
+                    <p-radiobutton [value]="opcion.letra" [(ngModel)]="respuestaSeleccionada" [inputId]="opcion.letra"></p-radiobutton>
+                    <label [for]="opcion.letra" class="opcion-label"><strong>{{ opcion.letra }})</strong> {{ opcion.texto }}</label>
+                </div>
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <p-button label="Cancelar" icon="pi pi-times" (onClick)="mostrarQuiz = false" severity="secondary" [outlined]="true"></p-button>
+            <p-button label="Responder" icon="pi pi-check" (onClick)="responderQuiz()" [disabled]="!respuestaSeleccionada" severity="success"></p-button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Modal: Colección -->
+    <p-dialog [(visible)]="mostrarColeccion" [modal]="true" [style]="{width: '90vw', maxWidth: '1200px'}" header="Mi Colección de Artefactos">
+        <div class="coleccion-content" *ngIf="dashboard">
+            <p>Contenido de la colección completa próximamente...</p>
+        </div>
+        <ng-template pTemplate="footer">
+            <p-button label="Cerrar" icon="pi pi-times" (onClick)="mostrarColeccion = false"></p-button>
+        </ng-template>
+    </p-dialog>
+</div>
