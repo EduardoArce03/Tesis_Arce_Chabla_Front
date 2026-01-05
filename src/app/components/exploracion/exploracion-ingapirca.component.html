@@ -141,30 +141,63 @@
                     <path d="M 350,550 Q 450,450 650,300" stroke="#8B4513" stroke-width="3" fill="none" stroke-dasharray="10,5" opacity="0.3"/>
 
                     <g *ngFor="let punto of dashboard.puntosDescubiertos"
-                       [attr.transform]="'translate(' + (punto.coordenadaX * 10) + ',' + (punto.coordenadaY * 10) + ')'"
-                       class="punto-interes visitado"
+                       class="punto-group"
                        (click)="seleccionarPunto(punto)"
                        [pTooltip]="punto.nombre + ' (' + punto.nombreKichwa + ')'"
                        tooltipPosition="top">
 
-                        <circle r="35" [attr.fill]="getNivelColor(punto.nivelDescubrimiento)" opacity="0.2" class="glow-pulse" filter="url(#glow)"/>
-                        <circle r="25" [attr.fill]="getNivelColor(punto.nivelDescubrimiento)" [attr.stroke]="'#fff'" stroke-width="3" class="punto-circulo"/>
-                        <text text-anchor="middle" dy="8" font-size="24" fill="#ffffff">{{ getCategoriaIcono(punto.categoria) }}</text>
-                        <circle cx="20" cy="-20" r="12" [attr.fill]="getNivelColor(punto.nivelDescubrimiento)" stroke="#ffffff" stroke-width="2"/>
-                        <text x="20" y="-15" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">{{ punto.visitas }}</text>
+                        <!-- 👇 Wrapper con translate -->
+                        <g [attr.transform]="'translate(' + (punto.coordenadaX * 8) + ',' + (punto.coordenadaY * 8) + ')'">
+
+                            <!-- 👇 Contenido que se escala -->
+                            <g class="punto-interes visitado">
+                                <circle r="35"
+                                        [attr.fill]="getNivelColor(punto.nivelDescubrimiento)"
+                                        opacity="0.2"
+                                        class="glow-pulse"
+                                        filter="url(#glow)"/>
+
+                                <circle r="25"
+                                        [attr.fill]="getNivelColor(punto.nivelDescubrimiento)"
+                                        stroke="#fff"
+                                        stroke-width="3"
+                                        class="punto-circulo"/>
+
+                                <text text-anchor="middle" dy="8" font-size="24" fill="#ffffff">
+                                    {{ getCategoriaIcono(punto.categoria) }}
+                                </text>
+
+                                <circle cx="20" cy="-20" r="12"
+                                        [attr.fill]="getNivelColor(punto.nivelDescubrimiento)"
+                                        stroke="#ffffff"
+                                        stroke-width="2"/>
+
+                                <text x="20" y="-15" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">
+                                    {{ punto.visitas }}
+                                </text>
+                            </g>
+                        </g>
                     </g>
 
+                    <!-- Lo mismo para puntos disponibles -->
                     <g *ngFor="let punto of dashboard.puntosDisponibles"
-                       [attr.transform]="'translate(' + (punto.coordenadaX * 10) + ',' + (punto.coordenadaY * 10) + ')'"
-                       class="punto-interes disponible"
+                       class="punto-group"
                        (click)="seleccionarPunto(punto)"
                        [pTooltip]="punto.nombre"
                        tooltipPosition="top">
 
-                        <circle r="35" fill="#8B4513" opacity="0.15" class="pulse-animation"/>
-                        <circle r="25" fill="#8B4513" stroke="#654321" stroke-width="3" class="punto-circulo"/>
-                        <text text-anchor="middle" dy="8" font-size="24" fill="#ffffff">{{ getCategoriaIcono(punto.categoria) }}</text>
-                        <text x="0" y="-35" text-anchor="middle" font-size="14" fill="#8B4513" font-weight="bold">¡NUEVO!</text>
+                        <g [attr.transform]="'translate(' + (punto.coordenadaX * 8) + ',' + (punto.coordenadaY * 8) + ')'">
+                            <g class="punto-interes disponible">
+                                <circle r="35" fill="#8B4513" opacity="0.15" class="pulse-animation"/>
+                                <circle r="25" fill="#8B4513" stroke="#654321" stroke-width="3" class="punto-circulo"/>
+                                <text text-anchor="middle" dy="8" font-size="24" fill="#ffffff">
+                                    {{ getCategoriaIcono(punto.categoria) }}
+                                </text>
+                                <text x="0" y="-35" text-anchor="middle" font-size="14" fill="#8B4513" font-weight="bold">
+                                    ¡NUEVO!
+                                </text>
+                            </g>
+                        </g>
                     </g>
                 </svg>
             </div>

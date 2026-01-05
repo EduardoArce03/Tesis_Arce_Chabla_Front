@@ -1,5 +1,3 @@
-// components/detalle-mision/detalle-mision.component.ts
-
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -9,13 +7,17 @@ import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
-import { AvatarModule } from 'primeng/avatar';
-import { DialogModule } from 'primeng/dialog';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 
-import { Mision, EstadoMision, DificultadMision } from '../../models/mision.model';
-import { MisionService } from '@/juegos/misiones/services/mision..service';
+import { MisionService } from '../../services/mision.service';
+import {
+    DetalleMisionResponse,
+    DificultadMision,
+    TipoFase
+} from '../../models/mision.model';
+import { SesionService } from '@/services/sesion.service';
 
 @Component({
     selector: 'app-detalle-mision',
@@ -26,8 +28,7 @@ import { MisionService } from '@/juegos/misiones/services/mision..service';
         ButtonModule,
         TagModule,
         DividerModule,
-        AvatarModule,
-        DialogModule,
+        ProgressBarModule,
         ToastModule
     ],
     providers: [MessageService],
@@ -35,97 +36,101 @@ import { MisionService } from '@/juegos/misiones/services/mision..service';
     styleUrls: ['./detalle-mision.component.scss']
 })
 export class DetalleMisionComponent implements OnInit, OnDestroy {
-    mision: Mision | null = null;
-    misionId: string = '';
-    mostrarDialogIniciar = false;
+    detalle: DetalleMisionResponse | null = null;
+    misionId: number = 0;
+    cargando = true;
 
     private destroy$ = new Subject<void>();
 
     // Enums para template
-    EstadoMision = EstadoMision;
     DificultadMision = DificultadMision;
+    TipoFase = TipoFase;
 
     constructor(
         private route: ActivatedRoute,
         private router: Router,
         private misionService: MisionService,
+        private sesionService: SesionService,
         private messageService: MessageService
     ) {}
 
     ngOnInit(): void {
-        this.misionId = this.route.snapshot.paramMap.get('id') || '';
-        this.cargarMision();
+        const usuario = this.sesionService.getUsuario();
+        if (!usuario) {
+            this.router.navigate(['/bienvenida']);
+            return;
+        }
+
+        const id = this.route.snapshot.paramMap.get('id');
+        this.misionId = id ? parseInt(id) : 0;
+
+        if (this.misionId) {
+            this.cargarDetalle(this.misionId, usuario.id);
+        }
     }
 
-    cargarMision(): void {
-        this.misionService.obtenerMisionPorId(this.misionId)
+    cargarDetalle(misionId: number, usuarioId: number): void {
+        this.cargando = true;
+
+        this.misionService.obtenerDetalleMision(misionId, usuarioId)
             .pipe(takeUntil(this.destroy$))
-            .subscribe(mision => {
-                if (mision) {
-                    this.mision = mision;
-                } else {
+            .subscribe({
+                next: (detalle) => {
+                    this.detalle = detalle;
+                    this.cargando = false;
+                },
+                error: (error) => {
+                    console.error('Error cargando detalle:', error);
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'Misión no encontrada'
+                        detail: 'No se pudo cargar la misión'
                     });
-                    this.volverALista();
+                    this.cargando = false;
+
+                    // Redirigir después de 2 segundos
+                    setTimeout(() => {
+                        this.router.navigate(['/juegos/misiones']);
+                    }, 2000);
                 }
             });
     }
 
-    abrirDialogIniciar(): void {
-        if (this.mision?.estado === EstadoMision.BLOQUEADA) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Misión Bloqueada',
-                detail: 'Debes completar los requisitos primero'
-            });
-            return;
-        }
-
-        this.mostrarDialogIniciar = true;
-    }
-
     iniciarMision(): void {
-        if (!this.mision) return;
+        const usuario = this.sesionService.getUsuario();
+        if (!usuario) return;
 
-        this.misionService
-            .iniciarMision(this.mision.id)
+        this.misionService.iniciarMision(this.misionId, usuario.id)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: (progreso) => {
-                    this.mostrarDialogIniciar = false;
+                next: () => {
                     this.messageService.add({
                         severity: 'success',
                         summary: '¡Misión Iniciada!',
-                        detail: `Comenzando: ${this.mision?.titulo}`
+                        detail: 'Buena suerte en tu aventura'
                     });
 
                     setTimeout(() => {
-                        this.router.navigate(['/juegos/misiones', this.mision?.id, 'ejecutar']); // ✅ Corregido
-                    }, 1000);
+                        this.router.navigate(['/juegos/misiones', this.misionId, 'ejecutar']);
+                    }, 1500);
                 },
-                error: (error: { message: any }) => {
+                error: (error) => {
+                    console.error('Error iniciando misión:', error);
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: error.message
+                        detail: error.error?.message || 'No se pudo iniciar la misión'
                     });
                 }
             });
     }
 
     continuarMision(): void {
-        this.router.navigate(['/juegos/misiones', this.mision?.id, 'ejecutar']); // ✅ Corregido
-    }
-
-    volverALista(): void {
-        this.router.navigate(['/juegos/misiones']); // ✅ Corregido
+        this.router.navigate(['/juegos/misiones', this.misionId, 'ejecutar']);
     }
 
     obtenerIconoDificultad(dificultad: DificultadMision): string {
-        const iconos = {
+        const iconos: Record<DificultadMision, string> = {
             [DificultadMision.FACIL]: '⭐',
             [DificultadMision.MEDIO]: '⭐⭐',
             [DificultadMision.DIFICIL]: '⭐⭐⭐',
@@ -138,7 +143,7 @@ export class DetalleMisionComponent implements OnInit, OnDestroy {
         const colores: Record<DificultadMision, 'success' | 'info' | 'warn' | 'danger'> = {
             [DificultadMision.FACIL]: 'success',
             [DificultadMision.MEDIO]: 'info',
-            [DificultadMision.DIFICIL]: 'warn',      // ← CAMBIO: 'warning' → 'warn'
+            [DificultadMision.DIFICIL]: 'warn',
             [DificultadMision.EXPERTO]: 'danger'
         };
         return colores[dificultad];
@@ -147,47 +152,5 @@ export class DetalleMisionComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
-    }
-
-    // Agregar estos métodos al DetalleMisionComponent
-
-    obtenerIconoFase(tipoFase: string): string {
-        const iconos: Record<string, string> = {
-            'INTRODUCCION': 'pi-book',
-            'ANALISIS_IMAGEN': 'pi-image',
-            'PREGUNTA_MULTIPLE': 'pi-question-circle',
-            'PREGUNTA_ABIERTA': 'pi-pencil',
-            'BUSQUEDA_PUNTO': 'pi-map-marker',
-            'PUZZLE': 'pi-th-large',
-            'ORDENAMIENTO': 'pi-sort-alt',
-            'SELECCION_MULTIPLE': 'pi-list',
-            'CONCLUSION': 'pi-check-circle'
-        };
-        return iconos[tipoFase] || 'pi-circle';
-    }
-
-    obtenerNombreFase(tipoFase: string): string {
-        const nombres: Record<string, string> = {
-            'INTRODUCCION': 'Introducción',
-            'ANALISIS_IMAGEN': 'Análisis con IA',
-            'PREGUNTA_MULTIPLE': 'Pregunta de Opción Múltiple',
-            'PREGUNTA_ABIERTA': 'Pregunta Abierta',
-            'BUSQUEDA_PUNTO': 'Búsqueda de Puntos',
-            'PUZZLE': 'Puzzle Interactivo',
-            'ORDENAMIENTO': 'Ordenar Elementos',
-            'SELECCION_MULTIPLE': 'Selección Múltiple',
-            'CONCLUSION': 'Conclusión'
-        };
-        return nombres[tipoFase] || tipoFase;
-    }
-
-    obtenerColorRareza(rareza: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const colores: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            'comun': 'secondary',
-            'raro': 'info',
-            'epico': 'warn',        // ← Cambié 'warning' a 'warn'
-            'legendario': 'danger'
-        };
-        return colores[rareza] || 'secondary';
     }
 }

@@ -1,5 +1,3 @@
-// components/lista-misiones/lista-misiones.component.ts
-
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -11,24 +9,49 @@ import { TagModule } from 'primeng/tag';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TooltipModule } from 'primeng/tooltip';
 import { AvatarModule } from 'primeng/avatar';
-import { TabPanel, TabPanels, Tabs } from 'primeng/tabs';           // ← NUEVO
-import { Mision, EstadoMision, DificultadMision } from '../../models/mision.model';
-import { MisionService } from '@/juegos/misiones/services/mision..service';
+import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
+import { MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
+
+import { MisionService } from '../../services/mision.service';
+import {
+    MisionCardDTO,
+    EstadoMision,
+    DificultadMision,
+    EstadisticasMisionesDTO
+} from '../../models/mision.model';
+import { SesionService } from '@/services/sesion.service';
 
 @Component({
     selector: 'app-lista-misiones',
     standalone: true,
-    imports: [CommonModule, CardModule, ButtonModule, TagModule, ProgressBarModule, TooltipModule, AvatarModule, TabPanel, TabPanels, Tabs],
+    imports: [
+        CommonModule,
+        CardModule,
+        ButtonModule,
+        TagModule,
+        ProgressBarModule,
+        TooltipModule,
+        AvatarModule,
+        Tabs,
+        TabList,
+        Tab,
+        TabPanels,
+        TabPanel,
+        ToastModule
+    ],
+    providers: [MessageService],
     templateUrl: './lista-misiones.component.html',
     styleUrls: ['./lista-misiones.component.scss']
 })
 export class ListaMisionesComponent implements OnInit, OnDestroy {
-    misionesDisponibles: Mision[] = [];
-    misionesEnProgreso: Mision[] = [];
-    misionesCompletadas: Mision[] = [];
-    misionesBloqueadas: Mision[] = [];
+    misionesDisponibles: MisionCardDTO[] = [];
+    misionesEnProgreso: MisionCardDTO[] = [];
+    misionesCompletadas: MisionCardDTO[] = [];
+    misionesBloqueadas: MisionCardDTO[] = [];
 
-    estadisticas: any = null;
+    estadisticas: EstadisticasMisionesDTO | null = null;
+    cargando = true;
 
     private destroy$ = new Subject<void>();
 
@@ -38,45 +61,57 @@ export class ListaMisionesComponent implements OnInit, OnDestroy {
 
     constructor(
         private misionService: MisionService,
+        private sesionService: SesionService,
+        private messageService: MessageService,
         private router: Router
     ) {}
 
     ngOnInit(): void {
-        this.cargarMisiones();
-        this.cargarEstadisticas();
+        const usuario = this.sesionService.getUsuario();
+        if (!usuario) {
+            this.router.navigate(['/bienvenida']);
+            return;
+        }
+
+        this.cargarMisiones(usuario.id);
     }
 
-    cargarMisiones(): void {
-        this.misionService
-            .obtenerMisiones()
+    cargarMisiones(usuarioId: number): void {
+        this.cargando = true;
+
+        this.misionService.obtenerMisiones(usuarioId)
             .pipe(takeUntil(this.destroy$))
-            .subscribe((misiones: any[]) => {
-                this.misionesDisponibles = misiones.filter((m) => m.estado === EstadoMision.DISPONIBLE);
-                this.misionesEnProgreso = misiones.filter((m) => m.estado === EstadoMision.EN_PROGRESO);
-                this.misionesCompletadas = misiones.filter((m) => m.estado === EstadoMision.COMPLETADA);
-                this.misionesBloqueadas = misiones.filter((m) => m.estado === EstadoMision.BLOQUEADA);
+            .subscribe({
+                next: (response) => {
+                    this.misionesDisponibles = response.disponibles;
+                    this.misionesEnProgreso = response.enProgreso;
+                    this.misionesCompletadas = response.completadas;
+                    this.misionesBloqueadas = response.bloqueadas;
+                    this.estadisticas = response.estadisticas;
+                    this.cargando = false;
+                },
+                error: (error) => {
+                    console.error('Error cargando misiones:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudieron cargar las misiones'
+                    });
+                    this.cargando = false;
+                }
             });
     }
 
-    cargarEstadisticas(): void {
-        this.misionService
-            .obtenerEstadisticas()
-            .pipe(takeUntil(this.destroy$))
-            .subscribe((stats: any) => {
-                this.estadisticas = stats;
-            });
-    }
-
-    verDetalleMision(mision: Mision): void {
+    verDetalleMision(mision: MisionCardDTO): void {
         this.router.navigate(['/juegos/misiones', mision.id]);
     }
 
-    continuarMision(mision: Mision): void {
+    continuarMision(mision: MisionCardDTO): void {
         this.router.navigate(['/juegos/misiones', mision.id, 'ejecutar']);
     }
 
     obtenerIconoDificultad(dificultad: DificultadMision): string {
-        const iconos = {
+        const iconos: Record<DificultadMision, string> = {
             [DificultadMision.FACIL]: '⭐',
             [DificultadMision.MEDIO]: '⭐⭐',
             [DificultadMision.DIFICIL]: '⭐⭐⭐',
@@ -89,29 +124,15 @@ export class ListaMisionesComponent implements OnInit, OnDestroy {
         const colores: Record<DificultadMision, 'success' | 'info' | 'warn' | 'danger'> = {
             [DificultadMision.FACIL]: 'success',
             [DificultadMision.MEDIO]: 'info',
-            [DificultadMision.DIFICIL]: 'warn',      // ← Cambié 'warning' a 'warn'
+            [DificultadMision.DIFICIL]: 'warn',
             [DificultadMision.EXPERTO]: 'danger'
         };
         return colores[dificultad];
     }
 
-    obtenerTextoRequisitos(mision: Mision): string {
-        const requisitos: string[] = [];
-
-        if (mision.requisitos.nivelMinimo) {
-            requisitos.push(`Nivel ${mision.requisitos.nivelMinimo}`);
-        }
-
-        if (mision.requisitos.misionesPrevias && mision.requisitos.misionesPrevias.length > 0) {
-            requisitos.push(`${mision.requisitos.misionesPrevias.length} misiones previas`);
-        }
-
-        return requisitos.join(' • ') || 'Sin requisitos';
-    }
-
-    calcularProgreso(mision: Mision): number {
+    calcularProgreso(mision: MisionCardDTO): number {
         if (!mision.progreso) return 0;
-        return (mision.progreso.faseActual / mision.fases.length) * 100;
+        return mision.progreso.porcentajeCompletado;
     }
 
     ngOnDestroy(): void {

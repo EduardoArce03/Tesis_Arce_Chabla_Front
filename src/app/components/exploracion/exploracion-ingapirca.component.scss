@@ -264,45 +264,41 @@
                 height: auto;
                 display: block;
 
-                .punto-interes {
+                .punto-group {
                     cursor: pointer;
-                    transition: all 0.3s ease;
 
-                    &.visitado {
-                        .punto-circulo {
-                            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+                    .punto-interes {
+                        transition: transform 0.2s ease;
+                        transform-origin: 0 0;  // 👈 Origen en 0,0 porque ya está trasladado
+
+                        &.visitado:hover {
+                            transform: scale(1.1);  // 👈 Escala pequeña y controlada
                         }
 
-                        &:hover {
-                            transform: scale(1.1);
-
-                            .glow-pulse {
-                                opacity: 0.4 !important;
-                            }
+                        &.disponible:hover {
+                            transform: scale(1.12);
                         }
                     }
 
-                    &.disponible {
-                        .punto-circulo {
-                            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-                        }
-
-                        &:hover {
-                            transform: scale(1.15);
-
-                            .pulse-animation {
-                                opacity: 0.3 !important;
-                            }
+                    // 👇 IMPORTANTE: El hover en el grupo, no en el elemento interno
+                    &:hover {
+                        .glow-pulse {
+                            opacity: 0.4 !important;
                         }
 
                         .pulse-animation {
-                            animation: pulse 2s ease-in-out infinite;
+                            opacity: 0.3 !important;
                         }
                     }
                 }
 
+                // Mantener las animaciones
                 .glow-pulse {
                     animation: glow 3s ease-in-out infinite;
+                }
+
+                .pulse-animation {
+                    animation: pulse 2s ease-in-out infinite;
                 }
 
                 @keyframes pulse {

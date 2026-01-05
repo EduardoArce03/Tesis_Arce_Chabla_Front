@@ -1,40 +1,67 @@
-// components/ejecutar-mision/ejecutar-mision.component.ts
-
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, interval } from 'rxjs';
 import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-drop';
-import { Card, CardModule } from 'primeng/card';
-import { Button, ButtonModule } from 'primeng/button';
+
+import { CardModule } from 'primeng/card';
+import { ButtonModule } from 'primeng/button';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { DialogModule } from 'primeng/dialog';
-import { RadioButtonModule } from 'primeng/radiobutton';
+import { RadioButton } from 'primeng/radiobutton';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { DividerModule } from 'primeng/divider';
-
-import { Blip2MockService } from '../../services/blip2-mock.service';
-import { Mision, ProgresoMision } from '../../models/mision.model';
-import { FaseMision, TipoFase, OpcionRespuesta, ElementoPuzzle } from '../../models/fase-mision.model';
-import { MisionService } from '@/juegos/misiones/services/mision..service';
+import { TooltipModule } from 'primeng/tooltip';
 import { Textarea } from 'primeng/textarea';
-import { Tooltip } from 'primeng/tooltip';
+
+import { MisionService } from '../../services/mision.service';
+import { Blip2MockService } from '../../services/blip2-mock.service';
+
+import {
+    MisionCardDTO,
+    DificultadMision,
+    EstadoMision
+} from '../../models/mision.model';
+
+import {
+    FaseMision,
+    TipoFase,
+    OpcionRespuesta,
+    ElementoPuzzle,
+} from '../../models/fase-mision.model';
+import { SesionService } from '@/services/sesion.service';
+import { ProgresoMision } from '@/models/fase-mision.model';
 import { MapaIngapircaComponent } from '@/juegos/mapa-ingapirca/mapa-ingapirca.component';
 
 @Component({
     selector: 'app-ejecutar-mision',
     standalone: true,
-    imports: [CommonModule, FormsModule, Card, Button, ProgressBarModule, DialogModule, RadioButtonModule, ToastModule, ProgressSpinnerModule, DividerModule, Textarea, Tooltip, DragDropModule, MapaIngapircaComponent],
+    imports: [
+        CommonModule,
+        FormsModule,
+        CardModule,
+        ButtonModule,
+        ProgressBarModule,
+        DialogModule,
+        RadioButton,
+        ToastModule,
+        ProgressSpinnerModule,
+        DividerModule,
+        Textarea,
+        TooltipModule,
+        DragDropModule,
+        MapaIngapircaComponent
+    ],
     providers: [MessageService],
     templateUrl: './ejecutar-mision.component.html',
     styleUrls: ['./ejecutar-mision.component.scss']
 })
 export class EjecutarMisionComponent implements OnInit, OnDestroy {
-    mision: Mision | null = null;
-    misionId: string = '';
+    mision: any = null;
+    misionId: number = 0;
     faseActual: FaseMision | null = null;
     progreso: ProgresoMision | null = null;
 
@@ -62,6 +89,13 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
     narrativaCompleta = false;
     typingInterval: any;
 
+    // Búsqueda de puntos
+    puntosObjetivo: number[] = [];
+    puntosVisitados: number[] = [];
+    pistaActualBusqueda = '';
+    mostrarDialogMapa = false;
+    puntoActualMapa: number | null = null;
+
     // Diálogos
     mostrarDialogPista = false;
     pistaTexto = '';
@@ -80,32 +114,55 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
         private route: ActivatedRoute,
         private router: Router,
         private misionService: MisionService,
+        private sesionService: SesionService,
         private blip2Service: Blip2MockService,
         private messageService: MessageService
     ) {}
 
     ngOnInit(): void {
-        this.misionId = this.route.snapshot.paramMap.get('id') || '';
-        this.cargarMision();
-        this.iniciarCronometro();
+        const usuario = this.sesionService.getUsuario();
+        if (!usuario) {
+            this.router.navigate(['/bienvenida']);
+            return;
+        }
+
+        const id = this.route.snapshot.paramMap.get('id');
+        this.misionId = id ? parseInt(id) : 0;
+
+        if (this.misionId) {
+            this.cargarMision();
+            this.iniciarCronometro();
+        }
     }
 
     cargarMision(): void {
         this.misionService
             .obtenerMisionPorId(this.misionId)
             .pipe(takeUntil(this.destroy$))
-            .subscribe((mision) => {
-                if (mision && mision.progreso) {
-                    this.mision = mision;
-                    this.progreso = mision.progreso;
-                    this.cargarFaseActual();
-                } else {
+            .subscribe({
+                next: (mision) => {
+                    if (mision && mision.progreso) {
+                        this.mision = mision;
+                        this.progreso = mision.progreso;
+                        this.cargarFaseActual();
+                    } else {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: 'Misión no iniciada o no encontrada'
+                        });
+                        this.router.navigate(['/juegos/misiones', this.misionId]);
+                    }
+                },
+                error: () => {
                     this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'Misión no iniciada o no encontrada'
+                        severity: 'info',
+                        summary: 'En Desarrollo',
+                        detail: 'La ejecución de misiones estará disponible próximamente'
                     });
-                    this.router.navigate(['/juegos/misiones', this.misionId]);
+                    setTimeout(() => {
+                        this.router.navigate(['/juegos/misiones']);
+                    }, 2000);
                 }
             });
     }
@@ -128,23 +185,6 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
         this.procesarFase();
     }
 
-    // ejecutar-mision.component.ts
-
-// Agregar estas propiedades al componente
-    puntosObjetivo: number[] = [];
-    puntosVisitados: number[] = [];
-    pistaActualBusqueda = '';
-
-// Agregar este método
-    procesarFaseBusqueda(): void {
-        if (!this.faseActual || !this.faseActual.puntosObjetivo) return;
-
-        this.puntosObjetivo = this.faseActual.puntosObjetivo;
-        this.puntosVisitados = [];
-        this.pistaActualBusqueda = '';
-    }
-
-// Actualizar procesarFase() para incluir BUSQUEDA_PUNTO
     procesarFase(): void {
         if (!this.faseActual) return;
 
@@ -168,7 +208,6 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
                 // Mostrar pregunta directamente
                 break;
 
-            // ✅ AGREGAR ESTO
             case TipoFase.BUSQUEDA_PUNTO:
                 this.procesarFaseBusqueda();
                 break;
@@ -179,9 +218,54 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
         }
     }
 
+    procesarFaseBusqueda(): void {
+        if (!this.faseActual || !this.faseActual.puntosObjetivo) return;
+
+        this.puntosObjetivo = this.faseActual.puntosObjetivo;
+        this.puntosVisitados = [];
+        this.pistaActualBusqueda = '';
+    }
+
     calcularProgresoBusqueda(): number {
         if (this.puntosObjetivo.length === 0) return 0;
         return (this.puntosVisitados.length / this.puntosObjetivo.length) * 100;
+    }
+
+    visitarPunto(puntoId: number): void {
+        if (this.puntosVisitados.includes(puntoId)) return;
+
+        this.puntoActualMapa = puntoId;
+        this.mostrarDialogMapa = true;
+    }
+
+    onPuntoVisitadoEnMapa(): void {
+        if (this.puntoActualMapa === null) return;
+
+        this.puntosVisitados.push(this.puntoActualMapa);
+
+        const index = this.puntosVisitados.length - 1;
+        if (this.faseActual?.pistasProgreso) {
+            this.pistaActualBusqueda = this.faseActual.pistasProgreso[index];
+        }
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Punto Visitado',
+            detail: this.pistaActualBusqueda,
+            life: 3000
+        });
+
+        this.mostrarDialogMapa = false;
+        this.puntoActualMapa = null;
+
+        if (this.puntosVisitados.length === this.puntosObjetivo.length) {
+            this.messageService.add({
+                severity: 'info',
+                summary: '¡Búsqueda Completada!',
+                detail: 'Has visitado todos los puntos. Continúa con la siguiente fase.',
+                life: 3000
+            });
+        }
     }
 
     ejecutarAnalisisBlip2(): void {
@@ -241,16 +325,15 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
                 explicacion = opcionSeleccionada.explicacion || this.faseActual.pregunta.explicacion;
             }
         } else if (this.faseActual.pregunta.tipo === 'abierta') {
-            // Validación simple - en producción podrías usar IA
             const respuestaCorrecta = this.faseActual.pregunta.respuestaCorrecta as string;
             correcta = this.respuestaAbierta.toLowerCase().includes(respuestaCorrecta.toLowerCase());
             explicacion = this.faseActual.pregunta.explicacion;
         }
 
-        // Registrar respuesta
-        this.misionService.registrarRespuesta(this.misionId, correcta).pipe(takeUntil(this.destroy$)).subscribe();
+        this.misionService.registrarRespuesta(this.misionId.toString(), correcta)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe();
 
-        // Mostrar feedback
         this.feedbackCorrecto = correcta;
         this.feedbackMensaje = explicacion;
         this.mostrandoFeedback = true;
@@ -272,18 +355,72 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
         }
     }
 
+    procesarFaseOrdenamiento(): void {
+        if (!this.faseActual || !this.faseActual.puzzle) return;
+
+        this.elementosOrdenamiento = [...this.faseActual.puzzle.elementos]
+            .sort(() => Math.random() - 0.5);
+
+        this.ordenOriginal = this.elementosOrdenamiento.map(e => e.id);
+        this.ordenCorrecto = this.faseActual.puzzle.solucion as string[];
+        this.ordenCambiado = false;
+        this.mostrandoResultadoOrden = false;
+        this.ordenEsCorrecto = false;
+    }
+
+    onDropOrdenamiento(event: CdkDragDrop<ElementoPuzzle[]>): void {
+        moveItemInArray(
+            this.elementosOrdenamiento,
+            event.previousIndex,
+            event.currentIndex
+        );
+        this.ordenCambiado = true;
+    }
+
+    verificarOrdenamiento(): void {
+        const ordenActual = this.elementosOrdenamiento.map(e => e.id);
+        this.ordenEsCorrecto = JSON.stringify(ordenActual) === JSON.stringify(this.ordenCorrecto);
+        this.mostrandoResultadoOrden = true;
+
+        if (this.ordenEsCorrecto) {
+            this.misionService.registrarRespuesta(this.misionId.toString(), true)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe();
+
+            this.messageService.add({
+                severity: 'success',
+                summary: '¡Correcto!',
+                detail: 'Has ordenado el ciclo correctamente',
+                life: 3000
+            });
+        } else {
+            this.misionService.registrarRespuesta(this.misionId.toString(), false)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe();
+
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Incorrecto',
+                detail: 'El orden no es correcto. Intenta de nuevo.',
+                life: 3000
+            });
+        }
+    }
+
+    reintentar(): void {
+        this.procesarFaseOrdenamiento();
+    }
+
     avanzarFase(): void {
         if (!this.mision) return;
 
         this.misionService
-            .avanzarFase(this.misionId)
+            .avanzarFase(this.misionId.toString())
             .pipe(takeUntil(this.destroy$))
             .subscribe((resultado: any) => {
                 if (resultado) {
-                    // Recargar misión actualizada
                     this.cargarMision();
                 } else {
-                    // Misión completada
                     this.mostrarDialogCompletada = true;
                     this.detenerCronometro();
                 }
@@ -293,7 +430,9 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
     usarPista(): void {
         if (!this.faseActual || !this.faseActual.pregunta) return;
 
-        this.misionService.usarPista(this.misionId).pipe(takeUntil(this.destroy$)).subscribe();
+        this.misionService.usarPista(this.misionId.toString())
+            .pipe(takeUntil(this.destroy$))
+            .subscribe();
 
         this.pistaTexto = this.faseActual.pregunta.pista || 'No hay pistas disponibles';
         this.mostrarDialogPista = true;
@@ -301,7 +440,7 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
 
     abandonarMision(): void {
         this.misionService
-            .abandonarMision(this.misionId)
+            .abandonarMision(this.misionId.toString())
             .pipe(takeUntil(this.destroy$))
             .subscribe(() => {
                 this.messageService.add({
@@ -356,111 +495,5 @@ export class EjecutarMisionComponent implements OnInit, OnDestroy {
         }
 
         this.detenerCronometro();
-    }
-
-    // ejecutar-mision.component.ts - AGREGAR ESTOS MÉTODOS
-
-    procesarFaseOrdenamiento(): void {
-        if (!this.faseActual || !this.faseActual.puzzle) return;
-
-        // Copiar elementos y desordenar
-        this.elementosOrdenamiento = [...this.faseActual.puzzle.elementos]
-            .sort(() => Math.random() - 0.5);
-
-        this.ordenOriginal = this.elementosOrdenamiento.map(e => e.id);
-        this.ordenCorrecto = this.faseActual.puzzle.solucion as string[];
-        this.ordenCambiado = false;
-        this.mostrandoResultadoOrden = false;
-        this.ordenEsCorrecto = false;
-    }
-
-    onDropOrdenamiento(event: CdkDragDrop<ElementoPuzzle[]>): void {
-        moveItemInArray(
-            this.elementosOrdenamiento,
-            event.previousIndex,
-            event.currentIndex
-        );
-        this.ordenCambiado = true;
-    }
-
-    verificarOrdenamiento(): void {
-        const ordenActual = this.elementosOrdenamiento.map(e => e.id);
-        this.ordenEsCorrecto = JSON.stringify(ordenActual) === JSON.stringify(this.ordenCorrecto);
-        this.mostrandoResultadoOrden = true;
-
-        if (this.ordenEsCorrecto) {
-            this.misionService.registrarRespuesta(this.misionId, true)
-                .pipe(takeUntil(this.destroy$))
-                .subscribe();
-
-            this.messageService.add({
-                severity: 'success',
-                summary: '¡Correcto!',
-                detail: 'Has ordenado el ciclo correctamente',
-                life: 3000
-            });
-        } else {
-            this.misionService.registrarRespuesta(this.misionId, false)
-                .pipe(takeUntil(this.destroy$))
-                .subscribe();
-
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Incorrecto',
-                detail: 'El orden no es correcto. Intenta de nuevo.',
-                life: 3000
-            });
-        }
-    }
-
-    reintentar(): void {
-        this.procesarFaseOrdenamiento();
-    }
-
-    // ejecutar-mision.component.ts
-
-// Agregar estas propiedades
-    mostrarDialogMapa = false;
-    puntoActualMapa: number | null = null;
-
-    visitarPunto(puntoId: number): void {
-        if (this.puntosVisitados.includes(puntoId)) return;
-
-        // ✅ Abrir dialog con el mapa
-        this.puntoActualMapa = puntoId;
-        this.mostrarDialogMapa = true;
-    }
-
-    onPuntoVisitadoEnMapa(): void {
-        if (this.puntoActualMapa === null) return;
-
-        // Marcar como visitado
-        this.puntosVisitados.push(this.puntoActualMapa);
-
-        const index = this.puntosVisitados.length - 1;
-        if (this.faseActual?.pistasProgreso) {
-            this.pistaActualBusqueda = this.faseActual.pistasProgreso[index];
-        }
-
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Punto Visitado',
-            detail: this.pistaActualBusqueda,
-            life: 3000
-        });
-
-        // Cerrar dialog
-        this.mostrarDialogMapa = false;
-        this.puntoActualMapa = null;
-
-        // Si visitó todos los puntos
-        if (this.puntosVisitados.length === this.puntosObjetivo.length) {
-            this.messageService.add({
-                severity: 'info',
-                summary: '¡Búsqueda Completada!',
-                detail: 'Has visitado todos los puntos. Continúa con la siguiente fase.',
-                life: 3000
-            });
-        }
     }
 }
