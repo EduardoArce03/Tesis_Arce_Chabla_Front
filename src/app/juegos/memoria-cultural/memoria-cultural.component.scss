@@ -1,9 +1,11 @@
+// src/app/components/memoria-cultural/memoria-cultural.component.scss
 .memoria-game-container {
     padding: 2rem;
     min-height: 100vh;
     background: linear-gradient(135deg, #f8f4e6 0%, #e8dcc4 100%);
+    position: relative;
 
-    // 👇 NUEVO: Estilos para el panel de configuración
+    // ==================== PANEL DE CONFIGURACIÓN ====================
     .config-panel {
         max-width: 600px;
         margin: 0 auto;
@@ -51,36 +53,140 @@
         }
     }
 
-    // Estilos existentes para el juego
+    // ==================== PANEL DE JUEGO ====================
     .game-panel {
         .game-header {
             margin-bottom: 2rem;
 
-            .game-stats {
+            .hud-container {
                 display: flex;
+                justify-content: space-between;
+                align-items: center;
                 gap: 2rem;
+                flex-wrap: wrap;
 
-                .stat-item {
+                .hud-left {
                     display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    font-size: 1.1rem;
-                    font-weight: 600;
+                    flex-direction: column;
+                    gap: 1rem;
 
-                    i {
-                        font-size: 1.5rem;
-                        color: #8B4513;
+                    .vidas-container {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.75rem;
+
+                        .vidas-label {
+                            font-weight: 600;
+                            color: #8B4513;
+                            font-size: 1.1rem;
+                        }
+
+                        .vidas-hearts {
+                            display: flex;
+                            gap: 0.5rem;
+
+                            i {
+                                font-size: 1.8rem;
+                                transition: all 0.3s ease;
+
+                                &.vida-llena {
+                                    color: #e74c3c;
+                                    animation: heartbeat 1.5s ease-in-out infinite;
+                                }
+
+                                &.vida-vacia {
+                                    color: #bdc3c7;
+                                    opacity: 0.3;
+                                }
+                            }
+                        }
+                    }
+
+                    .game-stats {
+                        display: flex;
+                        gap: 1.5rem;
+
+                        .stat-item {
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                            font-size: 1rem;
+                            font-weight: 600;
+                            color: #555;
+
+                            i {
+                                font-size: 1.3rem;
+                                color: #8B4513;
+                            }
+                        }
                     }
                 }
-            }
 
-            .game-controls {
-                display: flex;
-                gap: 1rem;
+                .hud-center {
+                    flex: 1;
+                    display: flex;
+                    justify-content: center;
+
+                    .combo-display {
+                        background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+                        padding: 1rem 2rem;
+                        border-radius: 15px;
+                        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+                        text-align: center;
+                        animation: pulse 0.5s ease-in-out;
+
+                        &.super-combo {
+                            background: linear-gradient(135deg, #f39c12, #e67e22);
+                            animation: superPulse 0.8s ease-in-out;
+                        }
+
+                        &.gran-combo {
+                            background: linear-gradient(135deg, #e74c3c, #c0392b);
+                        }
+
+                        .combo-icon {
+                            font-size: 2rem;
+                            margin-bottom: 0.25rem;
+                        }
+
+                        .combo-text {
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 0.5rem;
+                            color: white;
+
+                            .combo-label {
+                                font-weight: 700;
+                                font-size: 1.2rem;
+                                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                            }
+
+                            .combo-mult {
+                                font-size: 1.5rem;
+                                font-weight: 800;
+                                color: #ffd700;
+                            }
+                        }
+
+                        .combo-counter {
+                            color: rgba(255,255,255,0.9);
+                            font-size: 0.9rem;
+                            margin-top: 0.25rem;
+                        }
+                    }
+                }
+
+                .hud-right {
+                    display: flex;
+                    gap: 1rem;
+                    align-items: center;
+                }
             }
         }
     }
 
+    // ==================== TABLERO DE JUEGO ====================
     .game-board {
         display: grid;
         gap: 1rem;
@@ -111,12 +217,13 @@
             }
 
             &.matched {
-                opacity: 0.5;
+                opacity: 0.6;
                 pointer-events: none;
 
                 .card-inner {
                     .card-front {
                         border: 3px solid #27ae60;
+                        box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
                     }
                 }
             }
@@ -207,88 +314,388 @@
         }
     }
 
-    .resultados-content {
+    // ==================== ANIMACIÓN COMBO FLOTANTE ====================
+    .combo-animation {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
         text-align: center;
-        padding: 1rem;
+        animation: comboAppear 2s ease-out forwards;
+        pointer-events: none;
 
-        .puntuacion-final {
-            margin: 1rem 0;
-
-            h3 {
-                margin-top: 0.5rem;
-                color: #8B4513;
-                font-size: 2rem;
-            }
+        .combo-burst {
+            font-size: 8rem;
+            animation: rotate 2s linear infinite;
         }
 
-        .estadisticas-finales {
-            display: flex;
-            justify-content: space-around;
-            margin: 1.5rem 0;
-
-            .estadistica {
-                display: flex;
-                flex-direction: column;
-                gap: 0.25rem;
-
-                .label {
-                    font-size: 0.9rem;
-                    color: #666;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                }
-
-                .valor {
-                    font-size: 1.5rem;
-                    font-weight: bold;
-                    color: #8B4513;
-                }
-            }
+        .combo-title {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow:
+                0 0 10px rgba(255,107,107,0.8),
+                0 0 20px rgba(255,107,107,0.6),
+                0 0 30px rgba(255,107,107,0.4);
+            margin-top: 1rem;
         }
 
-        .insignias-nuevas {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
+        .combo-multiplier {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow:
+                0 0 10px rgba(255,215,0,0.8),
+                0 0 20px rgba(255,215,0,0.6);
+        }
 
-            h4 {
-                color: #8B4513;
-                margin-bottom: 1rem;
+        &.super-combo {
+            .combo-title {
+                color: #f39c12;
+                animation: rainbow 1s linear infinite;
             }
+        }
+    }
 
-            .insignias-grid {
+    // ==================== DIÁLOGOS PERSONALIZADOS ====================
+
+    ::ng-deep .narrativa-dialog {
+        .narrativa-content {
+            .narrativa-header {
                 display: flex;
-                justify-content: center;
                 gap: 1.5rem;
-                margin-top: 1rem;
+                align-items: center;
+                margin-bottom: 1rem;
 
-                .insignia-item {
-                    text-align: center;
+                .narrativa-imagen {
+                    width: 120px;
+                    height: 120px;
+                    object-fit: cover;
+                    border-radius: 12px;
+                    border: 3px solid #8B4513;
+                }
 
-                    img {
-                        width: 80px;
-                        height: 80px;
-                        border-radius: 50%;
-                        border: 3px solid gold;
-                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                .narrativa-titulo {
+                    flex: 1;
+
+                    h3 {
+                        margin: 0 0 0.5rem;
+                        color: #8B4513;
+                        font-size: 1.5rem;
                     }
 
-                    p {
-                        margin-top: 0.5rem;
-                        font-size: 0.9rem;
-                        font-weight: 600;
-                        color: #8B4513;
+                    .kichwa-subtitle {
+                        color: #666;
+                        font-style: italic;
+                        margin: 0;
+                    }
+                }
+            }
+
+            .narrativa-descripcion {
+                padding: 1rem;
+                background: #f8f9fa;
+                border-radius: 8px;
+                line-height: 1.6;
+                margin-bottom: 1rem;
+
+                p {
+                    margin: 0;
+                    color: #333;
+                }
+            }
+
+            .narrativa-stats {
+                text-align: center;
+                padding: 0.75rem;
+                background: #fff3cd;
+                border-radius: 8px;
+                border-left: 4px solid #ffc107;
+
+                .stat-warning {
+                    color: #856404;
+                    font-weight: 600;
+
+                    i {
+                        margin-right: 0.5rem;
                     }
                 }
             }
         }
     }
-}
 
-// Responsive
-@media (max-width: 768px) {
-    .memoria-game-container {
+    ::ng-deep .pregunta-dialog {
+        .pregunta-content {
+            .pregunta-texto {
+                background: #e3f2fd;
+                padding: 1.5rem;
+                border-radius: 8px;
+                margin-bottom: 1.5rem;
+                border-left: 4px solid #2196f3;
+
+                p {
+                    margin: 0;
+                    font-size: 1.1rem;
+                    color: #1565c0;
+                    font-weight: 600;
+                }
+            }
+
+            .pregunta-opciones {
+                margin-bottom: 1rem;
+            }
+
+            .pregunta-info {
+                text-align: center;
+                color: #666;
+
+                i {
+                    margin-right: 0.5rem;
+                }
+            }
+        }
+    }
+
+    ::ng-deep .hint-dialog {
+        .hint-content {
+            text-align: center;
+            padding: 1rem;
+
+            .hint-icon {
+                margin-bottom: 1rem;
+                animation: swing 2s ease-in-out infinite;
+            }
+
+            .hint-mensaje {
+                font-size: 1.2rem;
+                color: #333;
+                line-height: 1.6;
+                margin: 1.5rem 0;
+                padding: 1rem;
+                background: #fff8e1;
+                border-radius: 8px;
+                border: 2px dashed #f39c12;
+            }
+
+            .hint-costo {
+                color: #e74c3c;
+                font-weight: 600;
+
+                i {
+                    margin-right: 0.5rem;
+                }
+            }
+        }
+    }
+
+    ::ng-deep .victoria-dialog {
+        .resultados-content {
+            text-align: center;
+            padding: 1rem;
+
+            .puntuacion-final {
+                margin: 1rem 0;
+
+                h3 {
+                    margin-top: 0.5rem;
+                    color: #8B4513;
+                    font-size: 2.5rem;
+                }
+            }
+
+            .estadisticas-finales {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem;
+                margin: 1.5rem 0;
+
+                .estadistica {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                    padding: 1rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+
+                    i {
+                        font-size: 2rem;
+                        color: #8B4513;
+                    }
+
+                    .label {
+                        font-size: 0.85rem;
+                        color: #666;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                    }
+
+                    .valor {
+                        font-size: 1.8rem;
+                        font-weight: bold;
+                        color: #8B4513;
+                    }
+                }
+            }
+
+            .estadisticas-gamificacion {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+                margin: 1rem 0;
+
+                .stat-game {
+                    background: #e8f5e9;
+                    padding: 0.75rem;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+
+                    i {
+                        font-size: 1.5rem;
+                        color: #27ae60;
+                    }
+
+                    span {
+                        font-weight: 600;
+                        color: #2c3e50;
+                    }
+                }
+            }
+
+            .insignias-nuevas {
+                margin-top: 1.5rem;
+                padding: 1.5rem;
+                background: linear-gradient(135deg, #fff9e6, #ffe6cc);
+                border-radius: 12px;
+
+                h4 {
+                    color: #8B4513;
+                    margin-bottom: 1.5rem;
+                    font-size: 1.3rem;
+                }
+
+                .insignias-grid {
+                    display: flex;
+                    justify-content: center;
+                    gap: 2rem;
+                    flex-wrap: wrap;
+
+                    .insignia-item {
+                        text-align: center;
+                        background: white;
+                        padding: 1.5rem;
+                        border-radius: 12px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                        transition: transform 0.3s ease;
+                        max-width: 150px;
+
+                        &:hover {
+                            transform: translateY(-5px);
+                        }
+
+                        .insignia-icono {
+                            font-size: 4rem;
+                            margin-bottom: 0.5rem;
+                            animation: bounce 2s infinite;
+                        }
+
+                        .insignia-nombre {
+                            margin: 0.5rem 0 0.25rem;
+                            font-weight: 700;
+                            color: #8B4513;
+                            font-size: 1rem;
+                        }
+
+                        .insignia-kichwa {
+                            margin: 0 0 0.5rem;
+                            font-style: italic;
+                            color: #666;
+                            font-size: 0.9rem;
+                        }
+
+                        small {
+                            color: #999;
+                            font-size: 0.75rem;
+                        }
+                    }
+                }
+            }
+
+            .sin-insignias {
+                padding: 2rem;
+                background: #f8f9fa;
+                border-radius: 8px;
+                margin-top: 1rem;
+
+                p {
+                    margin: 0;
+                    color: #666;
+                    font-size: 1.1rem;
+                }
+            }
+        }
+    }
+
+    // ==================== ANIMACIONES ====================
+    @keyframes heartbeat {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(0.9); opacity: 0; }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes superPulse {
+        0%, 100% { transform: scale(1); }
+        25% { transform: scale(1.1) rotate(-2deg); }
+        75% { transform: scale(1.1) rotate(2deg); }
+    }
+
+    @keyframes comboAppear {
+        0% {
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: translate(-50%, -50%) scale(1.2);
+            opacity: 1;
+        }
+        100% {
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+        }
+    }
+
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes rainbow {
+        0% { color: #ff6b6b; }
+        25% { color: #f39c12; }
+        50% { color: #27ae60; }
+        75% { color: #3498db; }
+        100% { color: #ff6b6b; }
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    @keyframes swing {
+        0%, 100% { transform: rotate(-10deg); }
+        50% { transform: rotate(10deg); }
+    }
+
+    // ==================== RESPONSIVE ====================
+    @media (max-width: 768px) {
         padding: 1rem;
 
         .game-board {
@@ -305,17 +712,18 @@
             }
         }
 
-        .game-header {
-            .game-stats {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
+        .game-header .hud-container {
+            flex-direction: column;
+            align-items: stretch;
         }
 
-        .resultados-content {
+        ::ng-deep .victoria-dialog .resultados-content {
             .estadisticas-finales {
-                flex-direction: column;
-                gap: 1rem;
+                grid-template-columns: 1fr;
+            }
+
+            .estadisticas-gamificacion {
+                grid-template-columns: 1fr;
             }
         }
     }

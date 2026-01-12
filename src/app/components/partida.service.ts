@@ -9,7 +9,9 @@ import {
   EstadisticasJugadorResponse,
   RankingResponse,
   NivelDificultad,
-  CategoriasCultural
+  CategoriasCultural, ProcesarErrorResponse, ProcesarErrorRequest, ProcesarParejaRequest, ProcesarParejaResponse,
+    SolicitarHintRequest, SolicitarHintResponse, ResponderPreguntaRequest, ResponderPreguntaResponse,
+    FinalizarPartidaResponse
 } from '@/models/juego.model';
 import { environment } from '@/env/environment';
 
@@ -31,8 +33,8 @@ export class PartidaService {
   /**
    * Finaliza una partida y calcula la puntuación
    */
-  finalizarPartida(request: FinalizarPartidaRequest): Observable<PartidaResponse> {
-    return this.http.post<PartidaResponse>(`${this.apiUrl}/finalizar`, request);
+      finalizarPartida(request: FinalizarPartidaRequest): Observable<FinalizarPartidaResponse> {
+    return this.http.post<FinalizarPartidaResponse>(`${this.apiUrl}/finalizar`, request);
   }
 
   /**
@@ -71,4 +73,34 @@ export class PartidaService {
       { params }
     );
   }
+
+    // ==================== NUEVOS ENDPOINTS DE GAMIFICACIÓN ====================
+
+    /**
+     * Procesa un error (pareja incorrecta) y obtiene narrativa educativa
+     */
+    procesarError(partidaId: number, request: ProcesarErrorRequest): Observable<ProcesarErrorResponse> {
+        return this.http.post<ProcesarErrorResponse>(`${this.apiUrl}/${partidaId}/error`, request);
+    }
+
+    /**
+     * Procesa una pareja correcta y obtiene diálogo cultural si aplica
+     */
+    procesarParejaCorrecta(partidaId: number, request: ProcesarParejaRequest): Observable<ProcesarParejaResponse> {
+        return this.http.post<ProcesarParejaResponse>(`${this.apiUrl}/${partidaId}/pareja-correcta`, request);
+    }
+
+    /**
+     * Solicita un hint (cuesta puntos)
+     */
+    solicitarHint(partidaId: number, request: SolicitarHintRequest): Observable<SolicitarHintResponse> {
+        return this.http.post<SolicitarHintResponse>(`${this.apiUrl}/${partidaId}/solicitar-hint`, request);
+    }
+
+    /**
+     * Responde pregunta de recuperación de vida
+     */
+    responderPregunta(partidaId: number, request: ResponderPreguntaRequest): Observable<ResponderPreguntaResponse> {
+        return this.http.post<ResponderPreguntaResponse>(`${this.apiUrl}/${partidaId}/responder-pregunta`, request);
+    }
 }

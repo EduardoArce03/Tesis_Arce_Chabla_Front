@@ -113,4 +113,23 @@ export class MisionService {
             observer.complete();
         });
     }
+
+    // Responder quiz con TU estructura
+    responderQuiz(
+        usuarioMisionId: number,
+        preguntaId: number,
+        respuesta: string,
+        usuarioId: number,
+        puntoId: number
+    ): Observable<ResponderFaseResponse> {
+        return this.http.post<ResponderFaseResponse>(
+            `${this.apiUrl}/progreso/${usuarioMisionId}/responder-quiz`,
+            {
+                usuarioId,
+                puntoId,
+                preguntaId,
+                respuesta
+            }
+        );
+    }
 }
