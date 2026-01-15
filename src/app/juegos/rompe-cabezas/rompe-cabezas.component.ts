@@ -3,6 +3,11 @@ import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
+import { MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
+import { PuzzleService } from '@/services/puzzle.service';
+import { FinalizarPuzzleRequest, ImagenPuzzle, IniciarPuzzleRequest, ProgresoJugador } from '@/models/puzzle.model';
+import { Divider } from 'primeng/divider';
 
 // ============= CLASES AUXILIARES =============
 
@@ -355,13 +360,13 @@ class PolyPiece {
   // Dibujar sombra
   this.ctx.save();
   this.ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-  
+
   if (this.selected && special) {
     this.ctx.shadowColor = 'gold';
     this.ctx.shadowBlur = 20;
     this.ctx.shadowOffsetX = 0;
     this.ctx.shadowOffsetY = 0;
-    
+
     // Dibujar múltiples veces para efecto más intenso
     for (let i = 0; i < 10; i++) {
       this.ctx.fill(this.path);
@@ -372,7 +377,7 @@ class PolyPiece {
     this.ctx.shadowBlur = Math.min(8, puzzle.scalex / 10);
     this.ctx.shadowOffsetX = 0;
     this.ctx.shadowOffsetY = 0;
-    
+
     for (let i = 0; i < 6; i++) {
       this.ctx.fill(this.path);
     }
@@ -384,7 +389,7 @@ class PolyPiece {
     this.ctx.shadowOffsetY = 4;
     this.ctx.fill(this.path);
   }
-  
+
   this.ctx.restore();
 
   // Dibujar cada pieza
@@ -395,7 +400,7 @@ class PolyPiece {
     const path = new Path2D();
     const shiftx = -this.offsx;
     const shifty = -this.offsy;
-    
+
     pp.ts.drawPath(this.ctx, shiftx, shifty, false);
     pp.rs.drawPath(this.ctx, shiftx, shifty, true);
     pp.bs.drawPath(this.ctx, shiftx, shifty, true);
@@ -414,14 +419,14 @@ class PolyPiece {
 
     let w = 2 * puzzle.scalex;
     let h = 2 * puzzle.scaley;
-    
+
     // Ajustar dimensiones si exceden el canvas
     if (srcx + w > puzzle.gameCanvas.width) w = puzzle.gameCanvas.width - srcx;
     if (srcy + h > puzzle.gameCanvas.height) h = puzzle.gameCanvas.height - srcy;
 
     // Dibujar la imagen del gameCanvas
     this.ctx.drawImage(
-      puzzle.gameCanvas, 
+      puzzle.gameCanvas,
       srcx, srcy, w, h,
       destx, desty, w, h
     );
@@ -436,7 +441,7 @@ class PolyPiece {
     const path = new Path2D();
     const shiftx = -this.offsx;
     const shifty = -this.offsy;
-    
+
     pp.ts.drawPath(this.ctx, shiftx, shifty, false);
     pp.rs.drawPath(this.ctx, shiftx, shifty, true);
     pp.bs.drawPath(this.ctx, shiftx, shifty, true);
@@ -459,7 +464,7 @@ class PolyPiece {
     this.ctx.translate(-puzzle.embossThickness, puzzle.embossThickness);
     this.ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
     this.ctx.stroke(path);
-    
+
     this.ctx.restore();
   });
 
@@ -729,23 +734,23 @@ class Puzzle {
     for (let extrax = 0; extrax <= Math.ceil(xtra / this.ny); ++extrax) {
       const reqx = this.srcImage.naturalWidth * (this.nx + extrax) / this.nx;
       const availx = (extrax === 0) ? maxWidth : this.contWidth;
-      
-      for (let extray = Math.ceil(xtra / this.nx); 
-           (this.nx + extrax) * (this.ny + extray) >= this.nx * this.ny + xtra; 
+
+      for (let extray = Math.ceil(xtra / this.nx);
+           (this.nx + extrax) * (this.ny + extray) >= this.nx * this.ny + xtra;
            --extray) {
         const reqy = this.srcImage.naturalHeight * (this.ny + extray) / this.ny;
         const availy = (extray === 0) ? maxHeight : this.contHeight;
         let resultx = availx;
         let resulty = resultx * reqy / reqx;
-        
+
         if (resulty > availy) {
           resulty = availy;
           resultx = resulty * reqx / reqy;
         }
-        
+
         const gameHeight = resulty / (this.ny + extray) * this.ny;
         const gameWidth = resultx / (this.nx + extrax) * this.nx;
-        
+
         if (gameHeight > memoHeight) {
           memoHeight = gameHeight;
           gameInfo = { gameWidth, gameHeight, extrax, extray };
@@ -814,7 +819,7 @@ class Puzzle {
     this.polyPieces.forEach((pp, k) => {
       pp.canvas.style.zIndex = (k + 10).toString();
     });
-    
+
     this.zIndexSup = this.polyPieces.length + 10;
   }
 }
@@ -822,338 +827,548 @@ class Puzzle {
 // ============= COMPONENTE ANGULAR =============
 
 @Component({
-  selector: 'app-rompe-cabezas',
-  standalone: true,
-  imports: [CommonModule, ButtonModule, CardModule, DialogModule],
-  templateUrl: './rompe-cabezas.component.html',
-  styleUrls: ['./rompe-cabezas.component.scss']
+    selector: 'app-rompe-cabezas',
+    standalone: true,
+    imports: [CommonModule, ButtonModule, CardModule, DialogModule, ToastModule, Divider],
+    providers: [MessageService],
+    templateUrl: './rompe-cabezas.component.html',
+    styleUrls: ['./rompe-cabezas.component.scss']
 })
 export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
-  @ViewChild('puzzleContainer', { static: false }) puzzleContainer!: ElementRef<HTMLDivElement>;
+    @ViewChild('puzzleContainer', { static: false }) puzzleContainer!: ElementRef<HTMLDivElement>;
 
-  gridSize: number = 3;
-  moves: number = 0;
-  tiempoTranscurrido: number = 0;
-  timerInterval: any;
-  isPlaying: boolean = false;
-  isCompleted: boolean = false;
-  showMenu: boolean = false;
+    // Estado del juego
+    gridSize: number = 3;
+    moves: number = 0;
+    tiempoTranscurrido: number = 0;
+    timerInterval: any;
+    isPlaying: boolean = false;
+    isCompleted: boolean = false;
 
-  private puzzle!: Puzzle;
-  private moving: any = {};
-  private mouseInitX: number = 0;
-  private mouseInitY: number = 0;
+    // Backend
+    jugadorId: string = '';
+    partidaId: number | null = null;
+    imagenActual: ImagenPuzzle | null = null;
+    imagenesDisponibles: ImagenPuzzle[] = [];
+    progreso: ProgresoJugador | null = null;
 
-  imagenUrl: string = 'https://picsum.photos/800/600?random=1';
+    // Diálogos
+    mostrarSelectorImagenes: boolean = true;
+    mostrarVictoria: boolean = false;
 
-  imagenesDisponibles = [
-    { url: 'https://picsum.photos/800/600?random=1', label: 'Paisaje 1' },
-    { url: 'https://picsum.photos/800/600?random=2', label: 'Paisaje 2' },
-    { url: 'https://picsum.photos/800/600?random=3', label: 'Paisaje 3' },
-    { url: 'https://picsum.photos/800/600?random=4', label: 'Paisaje 4' }
-  ];
+    // Resultados
+    estrellasObtenidas: number = 0;
+    mensajeVictoria: string = '';
+    siguienteImagen: ImagenPuzzle | null = null;
 
-  ngOnInit() {}
+    // ⬇️ IMPORTANTE: Hacer opcional con ?
+    private puzzle?: Puzzle;
+    private moving: any = {};
 
-  ngAfterViewInit() {
-    this.initializePuzzle();
-  }
+    constructor(
+        private puzzleService: PuzzleService,
+        private messageService: MessageService
+    ) {}
 
-  initializePuzzle() {
-    const container = this.puzzleContainer.nativeElement;
-    this.puzzle = new Puzzle(container);
-    this.puzzle.nbPieces = this.gridSize * this.gridSize;
-
-    // Event listeners
-    container.addEventListener('mousedown', this.onMouseDown.bind(this));
-    container.addEventListener('mouseup', this.onMouseUp.bind(this));
-    container.addEventListener('mousemove', this.onMouseMove.bind(this));
-    container.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: false });
-    container.addEventListener('touchend', this.onTouchEnd.bind(this));
-    container.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
-
-    this.loadImage();
-  }
-
-  loadImage() {
-  console.log('🖼️ Cargando imagen:', this.imagenUrl);
-  
-  this.puzzle.srcImage = new Image();
-  
-  // Solo usar crossOrigin para URLs externas (que empiezan con http)
-  if (this.imagenUrl.startsWith('http')) {
-    this.puzzle.srcImage.crossOrigin = 'Anonymous';
-    console.log('🌐 Usando CORS para URL externa');
-  } else {
-    console.log('📁 Cargando imagen local');
-  }
-  
-  this.puzzle.srcImage.onload = () => {
-    console.log('✅ Imagen cargada exitosamente');
-    console.log('📐 Dimensiones:', this.puzzle.srcImage.naturalWidth, 'x', this.puzzle.srcImage.naturalHeight);
-    this.puzzle.imageLoaded = true;
-    
-    // Verificar que la imagen no esté vacía
-    if (this.puzzle.srcImage.naturalWidth === 0 || this.puzzle.srcImage.naturalHeight === 0) {
-      console.error('❌ La imagen está vacía o corrupta');
-      return;
+    ngOnInit() {
+        this.jugadorId = this.obtenerJugadorId();
+        this.cargarDatosIniciales();
     }
-    
-    this.setupPuzzle();
-  };
-  
-  this.puzzle.srcImage.onerror = (error) => {
-    console.error('❌ Error al cargar imagen:', error);
-    console.error('URL intentada:', this.imagenUrl);
-  };
-  
-  // Importante: establecer src al final
-  this.puzzle.srcImage.src = this.imagenUrl;
-}
 
-  setupPuzzle() {
-    this.puzzle.create();
-    this.puzzle.scale();
-    
-    this.puzzle.polyPieces.forEach(pp => {
-      pp.drawImage();
-      pp.moveToInitialPlace();
-    });
+    ngAfterViewInit() {
+        // ⬇️ NO inicializar aquí, esperar a que seleccione imagen
+        console.log('✅ Vista inicializada');
+    }
 
-    this.puzzle.gameCanvas.style.top = this.puzzle.offsy + 'px';
-    this.puzzle.gameCanvas.style.left = this.puzzle.offsx + 'px';
-    this.puzzle.gameCanvas.style.display = 'block';
-  }
+    // ==================== MÉTODOS BACKEND ====================
 
-  iniciarJuego() {
-    this.puzzle.gameCanvas.style.display = 'none';
-    
-    this.puzzle.polyPieces.forEach(pp => {
-      pp.canvas.classList.add('moving');
-    });
+    private obtenerJugadorId(): string {
+        let jugadorId = localStorage.getItem('jugadorId');
+        if (!jugadorId) {
+            jugadorId = `jugador_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            localStorage.setItem('jugadorId', jugadorId);
+        }
+        return jugadorId;
+    }
 
-    setTimeout(() => {
-      this.puzzle.optimInitial();
-      
-      setTimeout(() => {
-        this.puzzle.polyPieces.forEach(pp => {
-          pp.canvas.classList.remove('moving');
+    private cargarDatosIniciales(): void {
+        console.log('📊 Cargando datos iniciales para:', this.jugadorId);
+
+        this.puzzleService.obtenerProgreso(this.jugadorId).subscribe({
+            next: (progreso) => {
+                this.progreso = progreso;
+                console.log('✅ Progreso cargado:', progreso);
+            },
+            error: (error) => {
+                console.error('❌ Error cargando progreso:', error);
+            }
         });
-        
+
+        this.puzzleService.obtenerImagenesDisponibles(this.jugadorId).subscribe({
+            next: (imagenes) => {
+                this.imagenesDisponibles = imagenes;
+                console.log('✅ Imágenes cargadas:', imagenes);
+            },
+            error: (error) => {
+                console.error('❌ Error cargando imágenes:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudieron cargar las imágenes disponibles'
+                });
+            }
+        });
+    }
+
+    seleccionarImagen(imagen: ImagenPuzzle): void {
+        if (!imagen.desbloqueada) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Bloqueado',
+                detail: 'Completa el puzzle anterior para desbloquear este'
+            });
+            return;
+        }
+
+        console.log('🖼️ Imagen seleccionada:', imagen.titulo);
+        this.imagenActual = imagen;
+        this.mostrarSelectorImagenes = false;
+
+        // ⬇️ ESPERAR A QUE EL CONTAINER ESTÉ VISIBLE
+        setTimeout(() => {
+            this.initializePuzzle();
+            this.loadImage(imagen.imagenUrl);
+        }, 100);
+    }
+
+    iniciarJuego(): void {
+        if (!this.imagenActual || !this.puzzle) {
+            console.error('❌ No hay imagen o puzzle');
+            return;
+        }
+
+        const request: IniciarPuzzleRequest = {
+            jugadorId: this.jugadorId,
+            imagenId: this.imagenActual.id,
+            gridSize: this.gridSize
+        };
+
+        console.log('🎮 Iniciando juego:', request);
+
+        this.puzzleService.iniciarPuzzle(request).subscribe({
+            next: (response) => {
+                console.log('✅ Partida iniciada:', response);
+                this.partidaId = response.partidaId;
+
+                // Ocultar canvas de fondo
+                if (this.puzzle?.gameCanvas) {
+                    this.puzzle.gameCanvas.style.display = 'none';
+                }
+
+                // Animar piezas
+                if (this.puzzle?.polyPieces) {
+                    this.puzzle.polyPieces.forEach(pp => {
+                        pp.canvas.classList.add('moving');
+                    });
+
+                    setTimeout(() => {
+                        this.puzzle!.optimInitial();
+
+                        setTimeout(() => {
+                            this.puzzle!.polyPieces.forEach(pp => {
+                                pp.canvas.classList.remove('moving');
+                            });
+
+                            this.moves = 0;
+                            this.tiempoTranscurrido = 0;
+                            this.isPlaying = true;
+                            this.isCompleted = false;
+                            this.iniciarContador();
+
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: response.mensajeBienvenida,
+                                life: 3000
+                            });
+                        }, 1200);
+                    }, 0);
+                }
+            },
+            error: (error) => {
+                console.error('❌ Error iniciando partida:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error.error?.message || 'No se pudo iniciar la partida'
+                });
+            }
+        });
+    }
+
+    checkWin(): void {
+        // ⬇️ VALIDAR QUE PUZZLE EXISTA
+        if (!this.puzzle || !this.puzzle.polyPieces) return;
+
+        if (this.puzzle.polyPieces.length === 1 && this.puzzle.polyPieces[0].rot === 0) {
+            this.isCompleted = true;
+            this.isPlaying = false;
+            this.detenerContador();
+            this.finalizarPuzzle();
+        }
+    }
+
+    private finalizarPuzzle(): void {
+        if (!this.partidaId) {
+            console.error('❌ No hay partidaId');
+            return;
+        }
+
+        const request: FinalizarPuzzleRequest = {
+            partidaId: this.partidaId,
+            movimientos: this.moves,
+            tiempoSegundos: this.tiempoTranscurrido,
+            hintsUsados: 0
+        };
+
+        console.log('🏁 Finalizando puzzle:', request);
+
+        this.puzzleService.finalizarPuzzle(request).subscribe({
+            next: (response) => {
+                console.log('✅ Puzzle finalizado:', response);
+
+                this.estrellasObtenidas = response.estrellas;
+                this.mensajeVictoria = response.mensaje;
+                this.siguienteImagen = response.siguienteImagenDesbloqueada;
+                this.progreso = response.progresoActual;
+
+                setTimeout(() => {
+                    this.mostrarVictoria = true;
+                }, 500);
+
+                this.messageService.add({
+                    severity: 'success',
+                    summary: '¡Felicidades!',
+                    detail: response.mensaje,
+                    life: 5000
+                });
+            },
+            error: (error) => {
+                console.error('❌ Error finalizando puzzle:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudo guardar el resultado'
+                });
+            }
+        });
+    }
+
+    continuarSiguiente(): void {
+        if (this.siguienteImagen) {
+            this.mostrarVictoria = false;
+            this.seleccionarImagen(this.siguienteImagen);
+        } else {
+            this.volverAlMenu();
+        }
+    }
+
+    volverAlMenu(): void {
+        this.mostrarVictoria = false;
+        this.resetGame();
+        this.mostrarSelectorImagenes = true;
+        this.cargarDatosIniciales();
+    }
+
+    obtenerEstrellas(cantidad: number): string[] {
+        return Array(cantidad).fill('⭐');
+    }
+
+    // ==================== MÉTODOS PUZZLE ====================
+
+    initializePuzzle(): void {
+        // ⬇️ VALIDAR QUE CONTAINER EXISTA
+        if (!this.puzzleContainer || !this.puzzleContainer.nativeElement) {
+            console.error('❌ Container no disponible');
+            return;
+        }
+
+        const container = this.puzzleContainer.nativeElement;
+
+        // ⬇️ LIMPIAR CONTAINER ANTES DE CREAR NUEVO PUZZLE
+        container.innerHTML = '';
+
+        this.puzzle = new Puzzle(container);
+        this.puzzle.nbPieces = this.gridSize * this.gridSize;
+
+        // Event listeners
+        container.addEventListener('mousedown', this.onMouseDown.bind(this));
+        container.addEventListener('mouseup', this.onMouseUp.bind(this));
+        container.addEventListener('mousemove', this.onMouseMove.bind(this));
+        container.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: false });
+        container.addEventListener('touchend', this.onTouchEnd.bind(this));
+        container.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
+
+        console.log('✅ Puzzle inicializado');
+    }
+
+    loadImage(imageUrl: string): void {
+        if (!this.puzzle) {
+            console.error('❌ Puzzle no inicializado');
+            return;
+        }
+
+        console.log('🖼️ Cargando imagen:', imageUrl);
+
+        this.puzzle.srcImage = new Image();
+        this.puzzle.srcImage.crossOrigin = 'Anonymous';
+
+        this.puzzle.srcImage.onload = () => {
+            console.log('✅ Imagen cargada:', this.puzzle!.srcImage.naturalWidth, 'x', this.puzzle!.srcImage.naturalHeight);
+            this.puzzle!.imageLoaded = true;
+            this.setupPuzzle();
+        };
+
+        this.puzzle.srcImage.onerror = (error) => {
+            console.error('❌ Error al cargar imagen:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo cargar la imagen'
+            });
+        };
+
+        this.puzzle.srcImage.src = imageUrl;
+    }
+
+    setupPuzzle(): void {
+        if (!this.puzzle) return;
+
+        this.puzzle.create();
+        this.puzzle.scale();
+
+        this.puzzle.polyPieces.forEach(pp => {
+            pp.drawImage();
+            pp.moveToInitialPlace();
+        });
+
+        this.puzzle.gameCanvas.style.top = this.puzzle.offsy + 'px';
+        this.puzzle.gameCanvas.style.left = this.puzzle.offsx + 'px';
+        this.puzzle.gameCanvas.style.display = 'block';
+
+        console.log('✅ Puzzle configurado');
+    }
+
+    changeGridSize(size: number): void {
+        this.gridSize = size;
+
+        if (this.imagenActual) {
+            // Reinicializar con nuevo tamaño
+            this.resetGame();
+            setTimeout(() => {
+                this.initializePuzzle();
+                this.loadImage(this.imagenActual!.imagenUrl);
+            }, 100);
+        }
+    }
+
+    resetGame(): void {
+        this.detenerContador();
         this.moves = 0;
         this.tiempoTranscurrido = 0;
-        this.isPlaying = true;
+        this.isPlaying = false;
         this.isCompleted = false;
-        this.iniciarContador();
-      }, 1200);
-    }, 0);
-  }
+        this.moving = {};
+        this.partidaId = null;
 
-  onMouseDown(event: MouseEvent) {
-    if (!this.isPlaying || event.button !== 0) return;
-    event.preventDefault();
-
-    const rect = this.puzzleContainer.nativeElement.getBoundingClientRect();
-    const position = {
-      x: event.clientX - rect.x,
-      y: event.clientY - rect.y
-    };
-
-    this.handleTouchStart(position, Date.now());
-  }
-
-  onMouseMove(event: MouseEvent) {
-    if (!this.moving.pp) return;
-    event.preventDefault();
-
-    const rect = this.puzzleContainer.nativeElement.getBoundingClientRect();
-    const position = {
-      x: event.clientX - rect.x,
-      y: event.clientY - rect.y
-    };
-
-    this.moving.pp.moveTo(
-      position.x - this.moving.xMouseInit + this.moving.ppXInit,
-      position.y - this.moving.yMouseInit + this.moving.ppYInit
-    );
-  }
-
-  onMouseUp(event: MouseEvent) {
-    if (!this.moving.pp || event.button !== 0) return;
-    event.preventDefault();
-    this.handleTouchEnd(Date.now());
-  }
-
-  onTouchStart(event: TouchEvent) {
-    if (!this.isPlaying || event.touches.length !== 1) return;
-    event.preventDefault();
-
-    const touch = event.touches[0];
-    const rect = this.puzzleContainer.nativeElement.getBoundingClientRect();
-    const position = {
-      x: touch.clientX - rect.x,
-      y: touch.clientY - rect.y
-    };
-
-    this.handleTouchStart(position, Date.now());
-  }
-
-  onTouchMove(event: TouchEvent) {
-    if (!this.moving.pp || event.touches.length !== 1) return;
-    event.preventDefault();
-
-    const touch = event.touches[0];
-    const rect = this.puzzleContainer.nativeElement.getBoundingClientRect();
-    const position = {
-      x: touch.clientX - rect.x,
-      y: touch.clientY - rect.y
-    };
-
-    this.moving.pp.moveTo(
-      position.x - this.moving.xMouseInit + this.moving.ppXInit,
-      position.y - this.moving.yMouseInit + this.moving.ppYInit
-    );
-  }
-
-  onTouchEnd(event: TouchEvent) {
-    if (!this.moving.pp) return;
-    this.handleTouchEnd(Date.now());
-  }
-
-  handleTouchStart(position: { x: number, y: number }, tStamp: number) {
-    this.moving = {
-      xMouseInit: position.x,
-      yMouseInit: position.y
-    };
-
-    for (let k = this.puzzle.polyPieces.length - 1; k >= 0; --k) {
-      const pp = this.puzzle.polyPieces[k];
-      
-      if (pp.isPointInPath(position)) {
-        pp.selected = true;
-        pp.drawImage();
-        this.moving.pp = pp;
-        this.moving.ppXInit = pp.x;
-        this.moving.ppYInit = pp.y;
-        this.moving.tInit = tStamp;
-
-        this.puzzle.polyPieces.splice(k, 1);
-        this.puzzle.polyPieces.push(pp);
-        pp.canvas.style.zIndex = this.puzzle.zIndexSup.toString();
-        return;
-      }
-    }
-  }
-
-  handleTouchEnd(tStamp: number) {
-    if (!this.moving.pp) return;
-
-    this.moving.pp.selected = false;
-    this.moving.pp.drawImage();
-    this.moves++;
-
-    let merged = false;
-    let doneSomething: boolean;
-
-    do {
-      doneSomething = false;
-      for (let k = this.puzzle.polyPieces.length - 1; k >= 0; --k) {
-        const pp = this.puzzle.polyPieces[k];
-        if (pp === this.moving.pp) continue;
-
-        if (this.moving.pp.ifNear(pp)) {
-          merged = true;
-          if (pp.pieces.length > this.moving.pp.pieces.length) {
-            pp.merge(this.moving.pp);
-            this.moving.pp = pp;
-          } else {
-            this.moving.pp.merge(pp);
-          }
-          doneSomething = true;
-          break;
+        // ⬇️ LIMPIAR PIEZAS SI EXISTEN
+        if (this.puzzle?.polyPieces) {
+            this.puzzle.polyPieces.forEach(pp => {
+                if (pp.canvas && pp.canvas.parentNode) {
+                    pp.canvas.parentNode.removeChild(pp.canvas);
+                }
+            });
         }
-      }
-    } while (doneSomething);
 
-    this.puzzle.evaluateZIndex();
+        // ⬇️ LIMPIAR CONTAINER
+        if (this.puzzleContainer?.nativeElement) {
+            this.puzzleContainer.nativeElement.innerHTML = '';
+        }
 
-    if (merged) {
-      this.moving.pp.selected = true;
-      this.moving.pp.drawImage(true);
-      setTimeout(() => {
+        // ⬇️ RESETEAR PUZZLE
+        this.puzzle = undefined;
+    }
+
+    iniciarContador(): void {
+        this.detenerContador();
+        this.timerInterval = setInterval(() => {
+            this.tiempoTranscurrido++;
+        }, 1000);
+    }
+
+    detenerContador(): void {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    }
+
+    formatTime(seconds: number): string {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // ==================== EVENTOS MOUSE/TOUCH ====================
+
+    onMouseDown(event: MouseEvent): void {
+        if (!this.isPlaying || event.button !== 0 || !this.puzzle) return;
+        event.preventDefault();
+
+        const rect = this.puzzleContainer.nativeElement.getBoundingClientRect();
+        const position = {
+            x: event.clientX - rect.x,
+            y: event.clientY - rect.y
+        };
+
+        this.handleTouchStart(position, Date.now());
+    }
+
+    onMouseMove(event: MouseEvent): void {
+        if (!this.moving.pp || !this.puzzle) return;
+        event.preventDefault();
+
+        const rect = this.puzzleContainer.nativeElement.getBoundingClientRect();
+        const position = {
+            x: event.clientX - rect.x,
+            y: event.clientY - rect.y
+        };
+
+        this.moving.pp.moveTo(
+            position.x - this.moving.xMouseInit + this.moving.ppXInit,
+            position.y - this.moving.yMouseInit + this.moving.ppYInit
+        );
+    }
+
+    onMouseUp(event: MouseEvent): void {
+        if (!this.moving.pp || event.button !== 0 || !this.puzzle) return;
+        event.preventDefault();
+        this.handleTouchEnd(Date.now());
+    }
+
+    onTouchStart(event: TouchEvent): void {
+        if (!this.isPlaying || event.touches.length !== 1 || !this.puzzle) return;
+        event.preventDefault();
+
+        const touch = event.touches[0];
+        const rect = this.puzzleContainer.nativeElement.getBoundingClientRect();
+        const position = {
+            x: touch.clientX - rect.x,
+            y: touch.clientY - rect.y
+        };
+
+        this.handleTouchStart(position, Date.now());
+    }
+
+    onTouchMove(event: TouchEvent): void {
+        if (!this.moving.pp || event.touches.length !== 1 || !this.puzzle) return;
+        event.preventDefault();
+
+        const touch = event.touches[0];
+        const rect = this.puzzleContainer.nativeElement.getBoundingClientRect();
+        const position = {
+            x: touch.clientX - rect.x,
+            y: touch.clientY - rect.y
+        };
+
+        this.moving.pp.moveTo(
+            position.x - this.moving.xMouseInit + this.moving.ppXInit,
+            position.y - this.moving.yMouseInit + this.moving.ppYInit
+        );
+    }
+
+    onTouchEnd(event: TouchEvent): void {
+        if (!this.moving.pp || !this.puzzle) return;
+        this.handleTouchEnd(Date.now());
+    }
+
+    handleTouchStart(position: { x: number, y: number }, tStamp: number): void {
+        if (!this.puzzle) return;
+
+        this.moving = {
+            xMouseInit: position.x,
+            yMouseInit: position.y
+        };
+
+        for (let k = this.puzzle.polyPieces.length - 1; k >= 0; --k) {
+            const pp = this.puzzle.polyPieces[k];
+
+            if (pp.isPointInPath(position)) {
+                pp.selected = true;
+                pp.drawImage();
+                this.moving.pp = pp;
+                this.moving.ppXInit = pp.x;
+                this.moving.ppYInit = pp.y;
+                this.moving.tInit = tStamp;
+
+                this.puzzle.polyPieces.splice(k, 1);
+                this.puzzle.polyPieces.push(pp);
+                pp.canvas.style.zIndex = this.puzzle.zIndexSup.toString();
+                return;
+            }
+        }
+    }
+
+    handleTouchEnd(tStamp: number): void {
+        if (!this.moving.pp || !this.puzzle) return;
+
         this.moving.pp.selected = false;
         this.moving.pp.drawImage();
-        this.checkWin();
-      }, 500);
-    } else {
-      this.checkWin();
+        this.moves++;
+
+        let merged = false;
+        let doneSomething: boolean;
+
+        do {
+            doneSomething = false;
+            for (let k = this.puzzle.polyPieces.length - 1; k >= 0; --k) {
+                const pp = this.puzzle.polyPieces[k];
+                if (pp === this.moving.pp) continue;
+
+                if (this.moving.pp.ifNear(pp)) {
+                    merged = true;
+                    if (pp.pieces.length > this.moving.pp.pieces.length) {
+                        pp.merge(this.moving.pp);
+                        this.moving.pp = pp;
+                    } else {
+                        this.moving.pp.merge(pp);
+                    }
+                    doneSomething = true;
+                    break;
+                }
+            }
+        } while (doneSomething);
+
+        this.puzzle.evaluateZIndex();
+
+        if (merged) {
+            this.moving.pp.selected = true;
+            this.moving.pp.drawImage(true);
+            setTimeout(() => {
+                if (this.moving.pp) {
+                    this.moving.pp.selected = false;
+                    this.moving.pp.drawImage();
+                }
+                this.checkWin();
+            }, 500);
+        } else {
+            this.checkWin();
+        }
+
+        this.moving = {};
     }
 
-    this.moving = {};
-  }
-
-  checkWin() {
-    if (this.puzzle.polyPieces.length === 1 && this.puzzle.polyPieces[0].rot === 0) {
-      this.isCompleted = true;
-      this.isPlaying = false;
-      this.detenerContador();
+    ngOnDestroy(): void {
+        this.detenerContador();
+        this.resetGame();
     }
-  }
-
-  iniciarContador() {
-    this.detenerContador();
-    this.timerInterval = setInterval(() => {
-      this.tiempoTranscurrido++;
-    }, 1000);
-  }
-
-  detenerContador() {
-    if (this.timerInterval) {
-      clearInterval(this.timerInterval);
-      this.timerInterval = null;
-    }
-  }
-
-  formatTiime(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-
-  changeGridSize(size: number) {
-    this.gridSize = size;
-    this.resetGame();
-  }
-
-  resetGame() {
-    this.detenerContador();
-    this.moves = 0;
-    this.tiempoTranscurrido = 0;
-    this.isPlaying = false;
-    this.isCompleted = false;
-    this.moving = {};
-    
-    // Limpiar piezas existentes
-    this.puzzle.polyPieces.forEach(pp => {
-      if (pp.canvas && pp.canvas.parentNode) {
-        pp.canvas.parentNode.removeChild(pp.canvas);
-      }
-    });
-    
-    this.puzzle.nbPieces = this.gridSize * this.gridSize;
-    this.loadImage();
-  }
-
-  toggleMenu() {
-    this.showMenu = !this.showMenu;
-  }
-
-  changeImage(url: string) {
-    this.imagenUrl = url;
-    this.resetGame();
-  }
-
-  ngOnDestroy() {
-    this.detenerContador();
-  }
 }

@@ -1,405 +1,454 @@
-// Variables
-$bg-light-yellow: #ffffdd;
-$menu-yellow: #ffff80;
-$menu-yellow-hover: #ffDD60;
-$header-gradient-start: #667eea;
-$header-gradient-end: #764ba2;
-$dimmed-color: #888888;
+// src/app/components/rompe-cabezas/rompe-cabezas.component.scss
 
-// Contenedor principal del puzzle wrapper
-.puzzle-wrapper {
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  overflow: hidden;
-  position: relative;
+.puzzle-game-container {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-// Header con estadísticas y controles
-.puzzle-header {
-  padding: 1rem;
-  z-index: 1000;
-  
-  ::ng-deep .p-card {
-    background: linear-gradient(135deg, $header-gradient-start 0%, $header-gradient-end 100%);
-    color: white;
-    border: none;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    
-    .p-card-body {
-      padding: 1rem;
-    }
-  }
+// ==================== SELECTOR DE IMÁGENES ====================
 
-  .game-stats {
+::ng-deep .selector-imagenes-dialog {
+    .p-dialog-content {
+        background: #f8f9fa;
+    }
+}
+
+.progreso-jugador {
     display: flex;
+    justify-content: center;
     gap: 2rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 
     .stat-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: white;
-
-      i {
-        font-size: 1.3rem;
-      }
-    }
-  }
-
-  .game-controls {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-}
-
-// Contenedor del puzzle (equivalente a #forPuzzle)
-.puzzle-container {
-  flex: 1;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  background-color: $bg-light-yellow;
-  overflow: hidden;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  touch-action: none;
-  cursor: default;
-}
-
-// Piezas del puzzle (equivalente a .polypiece)
-::ng-deep .polypiece {
-  display: block;
-  overflow: hidden;
-  position: absolute;
-  cursor: move;
-  
-  &:hover {
-    filter: brightness(1.05);
-  }
-}
-
-// Animación de movimiento para cuando se distribuyen las piezas
-::ng-deep .moving {
-  transition-property: top, left;
-  transition-duration: 1s;
-  transition-timing-function: linear;
-}
-
-// Canvas del juego (imagen de referencia)
-::ng-deep .gameCanvas {
-  display: none;
-  overflow: hidden;
-  position: absolute;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-}
-
-// Clase para elementos atenuados
-.dimmed {
-  color: $dimmed-color;
-  opacity: 0.6;
-}
-
-// Dialog de resultados
-.resultados-content {
-  text-align: center;
-  padding: 2rem 1rem;
-
-  .puntuacion-final {
-    margin-bottom: 2rem;
-
-    i {
-      animation: starPulse 1s ease-in-out infinite;
-      display: block;
-      margin-bottom: 1rem;
-    }
-
-    h3 {
-      color: $header-gradient-start;
-      font-size: 1.8rem;
-      margin: 0;
-      font-weight: 700;
-    }
-  }
-
-  .divider {
-    border: none;
-    height: 2px;
-    background: linear-gradient(to right, transparent, $header-gradient-start, transparent);
-    margin: 2rem 0;
-  }
-
-  .estadisticas-finales {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-
-    .estadistica {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem;
-      background: #f8f9fa;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-      .label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.1rem;
         font-weight: 600;
         color: #495057;
-      }
 
-      .valor {
-        font-weight: 700;
-        color: $header-gradient-start;
-        font-size: 1.2rem;
-      }
+        i {
+            font-size: 1.5rem;
+            color: #8B4513;
+        }
     }
-  }
 }
 
-// Menú lateral
-.side-menu {
-  position: fixed;
-  top: 0;
-  right: -400px;
-  width: 350px;
-  height: 100vh;
-  background: white;
-  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3);
-  transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 2000;
-  overflow-y: auto;
+.imagenes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem;
+}
 
-  &.open {
-    right: 0;
-  }
+.imagen-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
 
-  .menu-header {
+    &:not(.bloqueada):hover {
+        transform: translateY(-8px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+
+    &.bloqueada {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .imagen-wrapper {
+        position: relative;
+        width: 100%;
+        padding-top: 75%; // Aspect ratio 4:3
+        overflow: hidden;
+
+        img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        &:hover img {
+            transform: scale(1.05);
+        }
+
+        .overlay-bloqueado {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+
+            i {
+                margin-bottom: 0.5rem;
+            }
+
+            p {
+                margin: 0;
+                font-size: 1.2rem;
+                font-weight: 600;
+            }
+        }
+
+        .badge-orden {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #8B4513;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+    }
+
+    .imagen-info {
+        padding: 1.25rem;
+
+        h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.3rem;
+            color: #2c3e50;
+        }
+
+        .nombre-kichwa {
+            color: #8B4513;
+            font-style: italic;
+            margin: 0 0 0.75rem 0;
+            font-size: 1rem;
+        }
+
+        .dificultad {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6c757d;
+            font-size: 0.9rem;
+
+            i {
+                color: #8B4513;
+            }
+        }
+    }
+}
+
+// ==================== ÁREA DEL PUZZLE ====================
+
+.puzzle-area {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.puzzle-hud {
+    background: white;
+    padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, $header-gradient-start 0%, $header-gradient-end 100%);
-    color: white;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 10;
 
-    h3 {
-      margin: 0;
-      font-size: 1.5rem;
-      font-weight: 600;
-    }
-
-    .close-btn {
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      color: white;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-      font-size: 1.2rem;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: rotate(90deg);
-      }
-    }
-  }
-
-  .menu-content {
-    padding: 2rem 1.5rem;
-
-    .menu-section {
-      margin-bottom: 2rem;
-
-      h4 {
-        color: #2c3e50;
-        font-size: 1.2rem;
-        margin-bottom: 1rem;
-        font-weight: 600;
-      }
-
-      .difficulty-buttons,
-      .image-buttons {
+    .hud-left {
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+
+        .imagen-actual-info {
+            h3 {
+                margin: 0;
+                font-size: 1.3rem;
+                color: #2c3e50;
+            }
+
+            .kichwa {
+                color: #8B4513;
+                font-style: italic;
+                font-size: 0.95rem;
+            }
+        }
+    }
+
+    .hud-center {
+        display: flex;
+        gap: 2rem;
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #495057;
+
+            i {
+                color: #8B4513;
+                font-size: 1.4rem;
+            }
+        }
+    }
+
+    .hud-right {
+        display: flex;
+        gap: 1rem;
+    }
+}
+
+.dificultad-selector {
+    background: white;
+    padding: 1.5rem;
+    margin: 1rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+
+    label {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .size-buttons {
+        display: flex;
         gap: 0.75rem;
-
-        ::ng-deep .p-button {
-          justify-content: flex-start;
-          padding: 0.75rem 1rem;
-          transition: all 0.3s ease;
-
-          &:not(:disabled):hover {
-            transform: translateX(5px);
-          }
-
-          &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-        }
-      }
     }
-
-    hr.divider {
-      border: none;
-      height: 1px;
-      background: linear-gradient(to right, transparent, #dee2e6, transparent);
-      margin: 2rem 0;
-    }
-  }
 }
 
-// Overlay del menú
-.menu-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1999;
-  animation: fadeIn 0.3s ease;
-  backdrop-filter: blur(2px);
+.puzzle-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    overflow: hidden;
 }
 
-// Animaciones
-@keyframes starPulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-// Responsive
-@media (max-width: 768px) {
-  .puzzle-header {
-    padding: 0.5rem;
-
-    .game-stats {
-      gap: 1rem;
-
-      .stat-item {
-        font-size: 0.9rem;
-
-        i {
-          font-size: 1.1rem;
-        }
-      }
-    }
-
-    .game-controls {
-      gap: 0.5rem;
-
-      ::ng-deep .p-button {
-        padding: 0.5rem;
-        font-size: 0.85rem;
-
-        .p-button-label {
-          display: none;
-        }
-
-        .p-button-icon {
-          margin: 0;
-        }
-      }
-    }
-  }
-
-  .side-menu {
+.puzzle-container {
+    position: relative;
     width: 100%;
-    right: -100%;
-  }
+    height: 100%;
+    max-width: 1400px;
+    max-height: 900px;
 }
 
-// Z-index para dialogs de PrimeNG
-::ng-deep {
-  .p-dialog-mask {
-    z-index: 3000;
-  }
-  
-  .p-dialog {
-    z-index: 3001;
-  }
+// ==================== ESTILOS DEL PUZZLE (TUS ORIGINALES) ====================
+
+::ng-deep .gameCanvas {
+    position: absolute;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    border-radius: 8px;
 }
 
-// Estilos adicionales para asegurar compatibilidad
-:host {
-  display: block;
-  width: 100%;
-  height: 100vh;
-  overflow: hidden;
-}
-
-// Cursor para interacción
 ::ng-deep .polypiece {
-  cursor: move;
-  
-  &:active {
-    cursor: grabbing;
-  }
-}
+    position: absolute;
+    cursor: grab;
 
-// Estilos adicionales para el menú
-.menu-warning {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fff3cd;
-  border-left: 3px solid #ffc107;
-  border-radius: 4px;
-  color: #856404;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  
-  i {
-    margin-right: 0.5rem;
-  }
-}
-
-.instructions-box {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  
-  p {
-    margin: 0 0 0.5rem 0;
-  }
-  
-  ul {
-    margin: 0;
-    padding-left: 1.5rem;
-    
-    li {
-      margin-bottom: 0.5rem;
+    &.moving {
+        transition: all 1s ease-out;
     }
-  }
+
+    &:active {
+        cursor: grabbing;
+    }
+}
+
+// ==================== DIÁLOGO VICTORIA ====================
+
+::ng-deep .victoria-dialog {
+    .p-dialog-content {
+        padding: 2rem;
+    }
+}
+
+.victoria-content {
+    text-align: center;
+
+    .estrellas-container {
+        margin-bottom: 2rem;
+
+        .estrellas-display {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+
+            .estrella-animada {
+                display: inline-block;
+                animation: estrellaPop 0.6s ease-out forwards;
+                opacity: 0;
+                transform: scale(0);
+
+                @keyframes estrellaPop {
+                    0% {
+                        opacity: 0;
+                        transform: scale(0) rotate(0deg);
+                    }
+                    50% {
+                        transform: scale(1.2) rotate(180deg);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: scale(1) rotate(360deg);
+                    }
+                }
+            }
+        }
+
+        .mensaje-estrellas {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #8B4513;
+            margin: 0;
+        }
+    }
+
+    .estadisticas-finales {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin: 2rem 0;
+
+        .stat-final {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+
+            i {
+                font-size: 2rem;
+                color: #8B4513;
+            }
+
+            div {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+
+                .label {
+                    font-size: 0.85rem;
+                    color: #6c757d;
+                    text-transform: uppercase;
+                }
+
+                .value {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #2c3e50;
+                }
+            }
+        }
+    }
+
+    .siguiente-desbloqueado {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        color: white;
+
+        .desbloqueo-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+
+            i {
+                font-size: 1.5rem;
+                animation: unlock 0.8s ease-in-out infinite;
+
+                @keyframes unlock {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-5px); }
+                }
+            }
+        }
+
+        .siguiente-preview {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+
+            img {
+                width: 120px;
+                height: 90px;
+                object-fit: cover;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            }
+
+            .siguiente-info {
+                text-align: left;
+
+                h4 {
+                    margin: 0 0 0.5rem 0;
+                    font-size: 1.3rem;
+                }
+
+                p {
+                    margin: 0;
+                    font-style: italic;
+                    opacity: 0.9;
+                }
+            }
+        }
+    }
+}
+
+// ==================== RESPONSIVE ====================
+
+@media (max-width: 768px) {
+    .imagenes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .puzzle-hud {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+
+        .hud-left, .hud-center, .hud-right {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    .estadisticas-finales {
+        grid-template-columns: 1fr !important;
+    }
 }

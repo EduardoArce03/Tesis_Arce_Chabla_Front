@@ -1,183 +1,216 @@
-<div class="puzzle-wrapper">
-  <!-- Header con estadísticas -->
-  <div class="puzzle-header">
-    <p-card>
-      <div class="flex justify-content-between align-items-center flex-wrap">
-        <div class="game-stats">
-          <div class="stat-item">
-            <i class="pi pi-clock"></i>
-            <span>{{ formatTiime(tiempoTranscurrido) }}</span>
-          </div>
-          <div class="stat-item">
-            <i class="pi pi-sync"></i>
-            <span>{{ moves }} movimientos</span>
-          </div>
+<!-- src/app/components/rompe-cabezas/rompe-cabezas.component.html -->
+
+<p-toast></p-toast>
+
+<div class="puzzle-game-container">
+
+    <!-- ==================== DIÁLOGO: SELECTOR DE IMÁGENES ==================== -->
+    <p-dialog
+        [(visible)]="mostrarSelectorImagenes"
+        [modal]="true"
+        [closable]="false"
+        [style]="{width: '90vw', maxWidth: '1200px'}"
+        header="Selecciona un Rompecabezas"
+        styleClass="selector-imagenes-dialog">
+
+        <!-- Barra de progreso del jugador -->
+        <div class="progreso-jugador" *ngIf="progreso">
+            <div class="stat-item">
+                <i class="pi pi-star-fill"></i>
+                <span>{{ progreso.estrellasTotal }} Estrellas</span>
+            </div>
+            <div class="stat-item">
+                <i class="pi pi-check-circle"></i>
+                <span>{{ progreso.puzzlesCompletados }} Completados</span>
+            </div>
+            <div class="stat-item">
+                <i class="pi pi-clock"></i>
+                <span>Mejor: {{ formatTime(progreso.mejorTiempo) }}</span>
+            </div>
         </div>
 
-        <div class="game-controls">
-          <p-button 
-            *ngIf="!isPlaying"
-            label="Iniciar Juego"
-            icon="pi pi-play"
-            severity="success"
-            (onClick)="iniciarJuego()">
-          </p-button>
-          
-          <p-button 
-            *ngIf="isPlaying"
-            label="Reiniciar"
-            icon="pi pi-replay"
-            severity="danger"
-            (onClick)="resetGame()">
-          </p-button>
-          
-          <p-button 
-            label="Opciones"
-            icon="pi pi-cog"
-            severity="info"
-            (onClick)="toggleMenu()">
-          </p-button>
-        </div>
-      </div>
-    </p-card>
-  </div>
+        <!-- Galería de imágenes -->
+        <div class="imagenes-grid">
+            <div
+                *ngFor="let imagen of imagenesDisponibles"
+                class="imagen-card"
+                [class.bloqueada]="!imagen.desbloqueada"
+                (click)="seleccionarImagen(imagen)">
 
-  <!-- Contenedor del puzzle - DEBE OCUPAR EL RESTO DEL ESPACIO -->
-  <div class="puzzle-container" #puzzleContainer>
-    <!-- Aquí se generan dinámicamente los canvas de las piezas -->
-  </div>
+                <div class="imagen-wrapper">
+                    <!-- Imagen -->
+                    <img [src]="imagen.imagenUrl" [alt]="imagen.titulo">
 
-  <!-- Mensaje de victoria -->
-  <p-dialog
-    [(visible)]="isCompleted"
-    [modal]="true"
-    [closable]="false"
-    [style]="{width: '450px'}"
-    header="¡Allillachu! (¡Muy bien!)">
-    
-    <div class="resultados-content">
-      <div class="puntuacion-final">
-        <i class="pi pi-star-fill" style="color: gold; font-size: 3rem;"></i>
-        <h3>¡Puzzle Completado!</h3>
-      </div>
+                    <!-- Overlay de bloqueado -->
+                    <div class="overlay-bloqueado" *ngIf="!imagen.desbloqueada">
+                        <i class="pi pi-lock" style="font-size: 3rem;"></i>
+                        <p>Bloqueado</p>
+                    </div>
 
-      <hr class="divider">
+                    <!-- Badge de orden -->
+                    <div class="badge-orden">{{ imagen.ordenDesbloqueo }}</div>
+                </div>
 
-      <div class="estadisticas-finales">
-        <div class="estadistica">
-          <span class="label">Tiempo:</span>
-          <span class="valor">{{ formatTiime(tiempoTranscurrido) }}</span>
+                <div class="imagen-info">
+                    <h3>{{ imagen.titulo }}</h3>
+                    <p class="nombre-kichwa">{{ imagen.nombreKichwa }}</p>
+                    <div class="dificultad">
+                        <i class="pi pi-th-large"></i>
+                        <span>{{ imagen.dificultadMinima }}x{{ imagen.dificultadMinima }} - {{ imagen.dificultadMaxima }}x{{ imagen.dificultadMaxima }}</span>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="estadistica">
-          <span class="label">Movimientos:</span>
-          <span class="valor">{{ moves }}</span>
+    </p-dialog>
+
+    <!-- ==================== ÁREA DEL PUZZLE ==================== -->
+    <div class="puzzle-area" *ngIf="!mostrarSelectorImagenes">
+
+        <!-- HUD Superior -->
+        <div class="puzzle-hud">
+            <!-- Izquierda: Info de la imagen -->
+            <div class="hud-left">
+                <button
+                    pButton
+                    icon="pi pi-arrow-left"
+                    label="Volver"
+                    class="p-button-text p-button-sm"
+                    (click)="volverAlMenu()">
+                </button>
+                <div class="imagen-actual-info" *ngIf="imagenActual">
+                    <h3>{{ imagenActual.titulo }}</h3>
+                    <span class="kichwa">{{ imagenActual.nombreKichwa }}</span>
+                </div>
+            </div>
+
+            <!-- Centro: Estadísticas -->
+            <div class="hud-center">
+                <div class="stat">
+                    <i class="pi pi-clock"></i>
+                    <span>{{ formatTime(tiempoTranscurrido) }}</span>
+                </div>
+                <div class="stat">
+                    <i class="pi pi-sync"></i>
+                    <span>{{ moves }} movimientos</span>
+                </div>
+            </div>
+
+            <!-- Derecha: Controles -->
+            <div class="hud-right">
+                <button
+                    *ngIf="!isPlaying"
+                    pButton
+                    label="Iniciar"
+                    icon="pi pi-play"
+                    class="p-button-success"
+                    (click)="iniciarJuego()">
+                </button>
+            </div>
         </div>
-        <div class="estadistica">
-          <span class="label">Dificultad:</span>
-          <span class="valor">{{ gridSize }}x{{ gridSize }} piezas</span>
+
+        <!-- Selector de dificultad (solo visible antes de iniciar) -->
+        <div class="dificultad-selector" *ngIf="!isPlaying && imagenActual">
+            <label>Dificultad:</label>
+            <div class="size-buttons">
+                <button
+                    *ngFor="let size of [3, 4, 5, 6]"
+                    pButton
+                    [label]="size + 'x' + size"
+                    [class.p-button-outlined]="gridSize !== size"
+                    [disabled]="imagenActual && (size < imagenActual.dificultadMinima || size > imagenActual.dificultadMaxima)"
+                    (click)="changeGridSize(size)">
+                </button>
+            </div>
         </div>
-      </div>
+
+        <!-- Contenedor del puzzle -->
+        <div class="puzzle-wrapper">
+            <div #puzzleContainer class="puzzle-container"></div>
+        </div>
     </div>
 
-    <ng-template pTemplate="footer">
-      <p-button 
-        label="Jugar de nuevo"
-        icon="pi pi-refresh"
-        severity="success"
-        (onClick)="iniciarJuego()">
-      </p-button>
-      <p-button 
-        label="Cambiar"
-        icon="pi pi-images"
-        severity="secondary"
-        (onClick)="isCompleted = false; toggleMenu()">
-      </p-button>
-    </ng-template>
-  </p-dialog>
+    <!-- ==================== DIÁLOGO: VICTORIA ==================== -->
+    <p-dialog
+        [(visible)]="mostrarVictoria"
+        [modal]="true"
+        [closable]="false"
+        [style]="{width: '600px'}"
+        header="¡Puzzle Completado!"
+        styleClass="victoria-dialog">
 
-  <!-- Menu Lateral -->
-  <div class="side-menu" [class.open]="showMenu">
-    <div class="menu-header">
-      <h3><i class="pi pi-cog"></i> Configuración</h3>
-      <button class="close-btn" (click)="toggleMenu()">
-        <i class="pi pi-times"></i>
-      </button>
-    </div>
-    
-    <div class="menu-content">
-      <!-- Dificultad -->
-      <div class="menu-section">
-        <h4><i class="pi pi-th"></i> Dificultad</h4>
-        <div class="difficulty-buttons">
-          <p-button 
-            label="3x3 - 9 piezas (Fácil)"
-            icon="pi pi-th-large"
-            [outlined]="gridSize !== 3"
-            [disabled]="isPlaying"
-            (onClick)="changeGridSize(3)">
-          </p-button>
-          <p-button 
-            label="4x4 - 16 piezas (Medio)"
-            icon="pi pi-table"
-            [outlined]="gridSize !== 4"
-            [disabled]="isPlaying"
-            (onClick)="changeGridSize(4)">
-          </p-button>
-          <p-button 
-            label="5x5 - 25 piezas (Difícil)"
-            icon="pi pi-th"
-            [outlined]="gridSize !== 5"
-            [disabled]="isPlaying"
-            (onClick)="changeGridSize(5)">
-          </p-button>
+        <div class="victoria-content">
+            <!-- Estrellas animadas -->
+            <div class="estrellas-container">
+                <div class="estrellas-display">
+          <span
+              *ngFor="let estrella of obtenerEstrellas(estrellasObtenidas); let i = index"
+              class="estrella-animada"
+              [style.animation-delay]="(i * 0.2) + 's'">
+            {{ estrella }}
+          </span>
+                </div>
+                <p class="mensaje-estrellas">{{ mensajeVictoria }}</p>
+            </div>
+
+            <p-divider></p-divider>
+
+            <!-- Estadísticas -->
+            <div class="estadisticas-finales">
+                <div class="stat-final">
+                    <i class="pi pi-clock"></i>
+                    <div>
+                        <span class="label">Tiempo</span>
+                        <span class="value">{{ formatTime(tiempoTranscurrido) }}</span>
+                    </div>
+                </div>
+                <div class="stat-final">
+                    <i class="pi pi-sync"></i>
+                    <div>
+                        <span class="label">Movimientos</span>
+                        <span class="value">{{ moves }}</span>
+                    </div>
+                </div>
+                <div class="stat-final">
+                    <i class="pi pi-star-fill"></i>
+                    <div>
+                        <span class="label">Estrellas Totales</span>
+                        <span class="value">{{ progreso?.estrellasTotal || 0 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Siguiente imagen desbloqueada -->
+            <div class="siguiente-desbloqueado" *ngIf="siguienteImagen">
+                <div class="desbloqueo-banner">
+                    <i class="pi pi-unlock"></i>
+                    <span>¡Nueva imagen desbloqueada!</span>
+                </div>
+                <div class="siguiente-preview">
+                    <img [src]="siguienteImagen.imagenUrl" [alt]="siguienteImagen.titulo">
+                    <div class="siguiente-info">
+                        <h4>{{ siguienteImagen.titulo }}</h4>
+                        <p>{{ siguienteImagen.nombreKichwa }}</p>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-        <p *ngIf="isPlaying" class="menu-warning">
-          <i class="pi pi-info-circle"></i> 
-          Termina o reinicia el juego para cambiar la dificultad
-        </p>
-      </div>
 
-      <hr class="divider">
+        <ng-template pTemplate="footer">
+            <p-button
+                *ngIf="siguienteImagen"
+                label="Continuar"
+                icon="pi pi-arrow-right"
+                (onClick)="continuarSiguiente()"
+                styleClass="p-button-lg p-button-success">
+            </p-button>
+            <p-button
+                label="Volver al menú"
+                icon="pi pi-home"
+                severity="secondary"
+                (onClick)="volverAlMenu()"
+                styleClass="p-button-lg">
+            </p-button>
+        </ng-template>
+    </p-dialog>
 
-      <!-- Imágenes -->
-      <div class="menu-section">
-        <h4><i class="pi pi-image"></i> Imagen</h4>
-        <div class="image-buttons">
-          <p-button 
-            *ngFor="let img of imagenesDisponibles"
-            [label]="img.label"
-            icon="pi pi-image"
-            [outlined]="imagenUrl !== img.url"
-            [disabled]="isPlaying"
-            (onClick)="changeImage(img.url)">
-          </p-button>
-        </div>
-        
-        <p *ngIf="isPlaying" class="menu-warning">
-          <i class="pi pi-info-circle"></i> 
-          Termina o reinicia el juego para cambiar la imagen
-        </p>
-      </div>
-
-      <hr class="divider">
-
-      <!-- Instrucciones -->
-      <div class="menu-section">
-        <h4><i class="pi pi-question-circle"></i> Instrucciones</h4>
-        <div class="instructions-box">
-          <p><strong>🎮 Cómo jugar:</strong></p>
-          <ul>
-            <li>Arrastra las piezas con el mouse o dedo</li>
-            <li>Las piezas correctas se pegarán automáticamente</li>
-            <li>Completa el puzzle uniendo todas las piezas</li>
-            <li>¡Hazlo en el menor tiempo posible!</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Overlay para el menú -->
-  <div class="menu-overlay" *ngIf="showMenu" (click)="toggleMenu()"></div>
 </div>
