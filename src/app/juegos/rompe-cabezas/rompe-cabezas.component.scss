@@ -452,3 +452,353 @@
         grid-template-columns: 1fr !important;
     }
 }
+
+// ==================== POWER-UPS COUNTER ====================
+
+.power-ups-counter {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 700;
+
+    i {
+        color: white !important;
+    }
+}
+
+// ==================== BANNER POWER-UP ACTIVO ====================
+
+.power-up-activo-banner {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    padding: 1rem 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    animation: pulse 2s ease-in-out infinite;
+
+    .banner-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        color: white;
+        font-size: 1.2rem;
+        font-weight: 600;
+
+        i {
+            font-size: 1.5rem;
+            animation: spin 3s linear infinite;
+        }
+
+        .tiempo-restante {
+            background: rgba(255,255,255,0.2);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-family: monospace;
+        }
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(245, 87, 108, 0.5);
+    }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+// ==================== DIÁLOGO DESAFÍO ====================
+
+::ng-deep .desafio-dialog {
+    .p-dialog-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-size: 1.5rem;
+        padding: 1.5rem;
+
+        .p-dialog-title {
+            font-weight: 700;
+        }
+    }
+
+    .p-dialog-content {
+        padding: 2rem;
+    }
+}
+
+.desafio-content {
+    .tiempo-desafio {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+
+        i {
+            font-size: 2rem;
+            color: #667eea;
+        }
+
+        .tiempo-numero {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            font-family: monospace;
+            min-width: 70px;
+            text-align: center;
+
+            &.urgente {
+                color: #e74c3c;
+                animation: parpadeo 0.5s ease-in-out infinite;
+            }
+        }
+    }
+
+    @keyframes parpadeo {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    ::ng-deep .tiempo-bar {
+        margin-bottom: 2rem;
+
+        .p-progressbar-value {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    }
+
+    .pregunta-container {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        border-left: 4px solid #8B4513;
+
+        h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+    }
+
+    .opciones-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+
+        .opcion-btn {
+            width: 100%;
+            padding: 1.2rem;
+            font-size: 1.1rem;
+            text-align: left;
+            background: white;
+            border: 2px solid #dee2e6;
+            color: #495057;
+            transition: all 0.3s ease;
+
+            &:hover:not(:disabled) {
+                background: #f8f9fa;
+                border-color: #667eea;
+                transform: translateX(8px);
+            }
+
+            &.selected {
+                background: #667eea;
+                border-color: #667eea;
+                color: white;
+                transform: scale(1.02);
+            }
+
+            &.correcta {
+                background: #27ae60;
+                border-color: #27ae60;
+                color: white;
+                animation: correcta-pulse 0.5s ease-out;
+            }
+
+            &:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+            }
+        }
+    }
+
+    @keyframes correcta-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    .resultado-mensaje {
+        text-align: center;
+        font-size: 3rem;
+
+        i {
+            animation: resultado-pop 0.6s ease-out;
+
+            &.pi-check-circle {
+                color: #27ae60;
+            }
+
+            &.pi-times-circle {
+                color: #e74c3c;
+            }
+        }
+    }
+
+    @keyframes resultado-pop {
+        0% {
+            opacity: 0;
+            transform: scale(0);
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+}
+
+// ==================== DIÁLOGO POWER-UPS ====================
+
+::ng-deep .powerups-dialog {
+    .p-dialog-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        font-size: 1.4rem;
+        padding: 1.5rem;
+    }
+
+    .p-dialog-content {
+        padding: 2rem;
+    }
+}
+
+.powerups-content {
+    .powerups-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: #e3f2fd;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        color: #1976d2;
+
+        i {
+            font-size: 1.3rem;
+        }
+    }
+
+    .powerups-grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .powerup-card {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        background: white;
+        border: 2px solid #dee2e6;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &:hover {
+            border-color: #f5576c;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(245, 87, 108, 0.2);
+        }
+
+        .powerup-icono {
+            font-size: 3rem;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .powerup-info-detail {
+            flex: 1;
+
+            h4 {
+                margin: 0 0 0.5rem 0;
+                font-size: 1.2rem;
+                color: #2c3e50;
+            }
+
+            p {
+                margin: 0;
+                color: #6c757d;
+                font-size: 0.95rem;
+            }
+        }
+
+        button {
+            flex-shrink: 0;
+        }
+    }
+
+    .powerups-vacio {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+
+        i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        p {
+            font-size: 1.2rem;
+            margin: 0.5rem 0;
+        }
+
+        small {
+            color: #adb5bd;
+        }
+    }
+}
+
+// ==================== RESPONSIVE ====================
+
+@media (max-width: 768px) {
+    .power-up-activo-banner {
+        padding: 0.75rem 1rem;
+
+        .banner-content {
+            font-size: 1rem;
+            flex-wrap: wrap;
+        }
+    }
+
+    .desafio-content {
+        .pregunta-container h3 {
+            font-size: 1.2rem;
+        }
+
+        .opciones-container .opcion-btn {
+            font-size: 1rem;
+            padding: 1rem;
+        }
+    }
+
+    .powerup-card {
+        flex-direction: column;
+        text-align: center;
+
+        .powerup-info-detail {
+            text-align: center;
+        }
+    }
+}

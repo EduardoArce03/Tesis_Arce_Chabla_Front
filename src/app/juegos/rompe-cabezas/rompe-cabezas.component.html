@@ -93,10 +93,27 @@
                     <i class="pi pi-sync"></i>
                     <span>{{ moves }} movimientos</span>
                 </div>
+
+                <!-- Contador de power-ups -->
+                <div class="stat power-ups-counter" *ngIf="isPlaying">
+                    <i class="pi pi-bolt"></i>
+                    <span>{{ powerUpsDisponibles.length }}/3</span>
+                </div>
             </div>
 
             <!-- Derecha: Controles -->
             <div class="hud-right">
+                <!-- Botón de Power-Ups -->
+                <button
+                    *ngIf="isPlaying && powerUpsDisponibles.length > 0"
+                    pButton
+                    icon="pi pi-bolt"
+                    label="Power-Ups"
+                    class="p-button-warning p-button-sm"
+                    badgeClass="p-badge-danger"
+                    (click)="abrirMenuPowerUps()">
+                </button>
+
                 <button
                     *ngIf="!isPlaying"
                     pButton
@@ -105,6 +122,15 @@
                     class="p-button-success"
                     (click)="iniciarJuego()">
                 </button>
+            </div>
+        </div>
+
+        <!-- Banner de Power-Up Activo -->
+        <div class="power-up-activo-banner" *ngIf="powerUpActivo">
+            <div class="banner-content">
+                <i class="pi pi-sun" *ngIf="powerUpActivo === 'BENDICION_SOL'"></i>
+                <span>☀️ Bendición del Sol activa - x2 puntos</span>
+                <span class="tiempo-restante">{{ formatTime(tiempoPowerUpActivo) }}</span>
             </div>
         </div>
 
@@ -129,6 +155,115 @@
         </div>
     </div>
 
+    <!-- ==================== DIÁLOGO: DESAFÍO CULTURAL ==================== -->
+    <p-dialog
+        [(visible)]="mostrarDesafio"
+        [modal]="true"
+        [closable]="false"
+        [style]="{width: '600px'}"
+        header="🎯 ¡Desafío Cultural!"
+        styleClass="desafio-dialog">
+
+        <div class="desafio-content" *ngIf="desafioActual">
+            <!-- Contador de tiempo -->
+            <div class="tiempo-desafio">
+                <i class="pi pi-clock"></i>
+                <span class="tiempo-numero" [class.urgente]="tiempoDesafio <= 5">
+                    {{ tiempoDesafio }}s
+                </span>
+            </div>
+
+            <!-- Barra de progreso -->
+            <p-progressBar
+                [value]="(tiempoDesafio / desafioActual.tiempoLimite) * 100"
+                [showValue]="false"
+                [style]="{height: '8px'}"
+                styleClass="tiempo-bar">
+            </p-progressBar>
+
+            <!-- Pregunta -->
+            <div class="pregunta-container">
+                <h3>{{ desafioActual.pregunta }}</h3>
+            </div>
+
+            <!-- Opciones -->
+            <div class="opciones-container">
+                <button
+                    *ngFor="let opcion of desafioActual.opciones"
+                    pButton
+                    [label]="opcion"
+                    [class.selected]="respuestaSeleccionada === opcion"
+                    [class.correcta]="desafioRespondido && respuestaSeleccionada === opcion"
+                    [disabled]="desafioRespondido"
+                    class="opcion-btn"
+                    (click)="seleccionarRespuesta(opcion)">
+                </button>
+            </div>
+
+            <!-- Mensaje de resultado -->
+            <div class="resultado-mensaje" *ngIf="desafioRespondido">
+                <i class="pi pi-check-circle" *ngIf="respuestaSeleccionada"></i>
+                <i class="pi pi-times-circle" *ngIf="!respuestaSeleccionada"></i>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <p-button
+                *ngIf="!desafioRespondido"
+                label="Confirmar"
+                icon="pi pi-check"
+                [disabled]="!respuestaSeleccionada"
+                (onClick)="confirmarRespuesta()"
+                styleClass="p-button-success">
+            </p-button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- ==================== DIÁLOGO: MENÚ DE POWER-UPS ==================== -->
+    <p-dialog
+        [(visible)]="mostrarMenuPowerUps"
+        [modal]="true"
+        [closable]="true"
+        [style]="{width: '700px'}"
+        header="⚡ Power-Ups Disponibles"
+        styleClass="powerups-dialog">
+
+        <div class="powerups-content">
+            <p class="powerups-info">
+                <i class="pi pi-info-circle"></i>
+                Selecciona un power-up para activarlo. Puedes tener máximo 3 guardados.
+            </p>
+
+            <div class="powerups-grid">
+                <div
+                    *ngFor="let powerUp of powerUpsDisponibles"
+                    class="powerup-card"
+                    (click)="usarPowerUp(powerUp)">
+
+                    <div class="powerup-icono">{{ powerUp.icono }}</div>
+
+                    <div class="powerup-info-detail">
+                        <h4>{{ powerUp.nombre }}</h4>
+                        <p>{{ powerUp.descripcion }}</p>
+                    </div>
+
+                    <button
+                        pButton
+                        icon="pi pi-bolt"
+                        label="Usar"
+                        class="p-button-sm p-button-warning">
+                    </button>
+                </div>
+            </div>
+
+            <div class="powerups-vacio" *ngIf="powerUpsDisponibles.length === 0">
+                <i class="pi pi-inbox"></i>
+                <p>No tienes power-ups disponibles</p>
+                <small>Responde desafíos correctamente para obtener power-ups</small>
+            </div>
+        </div>
+    </p-dialog>
+
     <!-- ==================== DIÁLOGO: VICTORIA ==================== -->
     <p-dialog
         [(visible)]="mostrarVictoria"
@@ -142,12 +277,12 @@
             <!-- Estrellas animadas -->
             <div class="estrellas-container">
                 <div class="estrellas-display">
-          <span
-              *ngFor="let estrella of obtenerEstrellas(estrellasObtenidas); let i = index"
-              class="estrella-animada"
-              [style.animation-delay]="(i * 0.2) + 's'">
-            {{ estrella }}
-          </span>
+                    <span
+                        *ngFor="let estrella of obtenerEstrellas(estrellasObtenidas); let i = index"
+                        class="estrella-animada"
+                        [style.animation-delay]="(i * 0.2) + 's'">
+                        {{ estrella }}
+                    </span>
                 </div>
                 <p class="mensaje-estrellas">{{ mensajeVictoria }}</p>
             </div>
