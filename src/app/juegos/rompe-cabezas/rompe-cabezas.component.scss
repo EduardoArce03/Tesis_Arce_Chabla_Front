@@ -802,3 +802,117 @@
         }
     }
 }
+
+// En rompe-cabezas.component.scss
+
+.hud-center {
+    display: flex;
+    gap: 2rem;
+
+    .stat {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #495057;
+        transition: all 0.3s ease;
+
+        i {
+            color: #8B4513;
+            font-size: 1.4rem;
+        }
+
+        // ⬇️ NUEVO: Estilos para tiempo restante
+        &.tiempo-restante {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            background: #e8f5e9;
+
+            // Estado normal (más de 60 segundos)
+            i {
+                color: #27ae60;
+            }
+
+            // Estado urgente (60-30 segundos)
+            &.urgente {
+                background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+                color: white;
+                animation: pulso-urgente 1s ease-in-out infinite;
+
+                i {
+                    color: white !important;
+                }
+            }
+
+            // Estado crítico (menos de 30 segundos)
+            &.critico {
+                background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+                color: white;
+                animation: pulso-critico 0.5s ease-in-out infinite;
+
+                i {
+                    color: white !important;
+                    animation: parpadeo 0.5s ease-in-out infinite;
+                }
+            }
+        }
+    }
+}
+
+// Power-ups counter (ya lo tienes, solo asegúrate que esté)
+.power-ups-counter {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 700;
+
+    i {
+        color: white !important;
+    }
+}
+
+// Animaciones
+@keyframes pulso-urgente {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(243, 156, 18, 0);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(243, 156, 18, 0.5);
+    }
+}
+
+@keyframes pulso-critico {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(231, 76, 60, 0);
+    }
+    50% {
+        transform: scale(1.08);
+        box-shadow: 0 0 20px rgba(231, 76, 60, 0.7);
+    }
+}
+
+@keyframes parpadeo {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .hud-center {
+        flex-direction: column;
+        gap: 0.5rem;
+
+        .stat {
+            font-size: 1rem;
+
+            i {
+                font-size: 1.2rem;
+            }
+        }
+    }
+}

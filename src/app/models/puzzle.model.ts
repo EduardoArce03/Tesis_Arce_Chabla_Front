@@ -1,17 +1,5 @@
 // src/app/models/puzzle.model.ts
 
-export interface ImagenPuzzle {
-    id: number;
-    titulo: string;
-    nombreKichwa: string;
-    categoria: string;
-    imagenUrl: string;
-    desbloqueada: boolean;
-    ordenDesbloqueo: number;
-    dificultadMinima: number;
-    dificultadMaxima: number;
-}
-
 export interface IniciarPuzzleRequest {
     jugadorId: string;
     imagenId: number;
@@ -20,23 +8,24 @@ export interface IniciarPuzzleRequest {
 
 export interface IniciarPuzzleResponse {
     partidaId: number;
-    imagen: ImagenPuzzle;
     mensajeBienvenida: string;
+    tiempoLimiteSegundos: number; // ⬅️ NUEVO
+    gridSize: number;
 }
 
 export interface FinalizarPuzzleRequest {
     partidaId: number;
+    jugadorId: string;
     movimientos: number;
-    tiempoSegundos: number;
+    tiempoRestante: number; // ⬅️ CAMBIADO de tiempoSegundos
     hintsUsados: number;
 }
 
 export interface FinalizarPuzzleResponse {
     estrellas: number;
-    tiempoTotal: number;
-    movimientosTotal: number;
-    hintsUsados: number;
     mensaje: string;
+    puntosObtenidos: number;
+    tiempoFinal: number; // ⬅️ NUEVO
     siguienteImagenDesbloqueada: ImagenPuzzle | null;
     progresoActual: ProgresoJugador;
 }
@@ -44,7 +33,20 @@ export interface FinalizarPuzzleResponse {
 export interface ProgresoJugador {
     jugadorId: string;
     estrellasTotal: number;
+    puntosTotal: number; // ⬅️ NUEVO
     puzzlesCompletados: number;
     mejorTiempo: number;
     imagenesDesbloqueadas: number;
+}
+
+export interface ImagenPuzzle {
+    id: number;
+    titulo: string;
+    nombreKichwa: string;
+    imagenUrl: string;
+    categoria: string;
+    dificultadMinima: number;
+    dificultadMaxima: number;
+    ordenDesbloqueo: number;
+    desbloqueada: boolean;
 }

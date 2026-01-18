@@ -842,7 +842,8 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     // Estado del juego
     gridSize: number = 3;
     moves: number = 0;
-    tiempoTranscurrido: number = 0;
+    tiempoLimite: number = 0; // ⬅️ NUEVO
+    tiempoRestante: number = 0; // ⬅️ CAMBIADO
     timerInterval: any;
     isPlaying: boolean = false;
     isCompleted: boolean = false;
@@ -863,11 +864,7 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     mensajeVictoria: string = '';
     siguienteImagen: ImagenPuzzle | null = null;
 
-    // ⬇️ IMPORTANTE: Hacer opcional con ?
-    private puzzle?: Puzzle;
-    private moving: any = {};
-
-// ==================== DESAFÍOS ====================
+    // ==================== DESAFÍOS ====================
     mostrarDesafio: boolean = false;
     desafioActual: DesafioGenerado | null = null;
     tiempoDesafio: number = 15;
@@ -885,10 +882,13 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     private movimientosDesdeUltimoDesafio: number = 0;
     private readonly MOVIMIENTOS_PARA_DESAFIO = 15;
 
+    private puzzle?: Puzzle;
+    private moving: any = {};
+
     constructor(
         private puzzleService: PuzzleService,
-        private messageService: MessageService,
-        private desafioService: DesafioPuzzleService
+        private desafioService: DesafioPuzzleService,
+        private messageService: MessageService
     ) {}
 
     ngOnInit() {
@@ -897,7 +897,6 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     ngAfterViewInit() {
-        // ⬇️ NO inicializar aquí, esperar a que seleccione imagen
         console.log('✅ Vista inicializada');
     }
 
@@ -955,7 +954,6 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
         this.imagenActual = imagen;
         this.mostrarSelectorImagenes = false;
 
-        // ⬇️ ESPERAR A QUE EL CONTAINER ESTÉ VISIBLE
         setTimeout(() => {
             this.initializePuzzle();
             this.loadImage(imagen.imagenUrl);
@@ -981,12 +979,14 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
                 console.log('✅ Partida iniciada:', response);
                 this.partidaId = response.partidaId;
 
-                // Ocultar canvas de fondo
+                // ⬇️ CONFIGURAR TIEMPO LÍMITE
+                this.tiempoLimite = response.tiempoLimiteSegundos;
+                this.tiempoRestante = response.tiempoLimiteSegundos;
+
                 if (this.puzzle?.gameCanvas) {
                     this.puzzle.gameCanvas.style.display = 'none';
                 }
 
-                // Animar piezas
                 if (this.puzzle?.polyPieces) {
                     this.puzzle.polyPieces.forEach(pp => {
                         pp.canvas.classList.add('moving');
@@ -1001,10 +1001,10 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
                             });
 
                             this.moves = 0;
-                            this.tiempoTranscurrido = 0;
+                            this.movimientosDesdeUltimoDesafio = 0;
                             this.isPlaying = true;
                             this.isCompleted = false;
-                            this.iniciarContador();
+                            this.iniciarContadorInverso(); // ⬅️ CAMBIADO
 
                             this.messageService.add({
                                 severity: 'success',
@@ -1026,8 +1026,73 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
         });
     }
 
+    // ⬇️ NUEVO: Contador inverso (cuenta regresiva)
+    iniciarContadorInverso(): void {
+        this.detenerContador();
+
+        this.timerInterval = setInterval(() => {
+            this.tiempoRestante--;
+
+            // Game Over si se acaba el tiempo
+            if (this.tiempoRestante <= 0) {
+                this.detenerContador();
+                this.gameOver();
+            }
+
+            // Alerta cuando quedan 60 segundos
+            if (this.tiempoRestante === 60) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: '⏱️ ¡Último minuto!',
+                    detail: 'Apresúrate, el tiempo se agota',
+                    life: 3000
+                });
+            }
+
+            // Alerta cuando quedan 30 segundos
+            if (this.tiempoRestante === 30) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: '🚨 ¡30 segundos!',
+                    detail: 'El tiempo casi se acaba',
+                    life: 2000
+                });
+            }
+        }, 1000);
+    }
+
+    // ⬇️ NUEVO: Agregar tiempo bonus
+    agregarTiempoBonus(segundos: number): void {
+        this.tiempoRestante += segundos;
+
+        this.messageService.add({
+            severity: 'success',
+            summary: `⏱️ +${segundos} segundos`,
+            detail: '¡Tiempo extra ganado!',
+            life: 2000
+        });
+
+        console.log(`⏱️ Tiempo agregado: +${segundos}s | Total: ${this.tiempoRestante}s`);
+    }
+
+    // ⬇️ NUEVO: Game Over por tiempo agotado
+    gameOver(): void {
+        this.isPlaying = false;
+        this.isCompleted = false;
+
+        this.messageService.add({
+            severity: 'error',
+            summary: '⏱️ ¡Tiempo Agotado!',
+            detail: 'No completaste el puzzle a tiempo',
+            life: 5000
+        });
+
+        setTimeout(() => {
+            this.volverAlMenu();
+        }, 3000);
+    }
+
     checkWin(): void {
-        // ⬇️ VALIDAR QUE PUZZLE EXISTA
         if (!this.puzzle || !this.puzzle.polyPieces) return;
 
         if (this.puzzle.polyPieces.length === 1 && this.puzzle.polyPieces[0].rot === 0) {
@@ -1046,8 +1111,9 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
 
         const request: FinalizarPuzzleRequest = {
             partidaId: this.partidaId,
+            jugadorId: this.jugadorId,
             movimientos: this.moves,
-            tiempoSegundos: this.tiempoTranscurrido,
+            tiempoRestante: this.tiempoRestante, // ⬅️ CAMBIADO
             hintsUsados: 0
         };
 
@@ -1104,24 +1170,387 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
         return Array(cantidad).fill('⭐');
     }
 
+    // ==================== MÉTODOS DESAFÍOS ====================
+
+    private verificarDesafio(): void {
+        if (!this.isPlaying || !this.partidaId) return;
+
+        this.movimientosDesdeUltimoDesafio++;
+
+        if (this.movimientosDesdeUltimoDesafio >= this.MOVIMIENTOS_PARA_DESAFIO) {
+            this.movimientosDesdeUltimoDesafio = 0;
+            this.mostrarNuevoDesafio();
+        }
+    }
+
+    private mostrarNuevoDesafio(): void {
+        if (!this.partidaId) return;
+
+        console.log('🎯 Generando desafío...');
+
+        this.desafioService.generarDesafio(this.partidaId).subscribe({
+            next: (desafio) => {
+                console.log('✅ Desafío generado:', desafio);
+                this.desafioActual = desafio;
+                this.tiempoDesafio = desafio.tiempoLimite;
+                this.respuestaSeleccionada = null;
+                this.desafioRespondido = false;
+                this.mostrarDesafio = true;
+
+                // Pausar el juego
+                this.detenerContador();
+
+                // Iniciar contador del desafío
+                this.iniciarContadorDesafio();
+
+                this.messageService.add({
+                    severity: 'info',
+                    summary: '🎯 ¡Desafío Cultural!',
+                    detail: 'Responde correctamente para ganar tiempo y power-ups',
+                    life: 3000
+                });
+            },
+            error: (error) => {
+                console.error('❌ Error generando desafío:', error);
+            }
+        });
+    }
+
+    private iniciarContadorDesafio(): void {
+        this.detenerContadorDesafio();
+
+        this.timerDesafio = setInterval(() => {
+            this.tiempoDesafio--;
+
+            if (this.tiempoDesafio <= 0) {
+                this.detenerContadorDesafio();
+                this.responderDesafioIncorrecto();
+            }
+        }, 1000);
+    }
+
+    private detenerContadorDesafio(): void {
+        if (this.timerDesafio) {
+            clearInterval(this.timerDesafio);
+            this.timerDesafio = null;
+        }
+    }
+
+    seleccionarRespuesta(opcion: string): void {
+        if (this.desafioRespondido) return;
+        this.respuestaSeleccionada = opcion;
+    }
+
+    confirmarRespuesta(): void {
+        if (!this.respuestaSeleccionada || !this.desafioActual || this.desafioRespondido) {
+            return;
+        }
+
+        this.desafioRespondido = true;
+        this.detenerContadorDesafio();
+
+        this.desafioService.responderDesafio({
+            desafioId: this.desafioActual.desafioId,
+            respuestaSeleccionada: this.respuestaSeleccionada
+        }).subscribe({
+            next: (response) => {
+                console.log('✅ Respuesta procesada:', response);
+
+                if (response.correcto) {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: '¡Correcto! ✅',
+                        detail: response.mensaje,
+                        life: 3000
+                    });
+
+                    // ⬇️ AGREGAR TIEMPO BONUS
+                    if (response.tiempoBonus > 0) {
+                        this.agregarTiempoBonus(response.tiempoBonus);
+                    }
+
+                    if (response.powerUpObtenido) {
+                        this.mostrarAnimacionPowerUp(response.powerUpObtenido);
+                    }
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Incorrecto ❌',
+                        detail: response.mensaje,
+                        life: 3000
+                    });
+                }
+
+                this.powerUpsDisponibles = response.powerUpsDisponibles;
+
+                setTimeout(() => {
+                    this.cerrarDesafio();
+                }, 2000);
+            },
+            error: (error) => {
+                console.error('❌ Error respondiendo desafío:', error);
+                this.cerrarDesafio();
+            }
+        });
+    }
+
+    private responderDesafioIncorrecto(): void {
+        if (!this.desafioActual || this.desafioRespondido) return;
+
+        this.desafioRespondido = true;
+
+        this.desafioService.responderDesafio({
+            desafioId: this.desafioActual.desafioId,
+            respuestaSeleccionada: ''
+        }).subscribe({
+            next: (response) => {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: '⏱️ ¡Tiempo agotado!',
+                    detail: 'No respondiste a tiempo',
+                    life: 3000
+                });
+
+                setTimeout(() => {
+                    this.cerrarDesafio();
+                }, 2000);
+            },
+            error: (error) => {
+                console.error('❌ Error:', error);
+                this.cerrarDesafio();
+            }
+        });
+    }
+
+    cerrarDesafio(): void {
+        this.mostrarDesafio = false;
+        this.desafioActual = null;
+        this.detenerContadorDesafio();
+
+        // Reanudar el juego
+        if (this.isPlaying) {
+            this.iniciarContadorInverso();
+        }
+    }
+
+    private mostrarAnimacionPowerUp(tipo: PowerUpPuzzle): void {
+        const nombres = {
+            [PowerUpPuzzle.VISION_CONDOR]: 'Visión del Cóndor 👁️',
+            [PowerUpPuzzle.TIEMPO_PACHAMAMA]: 'Tiempo de la Pachamama ⏱️',
+            [PowerUpPuzzle.SABIDURIA_AMAWTA]: 'Sabiduría del Amawta 🧠',
+            [PowerUpPuzzle.BENDICION_SOL]: 'Bendición del Sol ☀️'
+        };
+
+        this.messageService.add({
+            severity: 'success',
+            summary: '🎁 ¡Power-Up Obtenido!',
+            detail: nombres[tipo],
+            life: 4000,
+            sticky: false
+        });
+    }
+
+    // ==================== MÉTODOS POWER-UPS ====================
+
+    abrirMenuPowerUps(): void {
+        if (!this.partidaId) return;
+
+        this.desafioService.obtenerPowerUps(this.partidaId).subscribe({
+            next: (powerUps) => {
+                this.powerUpsDisponibles = powerUps;
+                this.mostrarMenuPowerUps = true;
+            },
+            error: (error) => {
+                console.error('❌ Error cargando power-ups:', error);
+            }
+        });
+    }
+
+    usarPowerUp(powerUp: PowerUpDisponible): void {
+        if (!this.partidaId) return;
+
+        this.desafioService.usarPowerUp({
+            powerUpId: powerUp.id,
+            partidaId: this.partidaId
+        }).subscribe({
+            next: (response) => {
+                console.log('⚡ Power-up activado:', response);
+
+                this.messageService.add({
+                    severity: 'success',
+                    summary: '⚡ Power-Up Activado',
+                    detail: response.mensaje,
+                    life: 3000
+                });
+
+                // Aplicar efecto del power-up
+                this.aplicarEfectoPowerUp(response.tipo, response.datos);
+
+                // Actualizar lista
+                this.powerUpsDisponibles = this.powerUpsDisponibles.filter(
+                    p => p.id !== powerUp.id
+                );
+
+                this.mostrarMenuPowerUps = false;
+            },
+            error: (error) => {
+                console.error('❌ Error usando power-up:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudo activar el power-up',
+                    life: 3000
+                });
+            }
+        });
+    }
+
+    private aplicarEfectoPowerUp(tipo: PowerUpPuzzle, datos: any): void {
+        switch (tipo) {
+            case PowerUpPuzzle.VISION_CONDOR:
+                this.activarVisionCondor(datos.duracion);
+                break;
+
+            case PowerUpPuzzle.TIEMPO_PACHAMAMA:
+                this.activarTiempoPachamama(datos.duracion);
+                break;
+
+            case PowerUpPuzzle.SABIDURIA_AMAWTA:
+                this.activarSabiduriaAmawta();
+                break;
+
+            case PowerUpPuzzle.BENDICION_SOL:
+                this.activarBendicionSol(datos.multiplicador, datos.duracion);
+                break;
+        }
+    }
+
+    private activarVisionCondor(duracion: number): void {
+        if (!this.puzzle?.gameCanvas) return;
+
+        this.puzzle.gameCanvas.style.display = 'block';
+        this.puzzle.gameCanvas.style.opacity = '0.8';
+        this.puzzle.gameCanvas.style.zIndex = '1000';
+
+        setTimeout(() => {
+            if (this.puzzle?.gameCanvas) {
+                this.puzzle.gameCanvas.style.display = 'none';
+                this.puzzle.gameCanvas.style.opacity = '1';
+                this.puzzle.gameCanvas.style.zIndex = '500';
+            }
+        }, duracion * 1000);
+    }
+
+    private activarTiempoPachamama(duracion: number): void {
+        this.detenerContador();
+
+        setTimeout(() => {
+            if (this.isPlaying && !this.isCompleted) {
+                this.iniciarContadorInverso();
+            }
+        }, duracion * 1000);
+    }
+
+    private activarSabiduriaAmawta(): void {
+        if (!this.puzzle || !this.puzzle.polyPieces || this.puzzle.polyPieces.length <= 1) {
+            return;
+        }
+
+        let mejorPieza: any = null;
+        let menorDistancia = Infinity;
+
+        this.puzzle.polyPieces.forEach((pp: any) => {
+            if (pp.pieces.length === 1 && pp.rot === 0) {
+                const posicionCorrecta = {
+                    x: this.puzzle!.offsx + (pp.pckxmin - 0.5) * this.puzzle!.scalex,
+                    y: this.puzzle!.offsy + (pp.pckymin - 0.5) * this.puzzle!.scaley
+                };
+
+                const distancia = Math.hypot(
+                    pp.x - posicionCorrecta.x,
+                    pp.y - posicionCorrecta.y
+                );
+
+                if (distancia < menorDistancia) {
+                    menorDistancia = distancia;
+                    mejorPieza = pp;
+                }
+            }
+        });
+
+        if (!mejorPieza) {
+            console.log('⚠️ No hay piezas disponibles para auto-colocar');
+            return;
+        }
+
+        const pieza = mejorPieza;
+
+        pieza.canvas.classList.add('moving');
+
+        setTimeout(() => {
+            pieza.moveToInitialPlace();
+            pieza.canvas.classList.remove('moving');
+
+            setTimeout(() => {
+                this.intentarMergeAutomatico(pieza);
+            }, 500);
+        }, 100);
+    }
+
+    private intentarMergeAutomatico(pieza: any): void {
+        if (!this.puzzle) return;
+
+        for (let k = this.puzzle.polyPieces.length - 1; k >= 0; --k) {
+            const otraPieza = this.puzzle.polyPieces[k];
+            if (otraPieza === pieza) continue;
+
+            if (pieza.ifNear(otraPieza)) {
+                if (otraPieza.pieces.length > pieza.pieces.length) {
+                    otraPieza.merge(pieza);
+                } else {
+                    pieza.merge(otraPieza);
+                }
+                this.puzzle.evaluateZIndex();
+                this.checkWin();
+                break;
+            }
+        }
+    }
+
+    private activarBendicionSol(multiplicador: number, duracion: number): void {
+        this.powerUpActivo = PowerUpPuzzle.BENDICION_SOL;
+        this.tiempoPowerUpActivo = duracion;
+
+        const interval = setInterval(() => {
+            this.tiempoPowerUpActivo--;
+
+            if (this.tiempoPowerUpActivo <= 0) {
+                clearInterval(interval);
+                this.powerUpActivo = null;
+                this.messageService.add({
+                    severity: 'info',
+                    summary: '⏱️ Power-Up Finalizado',
+                    detail: 'Bendición del Sol ha terminado',
+                    life: 2000
+                });
+            }
+        }, 1000);
+    }
+
     // ==================== MÉTODOS PUZZLE ====================
 
     initializePuzzle(): void {
-        // ⬇️ VALIDAR QUE CONTAINER EXISTA
         if (!this.puzzleContainer || !this.puzzleContainer.nativeElement) {
             console.error('❌ Container no disponible');
             return;
         }
 
         const container = this.puzzleContainer.nativeElement;
-
-        // ⬇️ LIMPIAR CONTAINER ANTES DE CREAR NUEVO PUZZLE
         container.innerHTML = '';
 
         this.puzzle = new Puzzle(container);
         this.puzzle.nbPieces = this.gridSize * this.gridSize;
 
-        // Event listeners
         container.addEventListener('mousedown', this.onMouseDown.bind(this));
         container.addEventListener('mouseup', this.onMouseUp.bind(this));
         container.addEventListener('mousemove', this.onMouseMove.bind(this));
@@ -1183,7 +1612,6 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
         this.gridSize = size;
 
         if (this.imagenActual) {
-            // Reinicializar con nuevo tamaño
             this.resetGame();
             setTimeout(() => {
                 this.initializePuzzle();
@@ -1194,14 +1622,18 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
 
     resetGame(): void {
         this.detenerContador();
+        this.detenerContadorDesafio();
         this.moves = 0;
-        this.tiempoTranscurrido = 0;
+        this.tiempoRestante = 0;
+        this.tiempoLimite = 0;
         this.isPlaying = false;
         this.isCompleted = false;
         this.moving = {};
         this.partidaId = null;
+        this.movimientosDesdeUltimoDesafio = 0;
+        this.powerUpsDisponibles = [];
+        this.powerUpActivo = null;
 
-        // ⬇️ LIMPIAR PIEZAS SI EXISTEN
         if (this.puzzle?.polyPieces) {
             this.puzzle.polyPieces.forEach(pp => {
                 if (pp.canvas && pp.canvas.parentNode) {
@@ -1210,20 +1642,11 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
             });
         }
 
-        // ⬇️ LIMPIAR CONTAINER
         if (this.puzzleContainer?.nativeElement) {
             this.puzzleContainer.nativeElement.innerHTML = '';
         }
 
-        // ⬇️ RESETEAR PUZZLE
         this.puzzle = undefined;
-    }
-
-    iniciarContador(): void {
-        this.detenerContador();
-        this.timerInterval = setInterval(() => {
-            this.tiempoTranscurrido++;
-        }, 1000);
     }
 
     detenerContador(): void {
@@ -1315,13 +1738,15 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     handleTouchStart(position: { x: number, y: number }, tStamp: number): void {
         if (!this.puzzle) return;
 
+        const puzzle = this.puzzle;
+
         this.moving = {
             xMouseInit: position.x,
             yMouseInit: position.y
         };
 
-        for (let k = this.puzzle.polyPieces.length - 1; k >= 0; --k) {
-            const pp = this.puzzle.polyPieces[k];
+        for (let k = puzzle.polyPieces.length - 1; k >= 0; --k) {
+            const pp = puzzle.polyPieces[k];
 
             if (pp.isPointInPath(position)) {
                 pp.selected = true;
@@ -1331,449 +1756,24 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
                 this.moving.ppYInit = pp.y;
                 this.moving.tInit = tStamp;
 
-                this.puzzle.polyPieces.splice(k, 1);
-                this.puzzle.polyPieces.push(pp);
-                pp.canvas.style.zIndex = this.puzzle.zIndexSup.toString();
+                puzzle.polyPieces.splice(k, 1);
+                puzzle.polyPieces.push(pp);
+                pp.canvas.style.zIndex = puzzle.zIndexSup.toString();
                 return;
             }
         }
     }
 
-    ngOnDestroy(): void {
-        this.detenerContador();
-        this.resetGame();
-    }
-
-    // ==================== MÉTODOS DESAFÍOS ====================
-
-    /**
-     * Verifica si debe aparecer un desafío
-     */
-    private verificarDesafio(): void {
-        if (!this.isPlaying || !this.partidaId) return;
-
-        this.movimientosDesdeUltimoDesafio++;
-
-        if (this.movimientosDesdeUltimoDesafio >= this.MOVIMIENTOS_PARA_DESAFIO) {
-            this.movimientosDesdeUltimoDesafio = 0;
-            this.mostrarNuevoDesafio();
-        }
-    }
-
-    /**
-     * Muestra un nuevo desafío
-     */
-    private mostrarNuevoDesafio(): void {
-        if (!this.partidaId) return;
-
-        console.log('🎯 Generando desafío...');
-
-        this.desafioService.generarDesafio(this.partidaId).subscribe({
-            next: (desafio) => {
-                console.log('✅ Desafío generado:', desafio);
-                this.desafioActual = desafio;
-                this.tiempoDesafio = desafio.tiempoLimite;
-                this.respuestaSeleccionada = null;
-                this.desafioRespondido = false;
-                this.mostrarDesafio = true;
-
-                // Pausar el juego
-                this.detenerContador();
-
-                // Iniciar contador del desafío
-                this.iniciarContadorDesafio();
-
-                this.messageService.add({
-                    severity: 'info',
-                    summary: '🎯 ¡Desafío Cultural!',
-                    detail: 'Responde correctamente para ganar un power-up',
-                    life: 3000
-                });
-            },
-            error: (error) => {
-                console.error('❌ Error generando desafío:', error);
-            }
-        });
-    }
-
-    /**
-     * Inicia el contador del desafío
-     */
-    private iniciarContadorDesafio(): void {
-        this.detenerContadorDesafio();
-
-        this.timerDesafio = setInterval(() => {
-            this.tiempoDesafio--;
-
-            if (this.tiempoDesafio <= 0) {
-                this.detenerContadorDesafio();
-                this.responderDesafioIncorrecto();
-            }
-        }, 1000);
-    }
-
-    /**
-     * Detiene el contador del desafío
-     */
-    private detenerContadorDesafio(): void {
-        if (this.timerDesafio) {
-            clearInterval(this.timerDesafio);
-            this.timerDesafio = null;
-        }
-    }
-
-    /**
-     * Selecciona una respuesta
-     */
-    seleccionarRespuesta(opcion: string): void {
-        if (this.desafioRespondido) return;
-        this.respuestaSeleccionada = opcion;
-    }
-
-    /**
-     * Confirma la respuesta seleccionada
-     */
-    confirmarRespuesta(): void {
-        if (!this.respuestaSeleccionada || !this.desafioActual || this.desafioRespondido) {
-            return;
-        }
-
-        this.desafioRespondido = true;
-        this.detenerContadorDesafio();
-
-        this.desafioService.responderDesafio({
-            desafioId: this.desafioActual.desafioId,
-            respuestaSeleccionada: this.respuestaSeleccionada
-        }).subscribe({
-            next: (response) => {
-                console.log('✅ Respuesta procesada:', response);
-
-                if (response.correcto) {
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: '¡Correcto! ✅',
-                        detail: response.mensaje,
-                        life: 3000
-                    });
-
-                    if (response.powerUpObtenido) {
-                        this.mostrarAnimacionPowerUp(response.powerUpObtenido);
-                    }
-                } else {
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Incorrecto ❌',
-                        detail: response.mensaje,
-                        life: 3000
-                    });
-                }
-
-                // Actualizar power-ups disponibles
-                this.powerUpsDisponibles = response.powerUpsDisponibles;
-
-                // Cerrar diálogo después de 2 segundos
-                setTimeout(() => {
-                    this.cerrarDesafio();
-                }, 2000);
-            },
-            error: (error) => {
-                console.error('❌ Error respondiendo desafío:', error);
-                this.cerrarDesafio();
-            }
-        });
-    }
-
-    /**
-     * Respuesta incorrecta por timeout
-     */
-    private responderDesafioIncorrecto(): void {
-        if (!this.desafioActual || this.desafioRespondido) return;
-
-        this.desafioRespondido = true;
-
-        this.desafioService.responderDesafio({
-            desafioId: this.desafioActual.desafioId,
-            respuestaSeleccionada: '' // Respuesta vacía = incorrecta
-        }).subscribe({
-            next: (response) => {
-                this.messageService.add({
-                    severity: 'warn',
-                    summary: '⏱️ ¡Tiempo agotado!',
-                    detail: 'No respondiste a tiempo',
-                    life: 3000
-                });
-
-                setTimeout(() => {
-                    this.cerrarDesafio();
-                }, 2000);
-            },
-            error: (error) => {
-                console.error('❌ Error:', error);
-                this.cerrarDesafio();
-            }
-        });
-    }
-
-    /**
-     * Cierra el diálogo de desafío
-     */
-    cerrarDesafio(): void {
-        this.mostrarDesafio = false;
-        this.desafioActual = null;
-        this.detenerContadorDesafio();
-
-        // Reanudar el juego
-        if (this.isPlaying) {
-            this.iniciarContador();
-        }
-    }
-
-    /**
-     * Muestra animación cuando se obtiene un power-up
-     */
-    private mostrarAnimacionPowerUp(tipo: PowerUpPuzzle): void {
-        const nombres = {
-            [PowerUpPuzzle.VISION_CONDOR]: 'Visión del Cóndor 👁️',
-            [PowerUpPuzzle.TIEMPO_PACHAMAMA]: 'Tiempo de la Pachamama ⏱️',
-            [PowerUpPuzzle.SABIDURIA_AMAWTA]: 'Sabiduría del Amawta 🧠',
-            [PowerUpPuzzle.BENDICION_SOL]: 'Bendición del Sol ☀️'
-        };
-
-        this.messageService.add({
-            severity: 'success',
-            summary: '🎁 ¡Power-Up Obtenido!',
-            detail: nombres[tipo],
-            life: 4000,
-            sticky: false
-        });
-    }
-
-    // ==================== MÉTODOS POWER-UPS ====================
-
-    /**
-     * Abre el menú de power-ups
-     */
-    abrirMenuPowerUps(): void {
-        if (!this.partidaId) return;
-
-        this.desafioService.obtenerPowerUps(this.partidaId).subscribe({
-            next: (powerUps) => {
-                this.powerUpsDisponibles = powerUps;
-                this.mostrarMenuPowerUps = true;
-            },
-            error: (error) => {
-                console.error('❌ Error cargando power-ups:', error);
-            }
-        });
-    }
-
-    /**
-     * Usa un power-up
-     */
-    usarPowerUp(powerUp: PowerUpDisponible): void {
-        if (!this.partidaId) return;
-
-        this.desafioService.usarPowerUp({
-            powerUpId: powerUp.id,
-            partidaId: this.partidaId
-        }).subscribe({
-            next: (response) => {
-                console.log('⚡ Power-up activado:', response);
-
-                this.messageService.add({
-                    severity: 'success',
-                    summary: '⚡ Power-Up Activado',
-                    detail: response.mensaje,
-                    life: 3000
-                });
-
-                // Aplicar efecto del power-up
-                this.aplicarEfectoPowerUp(response.tipo, response.datos);
-
-                // Actualizar lista
-                this.powerUpsDisponibles = this.powerUpsDisponibles.filter(
-                    p => p.id !== powerUp.id
-                );
-
-                this.mostrarMenuPowerUps = false;
-            },
-            error: (error) => {
-                console.error('❌ Error usando power-up:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'No se pudo activar el power-up',
-                    life: 3000
-                });
-            }
-        });
-    }
-
-    /**
-     * Aplica el efecto visual/funcional del power-up
-     */
-    private aplicarEfectoPowerUp(tipo: PowerUpPuzzle, datos: any): void {
-        switch (tipo) {
-            case PowerUpPuzzle.VISION_CONDOR:
-                this.activarVisionCondor(datos.duracion);
-                break;
-
-            case PowerUpPuzzle.TIEMPO_PACHAMAMA:
-                this.activarTiempoPachamama(datos.duracion);
-                break;
-
-            case PowerUpPuzzle.SABIDURIA_AMAWTA:
-                this.activarSabiduriaAmawta();
-                break;
-
-            case PowerUpPuzzle.BENDICION_SOL:
-                this.activarBendicionSol(datos.multiplicador, datos.duracion);
-                break;
-        }
-    }
-
-    /**
-     * 👁️ Visión del Cóndor: Mostrar imagen completa 5 segundos
-     */
-    private activarVisionCondor(duracion: number): void {
-        if (!this.puzzle?.gameCanvas) return;
-
-        // Mostrar canvas de fondo
-        this.puzzle.gameCanvas.style.display = 'block';
-        this.puzzle.gameCanvas.style.opacity = '0.8';
-        this.puzzle.gameCanvas.style.zIndex = '1000';
-
-        setTimeout(() => {
-            if (this.puzzle?.gameCanvas) {
-                this.puzzle.gameCanvas.style.display = 'none';
-                this.puzzle.gameCanvas.style.opacity = '1';
-                this.puzzle.gameCanvas.style.zIndex = '500';
-            }
-        }, duracion * 1000);
-    }
-
-    /**
-     * ⏱️ Tiempo de la Pachamama: Congelar cronómetro 30 segundos
-     */
-    private activarTiempoPachamama(duracion: number): void {
-        this.detenerContador();
-
-        setTimeout(() => {
-            if (this.isPlaying && !this.isCompleted) {
-                this.iniciarContador();
-            }
-        }, duracion * 1000);
-    }
-
-    /**
-     * 🧠 Sabiduría del Amawta: Auto-colocar 1 pieza
-     */
-    private activarSabiduriaAmawta(): void {
-        if (!this.puzzle || !this.puzzle.polyPieces || this.puzzle.polyPieces.length <= 1) {
-            return;
-        }
-
-        // Buscar la pieza más cercana a su posición correcta
-        let mejorPieza: PolyPiece | null = null;
-        let menorDistancia = Infinity;
-
-        this.puzzle.polyPieces.forEach(pp => {
-            if (pp.pieces.length === 1 && pp.rot === 0) {
-                const posicionCorrecta = {
-                    x: this.puzzle!.offsx + (pp.pckxmin - 0.5) * this.puzzle!.scalex,
-                    y: this.puzzle!.offsy + (pp.pckymin - 0.5) * this.puzzle!.scaley
-                };
-
-                const distancia = Math.hypot(
-                    pp.x - posicionCorrecta.x,
-                    pp.y - posicionCorrecta.y
-                );
-
-                if (distancia < menorDistancia) {
-                    menorDistancia = distancia;
-                    mejorPieza = pp;
-                }
-            }
-        });
-
-        if (!mejorPieza) {
-            console.log('⚠️ No hay piezas disponibles para auto-colocar');
-            return;
-        }
-
-        // ⬇️ USAR 'as PolyPiece' para type assertion
-        const pieza = mejorPieza as PolyPiece;
-
-        // Mover a posición correcta con animación
-        pieza.canvas.classList.add('moving');
-
-        setTimeout(() => {
-            pieza.moveToInitialPlace();
-            pieza.canvas.classList.remove('moving');
-
-            // Intentar merge automático
-            setTimeout(() => {
-                this.intentarMergeAutomatico(pieza);
-            }, 500);
-        }, 100);
-    }
-
-    /**
-     * Intenta hacer merge automático de una pieza
-     */
-    private intentarMergeAutomatico(pieza: PolyPiece): void {
-        if (!this.puzzle) return;
-
-        for (let k = this.puzzle.polyPieces.length - 1; k >= 0; --k) {
-            const otraPieza = this.puzzle.polyPieces[k];
-            if (otraPieza === pieza) continue;
-
-            if (pieza.ifNear(otraPieza)) {
-                if (otraPieza.pieces.length > pieza.pieces.length) {
-                    otraPieza.merge(pieza);
-                } else {
-                    pieza.merge(otraPieza);
-                }
-                this.puzzle.evaluateZIndex();
-                this.checkWin();
-                break;
-            }
-        }
-    }
-
-    /**
-     * ☀️ Bendición del Sol: x2 puntos durante 2 minutos
-     */
-    private activarBendicionSol(multiplicador: number, duracion: number): void {
-        this.powerUpActivo = PowerUpPuzzle.BENDICION_SOL;
-        this.tiempoPowerUpActivo = duracion;
-
-        const interval = setInterval(() => {
-            this.tiempoPowerUpActivo--;
-
-            if (this.tiempoPowerUpActivo <= 0) {
-                clearInterval(interval);
-                this.powerUpActivo = null;
-                this.messageService.add({
-                    severity: 'info',
-                    summary: '⏱️ Power-Up Finalizado',
-                    detail: 'Bendición del Sol ha terminado',
-                    life: 2000
-                });
-            }
-        }, 1000);
-    }
-
-    // ==================== MODIFICAR handleTouchEnd ====================
-
     handleTouchEnd(tStamp: number): void {
         if (!this.moving.pp || !this.puzzle) return;
+
+        const puzzle = this.puzzle;
 
         this.moving.pp.selected = false;
         this.moving.pp.drawImage();
         this.moves++;
 
-        // ⬇️ NUEVO: Verificar si debe aparecer desafío
+        // ⬇️ Verificar si debe aparecer desafío
         this.verificarDesafio();
 
         let merged = false;
@@ -1781,8 +1781,8 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
 
         do {
             doneSomething = false;
-            for (let k = this.puzzle.polyPieces.length - 1; k >= 0; --k) {
-                const pp = this.puzzle!.polyPieces[k];
+            for (let k = puzzle.polyPieces.length - 1; k >= 0; --k) {
+                const pp = puzzle.polyPieces[k];
 
                 if (pp === this.moving.pp) continue;
 
@@ -1800,9 +1800,7 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
             }
         } while (doneSomething);
 
-        if (this.puzzle instanceof Puzzle) {
-            this.puzzle.evaluateZIndex();
-        } // ⬅️ SIN IF, this.puzzle ya está validado arriba
+        puzzle.evaluateZIndex();
 
         if (merged) {
             this.moving.pp.selected = true;
@@ -1820,4 +1818,11 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
 
         this.moving = {};
     }
+
+    ngOnDestroy(): void {
+        this.detenerContador();
+        this.detenerContadorDesafio();
+        this.resetGame();
+    }
+
 }
