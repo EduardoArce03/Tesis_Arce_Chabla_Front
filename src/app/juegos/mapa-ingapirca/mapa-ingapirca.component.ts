@@ -182,9 +182,10 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     }
 
     cerrarModalCapas(): void {
-        this.mostrarModalCapas = false;
+        if (!this.mostrarModalExploracion) {
         this.puntoSeleccionado = null;
         this.capasPunto = [];
+    }
     }
 
     // ==================== FLUJO: EXPLORAR CAPA → MODAL EXPLORACIÓN ====================
@@ -324,6 +325,14 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     // ==================== DIÁLOGO ====================
 
     enviarPregunta(): void {
+
+
+        console.log('🔍 DEBUG enviarPregunta:', {
+                pregunta: this.preguntaDialogo,
+                capaActiva: this.capaActiva,
+                puntoSeleccionado: this.puntoSeleccionado
+            });
+
 // 1️⃣ CORRECCIÓN DEL CRASH:
         // Agregamos !this.puntoSeleccionado a la validación.
         // Si no hay punto seleccionado, no intentamos enviar nada.
