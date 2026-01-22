@@ -1,4 +1,5 @@
-<!-- mapa-ingapirca.component.html -->
+<!-- mapa-ingapirca.component.html - FLUJO COMPLETO CON CAPAS -->
+
 <div class="exploracion-container">
     <!-- Header con progreso -->
     <div class="header-exploracion">
@@ -9,11 +10,11 @@
                     <p class="subtitle">Descubre los secretos del complejo arqueológico Cañari-Inca</p>
                 </div>
                 <div class="progreso-info">
-          <span class="puntos-visitados">
-            {{ (puntos | filter:'visitado':true).length }} / {{ puntos.length }} puntos visitados
-          </span>
+                    <span class="puntos-visitados">
+                        {{ puntosVisitados() }} / {{ puntos.length }} puntos visitados
+                    </span>
                     <p-progressBar
-                        [value]="((puntos | filter:'visitado':true).length / puntos.length) * 100"
+                        [value]="porcentajeVisitados()"
                         [showValue]="false">
                     </p-progressBar>
                 </div>
@@ -23,111 +24,57 @@
 
     <!-- Mapa SVG -->
     <div class="mapa-container">
-        <svg
-            viewBox="0 0 1000 700"
-            class="mapa-svg"
-            xmlns="http://www.w3.org/2000/svg">
-
-            <!-- Fondo del mapa (imagen o formas) -->
+        <svg viewBox="0 0 1000 700" class="mapa-svg" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <pattern id="terreno" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
                     <rect width="100" height="100" fill="#e8dcc4"/>
                     <circle cx="10" cy="10" r="2" fill="#d4c4a8" opacity="0.3"/>
                     <circle cx="50" cy="50" r="2" fill="#d4c4a8" opacity="0.3"/>
-                    <circle cx="90" cy="80" r="2" fill="#d4c4a8" opacity="0.3"/>
                 </pattern>
             </defs>
 
             <rect width="1000" height="700" fill="url(#terreno)"/>
 
-            <!-- Caminos decorativos -->
-            <path
-                d="M 300,400 Q 500,300 700,500"
-                stroke="#8B4513"
-                stroke-width="3"
-                fill="none"
-                stroke-dasharray="10,5"
-                opacity="0.3"/>
-
-            <path
-                d="M 350,550 Q 450,450 650,300"
-                stroke="#8B4513"
-                stroke-width="3"
-                fill="none"
-                stroke-dasharray="10,5"
-                opacity="0.3"/>
+            <path d="M 300,400 Q 500,300 700,500" stroke="#8B4513" stroke-width="3" fill="none" stroke-dasharray="10,5" opacity="0.3"/>
+            <path d="M 350,550 Q 450,450 650,300" stroke="#8B4513" stroke-width="3" fill="none" stroke-dasharray="10,5" opacity="0.3"/>
 
             <!-- Puntos de interés -->
-            <g *ngFor="let punto of puntos"
-               [attr.transform]="'translate(' + (punto.coordenadas.x * 10) + ',' + (punto.coordenadas.y * 10) + ')'"
-               class="punto-interes"
-               [class.desbloqueado]="punto.desbloqueado"
-               [class.visitado]="punto.visitado"
-               [class.bloqueado]="!punto.desbloqueado"
-               (click)="seleccionarPunto(punto)"
-               [pTooltip]="punto.nombre"
-               tooltipPosition="top">
+            @for (punto of puntos; track punto.id) {
+                <g
+                    [attr.transform]="'translate(' + (punto.coordenadaX * 10) + ',' + (punto.coordenadaY * 10) + ')'"
+                    class="punto-interes"
+                    [class.desbloqueado]="punto.desbloqueado"
+                    [class.visitado]="punto.visitado"
+                    (click)="seleccionarPunto(punto)"
+                    [pTooltip]="punto.nombre"
+                    tooltipPosition="top">
 
-                <!-- Glow effect para puntos desbloqueados -->
-                <circle
-                    *ngIf="punto.desbloqueado && !punto.visitado"
-                    r="35"
-                    [attr.fill]="obtenerColorNivel(punto.nivelDescubrimiento)"
-                    opacity="0.2"
-                    class="glow-pulse"/>
+                    @if (punto.desbloqueado && !punto.visitado) {
+                        <circle r="35" fill="#CD7F32" opacity="0.2" class="glow-pulse"/>
+                    }
 
-                <!-- Círculo principal del punto -->
-                <circle
-                    r="25"
-                    [attr.fill]="punto.desbloqueado ? obtenerColorNivel(punto.nivelDescubrimiento) : '#cccccc'"
-                    [attr.stroke]="punto.visitado ? '#FFD700' : '#8B4513'"
-                    stroke-width="3"
-                    class="punto-circulo"/>
+                    <circle
+                        r="25"
+                        [attr.fill]="punto.desbloqueado ? '#8B4513' : '#cccccc'"
+                        [attr.stroke]="punto.visitado ? '#FFD700' : '#8B4513'"
+                        stroke-width="3"/>
 
-                <!-- Icono del punto -->
-                <text
-                    text-anchor="middle"
-                    dy="8"
-                    font-size="24"
-                    [attr.fill]="punto.desbloqueado ? '#ffffff' : '#666666'">
-                    {{ obtenerIconoCategoria(punto.categoria) === 'pi-sun' ? '☀' :
-                    obtenerIconoCategoria(punto.categoria) === 'pi-map' ? '🗺' :
-                        obtenerIconoCategoria(punto.categoria) === 'pi-home' ? '🏠' :
-                            obtenerIconoCategoria(punto.categoria) === 'pi-box' ? '📦' :
-                                obtenerIconoCategoria(punto.categoria) === 'pi-eye' ? '👁' : '✨' }}
-                </text>
+                    <text text-anchor="middle" dy="8" font-size="24" [attr.fill]="punto.desbloqueado ? '#ffffff' : '#666666'">
+                        {{ obtenerEmojiCategoria(punto.categoria) }}
+                    </text>
 
-                <!-- Badge de nivel -->
-                <circle
-                    *ngIf="punto.visitado"
-                    cx="20"
-                    cy="-20"
-                    r="12"
-                    [attr.fill]="obtenerColorNivel(punto.nivelDescubrimiento)"
-                    stroke="#ffffff"
-                    stroke-width="2"/>
+                    @if (punto.visitado) {
+                        <g>
+                            <circle cx="20" cy="-20" r="12" fill="#FFD700" stroke="#fff" stroke-width="2"/>
+                            <text x="20" y="-15" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">V</text>
+                        </g>
+                    }
 
-                <text
-                    *ngIf="punto.visitado"
-                    x="20"
-                    y="-15"
-                    text-anchor="middle"
-                    font-size="14"
-                    font-weight="bold"
-                    fill="#ffffff">
-                    {{ punto.nivelDescubrimiento === NivelDescubrimiento.BRONCE ? 'B' :
-                    punto.nivelDescubrimiento === NivelDescubrimiento.PLATA ? 'P' : 'O' }}
-                </text>
-
-                <!-- Candado para puntos bloqueados -->
-                <text
-                    *ngIf="!punto.desbloqueado"
-                    text-anchor="middle"
-                    dy="8"
-                    font-size="20">
-                    🔒
-                </text>
-            </g>
+                    @if (!punto.desbloqueado) {
+                        <text text-anchor="middle" dy="8" font-size="20">🔒</text>
+                    }
+                </g>
+            }
         </svg>
     </div>
 
@@ -137,98 +84,226 @@
             <div class="leyenda-items">
                 <div class="leyenda-item">
                     <span class="icono-leyenda" style="background: #CD7F32;"></span>
-                    <span>Bronce - Primera visita</span>
+                    <span>Bronce</span>
                 </div>
                 <div class="leyenda-item">
                     <span class="icono-leyenda" style="background: #C0C0C0;"></span>
-                    <span>Plata - Segunda visita</span>
+                    <span>Plata</span>
                 </div>
                 <div class="leyenda-item">
                     <span class="icono-leyenda" style="background: #FFD700;"></span>
-                    <span>Oro - Exploración completa</span>
-                </div>
-                <div class="leyenda-item">
-                    <span class="icono-leyenda bloqueado"></span>
-                    <span>🔒 Bloqueado</span>
+                    <span>Oro</span>
                 </div>
             </div>
         </p-card>
     </div>
 
-    <!-- Modal de detalle del punto -->
+    <!-- ========================================
+         MODAL 1: CAPAS DEL PUNTO (NUEVO)
+         ======================================== -->
     <p-dialog
-        [(visible)]="mostrarDetalle"
+        [(visible)]="mostrarModalCapas"
         [modal]="true"
-        [style]="{width: '70vw', maxWidth: '900px'}"
+        [style]="{width: '90vw', maxWidth: '1000px'}"
         [closable]="true"
-        (onHide)="cerrarDetalle()">
+        (onHide)="cerrarModalCapas()">
 
         <ng-template pTemplate="header">
-            <div class="dialog-header">
-                <h2>{{ puntoSeleccionado?.nombre }}</h2>
-                <span class="nombre-kichwa">{{ puntoSeleccionado?.nombreKichwa }}</span>
-            </div>
+            @if (puntoSeleccionado) {
+                <div class="dialog-header">
+                    <h2>{{ puntoSeleccionado.nombre }}</h2>
+                    @if (puntoSeleccionado.nombreKichwa) {
+                        <span class="nombre-kichwa">{{ puntoSeleccionado.nombreKichwa }}</span>
+                    }
+                </div>
+            }
         </ng-template>
 
-        <div *ngIf="puntoSeleccionado" class="punto-detalle">
-            <!-- Imagen del punto -->
-            <div class="imagen-container">
-                <img [src]="puntoSeleccionado.imagenUrl" [alt]="puntoSeleccionado.nombre">
-                <div class="badge-nivel" [style.background]="obtenerColorNivel(puntoSeleccionado.nivelDescubrimiento)">
-                    {{ puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.NO_VISITADO ? 'Nueva Exploración' :
-                    puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.BRONCE ? 'Nivel Bronce' :
-                        puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.PLATA ? 'Nivel Plata' : 'Nivel Oro' }}
+        @if (puntoSeleccionado) {
+            <!-- Usar componente de capas -->
+            <app-capas-punto
+                [nombrePunto]="puntoSeleccionado.nombre"
+                [capas]="capasPunto"
+                (explorarCapa)="abrirExploracionCapa($event)"
+                (volver)="cerrarModalCapas()">
+            </app-capas-punto>
+        }
+    </p-dialog>
+
+    <!-- ========================================
+         MODAL 2: EXPLORACIÓN DE CAPA (NUEVO)
+         ======================================== -->
+    <p-dialog
+        [(visible)]="mostrarModalExploracion"
+        [modal]="true"
+        [style]="{width: '90vw', maxWidth: '1200px', height: '85vh'}"
+        [closable]="true"
+        (onHide)="cerrarModalExploracion()">
+
+        <ng-template pTemplate="header">
+            @if (capaActiva) {
+                <div class="exploracion-header">
+                    <div>
+                        <h2>{{ puntoSeleccionado?.nombre }}</h2>
+                        <span class="badge-capa">
+                            {{ obtenerIconoCapa(capaActiva.nivelCapa) }} {{ capaActiva.nombre }}
+                        </span>
+                    </div>
+                    <div class="progreso-capa">
+                        <span>{{ capaActiva.porcentajeCompletitud }}% completado</span>
+                        <p-progressBar [value]="capaActiva.porcentajeCompletitud" [showValue]="false"></p-progressBar>
+                    </div>
+                </div>
+            }
+        </ng-template>
+
+        @if (capaActiva) {
+            <div class="exploracion-content">
+                <!-- Navegación de Tabs -->
+                <div class="tabs-navegacion">
+                    <button class="tab-button" [class.active]="tabActivo === 0" (click)="cambiarTab(0)">
+                        📖 Narrativa
+                        @if (capaActiva.narrativaLeida) {
+                            <i class="pi pi-check-circle ml-2"></i>
+                        }
+                    </button>
+                    <button class="tab-button" [class.active]="tabActivo === 1" (click)="cambiarTab(1)">
+                        📸 Fotografía
+                        <span class="badge-tab">{{ capaActiva.fotografiasCompletadas }}/{{ capaActiva.fotografiasRequeridas }}</span>
+                    </button>
+                    <button class="tab-button" [class.active]="tabActivo === 2" (click)="cambiarTab(2)">
+                        💬 Diálogo
+                        <span class="badge-tab">{{ capaActiva.dialogosRealizados }}</span>
+                    </button>
+                    <button class="tab-button" [class.active]="tabActivo === 3" (click)="cambiarTab(3)">
+                        🎯 Misión
+                        @if (capaActiva.misionAsociada?.estado) {
+                            <i class="pi pi-flag-fill ml-2"></i>
+                        }
+                    </button>
+                </div>
+
+                <!-- Contenido de Tabs -->
+                <div class="tab-content">
+                    <!-- TAB 1: NARRATIVA -->
+                    @if (tabActivo === 0) {
+                        <div class="narrativa-panel">
+                            <div class="imagen-punto">
+                                <img
+                                    [src]="puntoSeleccionado?.imagenUrl"
+                                    [alt]="puntoSeleccionado?.nombre"
+                                    (error)="onImageError($event)">
+                            </div>
+
+                            @if (cargandoNarrativa) {
+                                <div class="loading-narrativa">
+                                    <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+                                    <p>Generando narrativa con IA...</p>
+                                </div>
+                            } @else {
+                                <div class="narrativa-texto" (click)="saltarAnimacion()">
+                                    <p>{{ narrativaVisible }}</p>
+                                    @if (narrativaVisible !== narrativaActual) {
+                                        <small class="hint"><i class="pi pi-forward"></i> Click para mostrar todo</small>
+                                    }
+                                </div>
+                            }
+
+                            @if (narrativaCompleta && !capaActiva.narrativaLeida) {
+                                <div class="narrativa-completada">
+                                    <i class="pi pi-check-circle"></i>
+                                    <p>¡Narrativa completada! Nivel Bronce alcanzado</p>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <!-- TAB 2: FOTOGRAFÍA -->
+                    @if (tabActivo === 1) {
+                        <div class="fotografia-panel">
+                            <h3>Objetivos Fotográficos</h3>
+                            <p class="subtitle">Captura {{ capaActiva.fotografiasRequeridas }} fotografías para completar esta actividad</p>
+
+                            <div class="objetivos-grid">
+                                @for (foto of capaActiva.fotografiasPendientes; track foto.id) {
+                                    <div class="objetivo-card" [class.completada]="foto.completada">
+                                        <div class="objetivo-header">
+                                            <i class="pi" [ngClass]="foto.completada ? 'pi-check-circle' : 'pi-camera'"></i>
+                                            <span class="rareza-badge" [class]="'rareza-' + foto.rareza.toLowerCase()">
+                                                {{ foto.rareza }}
+                                            </span>
+                                        </div>
+                                        <p>{{ foto.descripcion }}</p>
+                                        <small>+{{ foto.descripcion }} puntos</small>
+
+                                        @if (!foto.completada) {
+                                            <p-button label="Tomar Foto" icon="pi pi-camera" size="small" class="mt-2"></p-button>
+                                        } @else {
+                                            <span class="completado-badge">✓ Completada</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- TAB 3: DIÁLOGO -->
+                    @if (tabActivo === 2) {
+                        <div class="dialogo-panel">
+                            <div class="espiritu-avatar">
+                                <span class="espiritu-icono">👻</span>
+                                <h3>{{ capaActiva.fotografiasRequeridas }}</h3>
+                                <p class="espiritu-nombre-kichwa">{{ capaActiva.nombre }}</p>
+                            </div>
+
+                            <div class="dialogo-stats">
+                                <p>Diálogos realizados: <strong>{{ capaActiva.dialogosRealizados }}/{{ capaActiva.dialogosRealizados }}</strong></p>
+                            </div>
+
+                            <div class="dialogo-input">
+                                <textarea
+                                    [(ngModel)]="preguntaDialogo"
+                                    placeholder="Pregúntale al espíritu sobre este lugar, su historia, su cultura..."
+                                    rows="3">
+                                </textarea>
+                                <p-button
+                                    label="Preguntar"
+                                    icon="pi pi-send"
+                                    (onClick)="enviarPregunta()"
+                                    [disabled]="!preguntaDialogo?.trim()">
+                                </p-button>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- TAB 4: MISIÓN -->
+                    @if (tabActivo === 3) {
+                        <div class="mision-panel">
+                            @if (capaActiva.misionAsociada) {
+                                <div class="mision-card">
+                                    <h3>{{ capaActiva.misionAsociada.titulo }}</h3>
+                                    <p>{{ capaActiva.misionAsociada.descripcion }}</p>
+                                    <p-progressBar [value]="capaActiva.misionAsociada.progreso" [showValue]="true"></p-progressBar>
+                                </div>
+                            } @else {
+                                <div class="sin-mision">
+                                    <i class="pi pi-info-circle"></i>
+                                    <p>No hay misiones asociadas a esta capa temporal</p>
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
-
-            <!-- Narrativa generada -->
-            <div class="narrativa-container">
-                <div *ngIf="cargandoNarrativa" class="loading-narrativa">
-                    <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-                    <p>Generando narrativa con IA...</p>
-                </div>
-
-                <div *ngIf="!cargandoNarrativa" class="narrativa-texto" (click)="saltarAnimacion()">
-                    <p>{{ narrativaVisible }}</p>
-                    <small *ngIf="narrativaVisible !== narrativaActual" class="hint">
-                        <i class="pi pi-forward"></i> Click para mostrar todo
-                    </small>
-                </div>
-            </div>
-        </div>
-
-        <!-- mapa-ingapirca.component.html -->
+        }
 
         <ng-template pTemplate="footer">
-            <div class="dialog-footer">
-                <!-- ✅ Modo Exploración: Cerrar + Completar -->
-                <ng-container *ngIf="!modoVisita">
-                    <p-button
-                        label="Cerrar"
-                        icon="pi pi-times"
-                        severity="secondary"
-                        (onClick)="cerrarDetalle()">
-                    </p-button>
-                    <p-button
-                        *ngIf="!cargandoNarrativa && narrativaCompleta"
-                        label="Completar Visita"
-                        icon="pi pi-check"
-                        (onClick)="completarVisita()">
-                    </p-button>
-                </ng-container>
-
-                <!-- ✅ Modo Misión: Solo Confirmar Visita -->
-                <ng-container *ngIf="modoVisita">
-                    <p-button
-                        *ngIf="!cargandoNarrativa && narrativaCompleta"
-                        label="Confirmar Visita"
-                        icon="pi pi-check-circle"
-                        styleClass="w-full"
-                        size="large"
-                        (onClick)="completarVisita()">
-                    </p-button>
-                </ng-container>
+            <div class="footer-exploracion">
+                <p-button label="Volver a Capas" icon="pi pi-arrow-left" severity="secondary" (onClick)="volverACapas()"></p-button>
+                <p-button label="Salir" icon="pi pi-times" (onClick)="cerrarModalExploracion()"></p-button>
             </div>
         </ng-template>
     </p-dialog>
+
+    <p-toast />
 </div>

@@ -1,119 +1,148 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+// mapa-ingapirca.component.ts
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';  // 👈 AGREGAR
+import { Subject, takeUntil } from 'rxjs';
+import { MessageService } from 'primeng/api';
+
+// PrimeNG
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { DialogModule } from 'primeng/dialog';
 import { ProgressBarModule } from 'primeng/progressbar';
-import { BadgeModule } from 'primeng/badge';
-import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
-import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';  // 👈 CAMBIAR de TabViewModule
-import { RadioButton } from 'primeng/radiobutton';  // 👈 CAMBIAR de RadioButtonModule
-import { MessageService } from 'primeng/api';
-import { Subject, takeUntil } from 'rxjs';
 
-import { ExploracionService } from '@/services/explorasion.service';
-import { SesionService } from '../../services/sesion.service';
+import { ExploracionService } from '@/services/exploracion_final.service';
 import {
-    DashboardExploracionResponse,
     PuntoInteresDTO,
-    DetallePuntoResponse,
-    PreguntaQuizDTO,
-    ArtefactoDTO,
-    CategoriaPunto,
-    NivelDescubrimiento
+    DescubrirPuntoRequest,
+    RecompensaDTO,
+    NivelCapaDTO,
+    NivelCapa,
+    NivelDescubrimiento,  // ✅ AGREGADO
+    CategoriaPunto
 } from '../../models/explorasion.model';
 
+// ✅ PIPE PERSONALIZADO PARA FILTRAR
+import { Pipe, PipeTransform } from '@angular/core';
+
+@Pipe({
+    name: 'filter',
+    standalone: true
+})
+export class FilterPipe implements PipeTransform {
+    transform(items: any[], field: string, value: any): any[] {
+        if (!items || !field) return items;
+        return items.filter(item => item[field] === value);
+    }
+}
+
 @Component({
-    selector: 'app-exploracion-ingapirca',
+    selector: 'app-mapa-ingapirca',
     standalone: true,
     imports: [
         CommonModule,
-        FormsModule,  // 👈 AGREGAR para ngModel
         CardModule,
         ButtonModule,
         TooltipModule,
         DialogModule,
         ProgressBarModule,
-        BadgeModule,
-        TagModule,
         ToastModule,
-        Tabs,  // 👈 CAMBIAR
-        RadioButton,
-        TabPanel,
-        TabList,
-        Tab,
-        TabPanels,
-  // 👈 CAMBIAR
+        FilterPipe  // ✅ Agregar el pipe
     ],
     providers: [MessageService],
     templateUrl: './exploracion-ingapirca.component.html',
     styleUrls: ['./exploracion-ingapirca.component.scss']
 })
 export class ExploracionIngapircaComponent implements OnInit, OnDestroy {
-    dashboard?: DashboardExploracionResponse;
-    puntoSeleccionado?: PuntoInteresDTO;
-    detallePunto?: DetallePuntoResponse;
+    @Input() puntoDestacado: number | null = null;
+    @Input() modoVisita = false;
+    @Input() puntosDisponibles: number[] = [];
+    @Output() puntoVisitado = new EventEmitter<number>();
 
+    puntos: PuntoInteresDTO[] = [];
+    puntoSeleccionado: PuntoInteresDTO | null = null;
     mostrarDetalle = false;
-    mostrarQuiz = false;
-    mostrarColeccion = false;
+    cargandoNarrativa = false;
 
-    preguntaActual?: PreguntaQuizDTO;
-    respuestaSeleccionada?: string;
+    narrativaActual = '';
+    narrativaVisible = '';
+    narrativaCompleta = false;
+    typingInterval: any;
 
-    tiempoInicio?: Date;
-    tiempoTranscurrido = 0;
-    intervalTimer: any;
-
-    buscandoArtefacto = false;
-    cargando = true;
-
-    // Enums para template
+    partidaId = 1; // Obtener de AuthService
+    usuarioId = 1; // Obtener de AuthService
 
     private destroy$ = new Subject<void>();
 
+    // ✅ Enums para template
+    NivelCapa = NivelCapa;
+    NivelDescubrimiento = NivelDescubrimiento;
+    CategoriaPunto = CategoriaPunto;
+
     constructor(
         private exploracionService: ExploracionService,
-        private sesionService: SesionService,
-        private messageService: MessageService,
-        private router: Router
+        private messageService: MessageService
     ) {}
 
     ngOnInit(): void {
-        const usuario = this.sesionService.getUsuario();
-
-        if (!usuario) {
-            this.router.navigate(['/bienvenida']);
-            return;
-        }
-
-        this.cargarDashboard(usuario.id);
+        this.inicializar();
     }
 
-    cargarDashboard(usuarioId: number): void {
-        this.cargando = true;
-
-        this.exploracionService.obtenerDashboard(usuarioId)
+    inicializar(): void {
+        // Inicializar exploración si no existe
+        this.exploracionService.inicializarExploracion(this.partidaId, this.usuarioId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: (data) => {
-                    this.dashboard = data;
-                    this.cargando = false;
+                next: () => {
+                    this.cargarPuntos();
+
+                    // Auto-seleccionar punto si hay destacado
+                    if (this.puntoDestacado) {
+                        setTimeout(() => this.seleccionarPuntoAutomaticamente(this.puntoDestacado!), 500);
+                    }
                 },
                 error: (error) => {
-                    console.error('Error cargando dashboard:', error);
+                    console.error('Error inicializando:', error);
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo cargar el mapa de exploración'
+                        detail: 'No se pudo inicializar la exploración'
                     });
-                    this.cargando = false;
                 }
             });
+    }
+
+    cargarPuntos(): void {
+        this.exploracionService.obtenerPuntosDisponibles(this.partidaId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (puntos) => {
+                    this.puntos = puntos;
+
+                    // En modo misión, filtrar
+                    if (this.modoVisita && this.puntosDisponibles.length > 0) {
+                        this.puntos.forEach(punto => {
+                            punto.desbloqueado = this.puntosDisponibles.includes(punto.id);
+                        });
+                    }
+                },
+                error: (error) => {
+                    console.error('Error cargando puntos:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudieron cargar los puntos'
+                    });
+                }
+            });
+    }
+
+    seleccionarPuntoAutomaticamente(puntoId: number): void {
+        const punto = this.puntos.find(p => p.id === puntoId);
+        if (punto && punto.desbloqueado) {
+            this.seleccionarPunto(punto);
+        }
     }
 
     seleccionarPunto(punto: PuntoInteresDTO): void {
@@ -121,109 +150,91 @@ export class ExploracionIngapircaComponent implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Punto Bloqueado',
-                detail: `Necesitas nivel ${punto.nivelRequerido} de arqueólogo`
+                detail: `Necesitas explorar más puntos para desbloquear este lugar`
             });
             return;
         }
 
-        const usuario = this.sesionService.getUsuario();
-        if (!usuario) return;
-
         this.puntoSeleccionado = punto;
-        this.tiempoInicio = new Date();
-        this.tiempoTranscurrido = 0;
+        this.mostrarDetalle = true;
+        this.narrativaVisible = '';
+        this.narrativaCompleta = false;
+        this.cargandoNarrativa = true;
 
-        // Iniciar contador de tiempo
-        this.iniciarContador();
-
-        // Cargar detalle del punto
-        this.exploracionService.obtenerDetallePunto(punto.id, usuario.id)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (detalle) => {
-                    this.detallePunto = detalle;
-                    this.mostrarDetalle = true;
-                },
-                error: (error) => {
-                    console.error('Error cargando detalle:', error);
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'No se pudo cargar el detalle del punto'
-                    });
-                }
-            });
+        // Simular carga de narrativa
+        setTimeout(() => {
+            this.cargandoNarrativa = false;
+            this.narrativaActual = punto.descripcion || 'Narrativa generada por IA...';
+            this.animarTexto(this.narrativaActual);
+        }, 1500);
     }
 
-    iniciarContador(): void {
-        if (this.intervalTimer) {
-            clearInterval(this.intervalTimer);
+    animarTexto(texto: string): void {
+        let index = 0;
+        this.narrativaVisible = '';
+        this.narrativaCompleta = false;
+
+        if (this.typingInterval) {
+            clearInterval(this.typingInterval);
         }
 
-        this.intervalTimer = setInterval(() => {
-            if (this.tiempoInicio) {
-                this.tiempoTranscurrido = Math.floor((new Date().getTime() - this.tiempoInicio.getTime()) / 1000);
+        this.typingInterval = setInterval(() => {
+            if (index < texto.length) {
+                this.narrativaVisible += texto.charAt(index);
+                index++;
+            } else {
+                clearInterval(this.typingInterval);
+                this.narrativaCompleta = true;
             }
-        }, 1000);
+        }, 30);
+    }
+
+    saltarAnimacion(): void {
+        if (this.typingInterval) {
+            clearInterval(this.typingInterval);
+            this.narrativaVisible = this.narrativaActual;
+            this.narrativaCompleta = true;
+        }
     }
 
     completarVisita(): void {
-        // 👇 Validaciones más estrictas
-        if (!this.puntoSeleccionado || !this.tiempoInicio) {
-            console.error('Punto seleccionado o tiempo de inicio no definido');
-            return;
-        }
+        if (!this.puntoSeleccionado) return;
 
-        const usuario = this.sesionService.getUsuario();
-        if (!usuario) {
-            this.router.navigate(['/bienvenida']);
-            return;
-        }
+        const request: DescubrirPuntoRequest = {
+            partidaId: this.partidaId,
+            puntoId: this.puntoSeleccionado.id
+        };
 
-        // 👇 Verificar que el ID existe
-        const puntoId = this.puntoSeleccionado.id;
-        if (!puntoId) {
-            console.error('ID del punto no disponible');
-            return;
-        }
-
-        const tiempoSegundos = Math.floor((new Date().getTime() - this.tiempoInicio.getTime()) / 1000);
-
-        this.exploracionService.visitarPunto({
-            usuarioId: usuario.id,
-            puntoId: puntoId,  // 👈 Ahora TypeScript sabe que no es undefined
-            tiempoSegundos: tiempoSegundos
-        }).pipe(takeUntil(this.destroy$))
+        this.exploracionService.descubrirPunto(request)
+            .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: (resultado) => {
-                    // Mostrar resultados
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: '¡Exploración Completada!',
-                        detail: `+${resultado.experienciaGanada} XP ganados`,
-                        life: 5000
-                    });
-
-                    if (resultado.artefactoEncontrado) {
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: '¡Artefacto Encontrado!',
-                            detail: `${resultado.artefactoEncontrado.nombre} - ${this.getRarezaEstrellas(resultado.artefactoEncontrado.rareza)}`,
-                            life: 8000
-                        });
+                next: (response) => {
+                    // Mostrar narrativa generada
+                    if (response.narrativaGenerada) {
+                        this.narrativaActual = response.narrativaGenerada;
+                        this.animarTexto(this.narrativaActual);
                     }
 
-                    if (resultado.nivelSubido) {
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: '🎉 ¡Nivel Subido!',
-                            detail: `Ahora eres nivel ${resultado.nuevoNivel} arqueólogo`,
-                            life: 10000
-                        });
+                    // Mostrar recompensas
+                    if (response.recompensas.length > 0) {
+                        this.mostrarRecompensas(response.recompensas);
                     }
 
-                    this.cerrarDetalle();
-                    this.cargarDashboard(usuario.id);
+                    // Nueva capa desbloqueada
+                    if (response.nuevaCapaDesbloqueada) {
+                        //this.mostrarNuevaCapa(response.nuevaCapaDesbloqueada);
+                    }
+
+                    // Emitir evento en modo misión
+                    if (this.modoVisita) {
+                        this.puntoVisitado.emit(this.puntoSeleccionado!.id);
+                    }
+
+                    // Recargar puntos
+                    setTimeout(() => {
+                        this.cargarPuntos();
+                        this.cerrarDetalle();
+                    }, 2000);
                 },
                 error: (error) => {
                     console.error('Error completando visita:', error);
@@ -236,209 +247,105 @@ export class ExploracionIngapircaComponent implements OnInit, OnDestroy {
             });
     }
 
-    iniciarQuiz(): void {
-        if (!this.detallePunto?.quiz || this.detallePunto.quiz.length === 0) {
-            this.messageService.add({
-                severity: 'info',
-                summary: 'No hay preguntas',
-                detail: 'Este punto no tiene quiz disponible'
-            });
-            return;
-        }
-
-        // Tomar pregunta aleatoria
-        const preguntas = this.detallePunto.quiz;
-        this.preguntaActual = preguntas[Math.floor(Math.random() * preguntas.length)];
-        this.respuestaSeleccionada = undefined;
-        this.mostrarQuiz = true;
+    mostrarRecompensas(recompensas: RecompensaDTO[]): void {
+        recompensas.forEach((recompensa, index) => {
+            setTimeout(() => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: `🎁 ${recompensa.tipo}`,
+                    detail: `+${recompensa.cantidad} - ${recompensa.descripcion}`,
+                    life: 5000
+                });
+            }, index * 500);
+        });
     }
 
-    responderQuiz(): void {
-        if (!this.preguntaActual || !this.respuestaSeleccionada || !this.puntoSeleccionado) {
-            return;
-        }
-
-        const usuario = this.sesionService.getUsuario();
-        if (!usuario) {
-            this.router.navigate(['/bienvenida']);
-            return;
-        }
-
-        // 👇 Verificar IDs
-        const puntoId = this.puntoSeleccionado.id;
-        const preguntaId = this.preguntaActual.id;
-
-        if (!puntoId || !preguntaId) {
-            console.error('IDs no disponibles');
-            return;
-        }
-
-        this.exploracionService.responderQuiz({
-            usuarioId: usuario.id,
-            puntoId: puntoId,
-            preguntaId: preguntaId,
-            respuesta: this.respuestaSeleccionada
-        }).pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (resultado) => {
-                    if (resultado.correcto) {
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: '✅ ¡Correcto!',
-                            detail: `${resultado.explicacion}\n+${resultado.experienciaGanada} XP`,
-                            life: 8000
-                        });
-                    } else {
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: '❌ Incorrecto',
-                            detail: resultado.explicacion,
-                            life: 8000
-                        });
-                    }
-
-                    this.mostrarQuiz = false;
-
-                    if (resultado.correcto && usuario) {
-                        this.cargarDashboard(usuario.id);
-                    }
-                },
-                error: (error) => {
-                    console.error('Error respondiendo quiz:', error);
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'No se pudo procesar la respuesta'
-                    });
-                }
-            });
-    }
-
-    buscarArtefacto(): void {
-        if (!this.puntoSeleccionado || this.buscandoArtefacto) {
-            return;
-        }
-
-        const usuario = this.sesionService.getUsuario();
-        if (!usuario) {
-            this.router.navigate(['/bienvenida']);
-            return;
-        }
-
-        // 👇 Verificar que el ID existe
-        const puntoId = this.puntoSeleccionado.id;
-        if (!puntoId) {
-            console.error('ID del punto no disponible');
-            return;
-        }
-
-        this.buscandoArtefacto = true;
-
-        this.exploracionService.buscarArtefacto({
-            usuarioId: usuario.id,
-            puntoId: puntoId  // 👈 Ahora TypeScript sabe que no es undefined
-        }).pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (resultado) => {
-                    if (resultado.encontrado && resultado.artefacto) {
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: '🎉 ¡Artefacto Encontrado!',
-                            detail: `${resultado.artefacto.nombre} (${resultado.artefacto.nombreKichwa})\n+${resultado.experienciaGanada} XP`,
-                            life: 10000
-                        });
-                    } else {
-                        this.messageService.add({
-                            severity: 'info',
-                            summary: 'Sin suerte',
-                            detail: resultado.mensaje,
-                            life: 5000
-                        });
-                    }
-
-                    this.buscandoArtefacto = false;
-
-                    if (usuario) {
-                        this.cargarDashboard(usuario.id);
-                    }
-                },
-                error: (error) => {
-                    console.error('Error buscando artefacto:', error);
-                    this.buscandoArtefacto = false;
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'No se pudo buscar el artefacto'
-                    });
-                }
-            });
-    }
-
-    verColeccion(): void {
-        this.mostrarColeccion = true;
+    mostrarNuevaCapa(capa: NivelCapaDTO): void {
+        this.messageService.add({
+            severity: 'info',
+            summary: '🎉 ¡Nueva Capa Temporal Desbloqueada!',
+            detail: `${capa.nombre}: ${capa.descripcion}`,
+            life: 8000,
+            sticky: true
+        });
     }
 
     cerrarDetalle(): void {
         this.mostrarDetalle = false;
-        this.puntoSeleccionado = undefined;
-        this.detallePunto = undefined;
-
-        if (this.intervalTimer) {
-            clearInterval(this.intervalTimer);
+        this.puntoSeleccionado = null;
+        if (this.typingInterval) {
+            clearInterval(this.typingInterval);
         }
     }
 
-    // Helpers
-    getNivelColor(nivel: NivelDescubrimiento): string {
-        const colores: Record<NivelDescubrimiento, string> = {
-            [NivelDescubrimiento.NO_VISITADO]: '#999',
+    // ✅ MÉTODOS AUXILIARES PARA EL TEMPLATE
+
+    obtenerColorNivel(nivel: NivelDescubrimiento | null): string {
+        const colores = {
+            [NivelDescubrimiento.NO_VISITADO]: '#999999',
             [NivelDescubrimiento.BRONCE]: '#CD7F32',
             [NivelDescubrimiento.PLATA]: '#C0C0C0',
             [NivelDescubrimiento.ORO]: '#FFD700'
         };
-        return colores[nivel];
+        return nivel ? colores[nivel] : '#999999';
     }
 
-    getNivelLabel(nivel: NivelDescubrimiento): string {
-        const labels: Record<NivelDescubrimiento, string> = {
-            [NivelDescubrimiento.NO_VISITADO]: 'No Visitado',
-            [NivelDescubrimiento.BRONCE]: 'Bronce',
-            [NivelDescubrimiento.PLATA]: 'Plata',
-            [NivelDescubrimiento.ORO]: 'Oro'
+    obtenerIconoCategoria(categoria: CategoriaPunto): string {
+        const iconos = {
+            [CategoriaPunto.TEMPLO]: 'pi-sun',
+            [CategoriaPunto.PLAZA]: 'pi-map',
+            [CategoriaPunto.VIVIENDA]: 'pi-home',
+            [CategoriaPunto.DEPOSITO]: 'pi-box',
+            [CategoriaPunto.OBSERVATORIO]: 'pi-eye',
+            [CategoriaPunto.CEREMONIAL]: 'pi-circle'  // ✅ AGREGAR ESTO
         };
-        return labels[nivel];
+        return iconos[categoria as keyof typeof iconos] || 'pi-star';
     }
 
-    getCategoriaIcono(categoria: CategoriaPunto): string {
-        const iconos: Record<CategoriaPunto, string> = {
-            [CategoriaPunto.TEMPLO]: '⛩️',
-            [CategoriaPunto.PLAZA]: '🏛️',
+    obtenerEmojiCategoria(categoria: CategoriaPunto): string {
+        const emojis: {
+            [CategoriaPunto.TEMPLO]: string;
+            [CategoriaPunto.PLAZA]: string;
+            [CategoriaPunto.VIVIENDA]: string;
+            [CategoriaPunto.DEPOSITO]: string;
+            [CategoriaPunto.OBSERVATORIO]: string;
+            [CategoriaPunto.CEREMONIAL]: string
+        } = {
+            [CategoriaPunto.TEMPLO]: '☀️',
+            [CategoriaPunto.PLAZA]: '🗺️',
             [CategoriaPunto.VIVIENDA]: '🏠',
             [CategoriaPunto.DEPOSITO]: '📦',
-            [CategoriaPunto.OBSERVATORIO]: '🔭',
-            [CategoriaPunto.CEREMONIAL]: '✨',
-            [CategoriaPunto.CAMINO]: '🛤️',
-            [CategoriaPunto.FUENTE]: '⛲'
+            [CategoriaPunto.OBSERVATORIO]: '👁️',
+            [CategoriaPunto.CEREMONIAL]: '💧'  // ✅ AGREGAR ESTO
         };
-        return iconos[categoria];
+        return emojis[categoria as keyof typeof emojis] || '✨';
     }
 
-    getRarezaEstrellas(rareza: number): string {
-        return '⭐'.repeat(rareza);
+    obtenerNombreNivel(nivel: NivelDescubrimiento | null): string {
+        const nombres = {
+            [NivelDescubrimiento.NO_VISITADO]: 'Nueva Exploración',
+            [NivelDescubrimiento.BRONCE]: 'Nivel Bronce',
+            [NivelDescubrimiento.PLATA]: 'Nivel Plata',
+            [NivelDescubrimiento.ORO]: 'Nivel Oro'
+        };
+        return nombres[nivel as keyof typeof nombres] || 'Desconocido';
     }
 
-    formatearTiempo(segundos: number): string {
-        const mins = Math.floor(segundos / 60);
-        const segs = segundos % 60;
-        return `${mins}:${segs.toString().padStart(2, '0')}`;
+    obtenerLetraNivel(nivel: NivelDescubrimiento.BRONCE | NivelDescubrimiento.PLATA | NivelDescubrimiento.ORO | null): string {
+        const letras = {
+            [NivelDescubrimiento.NO_VISITADO]: '',
+            [NivelDescubrimiento.BRONCE]: 'B',
+            [NivelDescubrimiento.PLATA]: 'P',
+            [NivelDescubrimiento.ORO]: 'O'
+        };
+        return letras[nivel as keyof typeof letras] || 'Desconocido';
     }
 
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
-
-        if (this.intervalTimer) {
-            clearInterval(this.intervalTimer);
+        if (this.typingInterval) {
+            clearInterval(this.typingInterval);
         }
     }
 }

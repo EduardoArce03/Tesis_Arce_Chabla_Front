@@ -1,7 +1,5 @@
 // src/app/juegos/juegos.routes.ts
 import { Routes } from '@angular/router';
-import { MemoriaCulturalComponent } from '@/juegos/memoria-cultural/memoria-cultural.component';
-import { RompeCabezasComponent } from '@/juegos/rompe-cabezas/rompe-cabezas.component';
 
 export default [
     {
@@ -10,6 +8,7 @@ export default [
         pathMatch: 'full'
     },
 
+    // ========== MISIONES ==========
     {
         path: 'misiones/:id/ejecutar',
         loadComponent: () => import('./misiones/components/ejecutar-mision/ejecutar-mision.component')
@@ -28,33 +27,42 @@ export default [
             .then(m => m.ListaMisionesComponent)
     },
 
+    // ========== EXPLORACIÓN (FLUJO COMPLETO CON CAPAS) ==========
     {
-        path: 'exploracion2',
+        path: 'exploracion',
         loadComponent: () => import('./mapa-ingapirca/mapa-ingapirca.component')
             .then(m => m.MapaIngapircaComponent)
     },
 
-    {
-        path: 'exploracion',
-        loadComponent: () => import('../components/exploracion/exploracion-ingapirca.component')
-            .then(m => m.ExploracionIngapircaComponent)
-    },
-
+    // ========== MINI-JUEGOS ==========
     {
         path: 'memoria-cultural',
         loadComponent: () => import('./memoria-cultural/memoria-cultural.component')
             .then(m => m.MemoriaCulturalComponent)
     },
+
+    {
+        path: 'rompe-cabezas',
+        loadComponent: () => import('./rompe-cabezas/rompe-cabezas.component')
+            .then(m => m.RompeCabezasComponent)
+    },
+
+    // ========== RANKING Y ESTADÍSTICAS ==========
     {
         path: 'ranking',
         loadComponent: () => import('../components/ranking/ranking.component')
             .then(m => m.RankingComponent)
     },
+
     {
         path: 'estadisticas',
         loadComponent: () => import('../components/estadisticas/estadisticas-jugador.component')
             .then(m => m.EstadisticasJugadorComponent)
     },
-    {path:'rompe-cabezas', component: RompeCabezasComponent},
-    { path: '**', redirectTo: '/notfound' }
+
+    // ========== FALLBACK ==========
+    {
+        path: '**',
+        redirectTo: '/notfound'
+    }
 ] as Routes;

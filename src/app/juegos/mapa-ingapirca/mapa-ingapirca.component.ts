@@ -1,88 +1,144 @@
-// mapa-ingapirca.component.ts - REEMPLAZAR COMPLETO
+// mapa-ingapirca.component.ts - FLUJO COMPLETO CON CAPAS
 
-import { Component, OnInit, OnDestroy, Input, EventEmitter, Output } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Card } from 'primeng/card';
-import { Button } from 'primeng/button';
-import { Tooltip } from 'primeng/tooltip';
-import { Dialog } from 'primeng/dialog';
-import { ProgressBar } from 'primeng/progressbar';
+import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
+import { MessageService } from 'primeng/api';
 
-import { ExploracionService } from '@/services/exploracion.service';
-import { PuntoInteres, CategoriaPunto, NivelDescubrimiento } from '@/models/exploracion.model';
-import { FilterPipe } from '@/juegos/mapa-ingapirca/filter.pipe';
-import { PrimeTemplate } from 'primeng/api';
+// PrimeNG
+import { CardModule } from 'primeng/card';
+import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
+import { DialogModule } from 'primeng/dialog';
+import { ProgressBarModule } from 'primeng/progressbar';
+import { ToastModule } from 'primeng/toast';
+
+// Componentes
+
+// Servicios
+import { ExploracionService } from '@/services/exploracion_final.service';
+
+// Modelos
+import {
+    PuntoInteresDTO,
+    CapaPuntoDTO,
+    NivelCapa,
+    NivelDescubrimiento,
+    CategoriaPunto
+} from '../../models/explorasion.model';
+import { CapasPuntoComponent } from '@/components/capas-punto.component';
 
 @Component({
     selector: 'app-mapa-ingapirca',
     standalone: true,
     imports: [
         CommonModule,
-        Card,
-        Button,
-        Tooltip,
-        Dialog,
-        ProgressBar,
-        FilterPipe,
-        PrimeTemplate
+        FormsModule,
+        CardModule,
+        ButtonModule,
+        TooltipModule,
+        DialogModule,
+        ProgressBarModule,
+        ToastModule,
+        CapasPuntoComponent
     ],
+    providers: [MessageService],
     templateUrl: './mapa-ingapirca.component.html',
     styleUrls: ['./mapa-ingapirca.component.scss']
 })
 export class MapaIngapircaComponent implements OnInit, OnDestroy {
-    // ✅ INPUTS/OUTPUTS PARA MODO MISIÓN
     @Input() puntoDestacado: number | null = null;
-    @Input() modoVisita: boolean = false;
+    @Input() modoVisita = false;
     @Input() puntosDisponibles: number[] = [];
     @Output() puntoVisitado = new EventEmitter<number>();
 
-    puntos: PuntoInteres[] = [];
-    puntoSeleccionado: PuntoInteres | null = null;
-    mostrarDetalle = false;
-    cargandoNarrativa = false;
+    // Estado del mapa
+    puntos: PuntoInteresDTO[] = [];
 
-    // Para animación de typing
-    narrativaActual: string = '';
+    // MODAL 1: Capas del punto
+    mostrarModalCapas = false;
+    puntoSeleccionado: PuntoInteresDTO | null = null;
+    capasPunto: CapaPuntoDTO[] = [];
+
+    // MODAL 2: Exploración de capa
+    mostrarModalExploracion = false;
+    capaActiva: CapaPuntoDTO | null = null;
+    tabActivo = 0;
+
+    // Narrativa
+    cargandoNarrativa = false;
+    narrativaActual = '';
     narrativaVisible = '';
     narrativaCompleta = false;
     typingInterval: any;
 
+    // Diálogo
+    preguntaDialogo = '';
+
+    // IDs
+    partidaId = 1;
+    usuarioId = 1;
+
     private destroy$ = new Subject<void>();
 
     // Enums para template
-    CategoriaPunto = CategoriaPunto;
+    NivelCapa = NivelCapa;
     NivelDescubrimiento = NivelDescubrimiento;
+    CategoriaPunto = CategoriaPunto;
 
-    constructor(private exploracionService: ExploracionService) {}
+    constructor(
+        private exploracionService: ExploracionService,
+        private messageService: MessageService
+    ) {}
 
     ngOnInit(): void {
-        this.cargarPuntos();
-
-        // ✅ Si hay punto destacado, auto-seleccionarlo
-        if (this.puntoDestacado) {
-            setTimeout(() => {
-                this.seleccionarPuntoAutomaticamente(this.puntoDestacado!);
-            }, 500);
-        }
+        this.inicializar();
     }
 
-    cargarPuntos(): void {
-        this.exploracionService.obtenerPuntosInteres()
-            .pipe(takeUntil(this.destroy$))
-            .subscribe(puntos => {
-                this.puntos = puntos;
+    // ==================== INICIALIZACIÓN ====================
 
-                // ✅ En modo misión, solo habilitar puntos específicos
-                if (this.modoVisita && this.puntosDisponibles.length > 0) {
-                    this.puntos.forEach(punto => {
-                        punto.desbloqueado = this.puntosDisponibles.includes(punto.id);
+    inicializar(): void {
+        this.exploracionService.inicializarExploracion(this.partidaId, this.usuarioId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: () => {
+                    this.cargarPuntos();
+                    if (this.puntoDestacado) {
+                        setTimeout(() => {
+                            this.seleccionarPuntoAutomaticamente(this.puntoDestacado!);
+                        }, 500);
+                    }
+                },
+                error: (error) => {
+                    console.error('Error inicializando:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo inicializar la exploración'
                     });
                 }
             });
     }
 
-    // ✅ NUEVO: Auto-seleccionar punto para misión
+    cargarPuntos(): void {
+        this.exploracionService.obtenerPuntosDisponibles(this.partidaId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (puntos) => {
+                    this.puntos = puntos;
+                    if (this.modoVisita && this.puntosDisponibles.length > 0) {
+                        this.puntos.forEach(punto => {
+                            punto.desbloqueado = this.puntosDisponibles.includes(punto.id);
+                        });
+                    }
+                },
+                error: (error) => {
+                    console.error('Error cargando puntos:', error);
+                }
+            });
+    }
+
     seleccionarPuntoAutomaticamente(puntoId: number): void {
         const punto = this.puntos.find(p => p.id === puntoId);
         if (punto && punto.desbloqueado) {
@@ -90,44 +146,152 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         }
     }
 
-    seleccionarPunto(punto: PuntoInteres): void {
+    // ==================== FLUJO: SELECCIONAR PUNTO → MODAL CAPAS ====================
+
+    seleccionarPunto(punto: PuntoInteresDTO): void {
         if (!punto.desbloqueado) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Punto Bloqueado',
+                detail: 'Necesitas explorar más puntos para desbloquear este lugar'
+            });
             return;
         }
 
         this.puntoSeleccionado = punto;
-        this.mostrarDetalle = true;
-        this.narrativaVisible = '';
-        this.narrativaCompleta = false;
+        this.mostrarModalCapas = true;
 
-        // Determinar nivel de narrativa
-        const nivel = this.determinarNivel(punto);
-        this.generarNarrativa(punto.id, nivel);
-    }
-
-    private determinarNivel(punto: PuntoInteres): string {
-        if (punto.nivelDescubrimiento === NivelDescubrimiento.NO_VISITADO) {
-            return 'bronce';
-        } else if (punto.nivelDescubrimiento === NivelDescubrimiento.BRONCE) {
-            return 'plata';
-        } else {
-            return 'oro';
-        }
-    }
-
-    generarNarrativa(puntoId: number, nivel: string): void {
-        this.cargandoNarrativa = true;
-
-        this.exploracionService.generarNarrativa(puntoId, nivel)
+        // Cargar las 4 capas del punto
+        this.exploracionService.obtenerCapasPunto(punto.id, this.partidaId)
             .pipe(takeUntil(this.destroy$))
-            .subscribe(narrativa => {
-                this.cargandoNarrativa = false;
-                this.narrativaActual = narrativa.texto;
-                this.animarTexto(narrativa.texto);
+            .subscribe({
+                next: (capas) => {
+                    this.capasPunto = capas;
+                },
+                error: (error) => {
+                    console.error('Error cargando capas:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudieron cargar las capas del punto'
+                    });
+                }
             });
     }
 
-    private animarTexto(texto: string): void {
+    cerrarModalCapas(): void {
+        this.mostrarModalCapas = false;
+        this.puntoSeleccionado = null;
+        this.capasPunto = [];
+    }
+
+    // ==================== FLUJO: EXPLORAR CAPA → MODAL EXPLORACIÓN ====================
+
+    abrirExploracionCapa(capa: CapaPuntoDTO): void {
+        console.log('Explorando capa:', capa);
+
+        // Descubrir/entrar a la capa en el backend
+        this.exploracionService.descubrirCapaPunto({
+            partidaId: this.partidaId,
+            puntoId: this.puntoSeleccionado!.id,
+            nivelCapa: capa.nivelCapa
+        }).pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    if (response.exito) {
+                        // Cerrar modal de capas
+                        this.mostrarModalCapas = false;
+
+                        // Abrir modal de exploración
+                        this.capaActiva = response.capa;
+                        this.mostrarModalExploracion = true;
+                        this.tabActivo = 0; // Reset a tab de narrativa
+
+                        // Cargar narrativa si es nueva
+                        if (response.narrativaNueva || !response.capa.narrativaLeida) {
+                            this.cargarNarrativa(response.capa);
+                        }
+                    } else {
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: 'Error',
+                            detail: response.mensaje
+                        });
+                    }
+                },
+                error: (error) => {
+                    console.error('Error al entrar a capa:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo acceder a la capa'
+                    });
+                }
+            });
+    }
+
+    cambiarTab(index: number): void {
+        this.tabActivo = index;
+    }
+
+    volverACapas(): void {
+        this.mostrarModalExploracion = false;
+        this.capaActiva = null;
+        this.tabActivo = 0;
+
+        if (this.typingInterval) {
+            clearInterval(this.typingInterval);
+        }
+
+        // Reabrir modal de capas
+        this.mostrarModalCapas = true;
+
+        // Recargar capas para ver progreso actualizado
+        if (this.puntoSeleccionado) {
+            this.exploracionService.obtenerCapasPunto(this.puntoSeleccionado.id, this.partidaId)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                    next: (capas) => {
+                        this.capasPunto = capas;
+                    }
+                });
+        }
+    }
+
+    cerrarModalExploracion(): void {
+        this.mostrarModalExploracion = false;
+        this.capaActiva = null;
+        this.tabActivo = 0;
+
+        if (this.typingInterval) {
+            clearInterval(this.typingInterval);
+        }
+
+        // Recargar puntos para actualizar progreso en el mapa
+        this.cargarPuntos();
+    }
+
+    // ==================== NARRATIVA ====================
+
+    cargarNarrativa(capa: CapaPuntoDTO): void {
+        this.cargandoNarrativa = true;
+        this.narrativaVisible = '';
+        this.narrativaCompleta = false;
+
+        // Simular carga (en producción viene del backend)
+        setTimeout(() => {
+            this.cargandoNarrativa = false;
+            this.narrativaActual = capa.narrativaTexto || this.generarNarrativaFallback(capa);
+            this.animarTexto(this.narrativaActual);
+        }, 1500);
+    }
+
+    generarNarrativaFallback(capa: CapaPuntoDTO): string {
+        const punto = this.puntoSeleccionado!;
+        return `En la ${capa.nombre}, ${punto.nombre} revela secretos ancestrales. Los vestigios de esta época nos transportan a un tiempo donde la civilización ${capa.nombre.toLowerCase()} floreció en estas tierras sagradas...`;
+    }
+
+    animarTexto(texto: string): void {
         let index = 0;
         this.narrativaVisible = '';
         this.narrativaCompleta = false;
@@ -144,7 +308,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                 clearInterval(this.typingInterval);
                 this.narrativaCompleta = true;
             }
-        }, 20); // Más rápido
+        }, 30);
     }
 
     saltarAnimacion(): void {
@@ -155,71 +319,104 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         }
     }
 
-    cerrarDetalle(): void {
-        this.mostrarDetalle = false;
-        this.puntoSeleccionado = null;
-        if (this.typingInterval) {
-            clearInterval(this.typingInterval);
+    // ==================== DIÁLOGO ====================
+
+    enviarPregunta(): void {
+// 1️⃣ CORRECCIÓN DEL CRASH:
+        // Agregamos !this.puntoSeleccionado a la validación.
+        // Si no hay punto seleccionado, no intentamos enviar nada.
+        if (!this.preguntaDialogo.trim() || !this.capaActiva || !this.puntoSeleccionado) {
+            console.warn("Faltan datos: No hay punto seleccionado o capa activa.");
+            return;
         }
-    }
+        this.exploracionService.dialogarConEspiritu({
+            partidaId: this.partidaId,
+            nivelCapa: this.capaActiva.nivelCapa,
+            pregunta: this.preguntaDialogo,
+            puntoInteresId: this.puntoSeleccionado!.id
+        }).pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    if (response.exito && response.respuestaEspiritu) {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: 'this.capaActiva!.nombreEspiritu',
+                            detail: response.respuestaEspiritu,
+                            life: 10000
+                        });
 
-    // ✅ ACTUALIZAR: Confirmar visita
-    completarVisita(): void {
-        if (!this.puntoSeleccionado) return;
+                        // Incrementar contador de diálogos
+                        if (this.capaActiva) {
+                            this.capaActiva.dialogosRealizados++;
+                        }
 
-        // Marcar como visitado
-        this.puntoSeleccionado.visitado = true;
-
-        // Actualizar nivel
-        if (this.puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.NO_VISITADO) {
-            this.puntoSeleccionado.nivelDescubrimiento = NivelDescubrimiento.BRONCE;
-        } else if (this.puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.BRONCE) {
-            this.puntoSeleccionado.nivelDescubrimiento = NivelDescubrimiento.PLATA;
-        } else if (this.puntoSeleccionado.nivelDescubrimiento === NivelDescubrimiento.PLATA) {
-            this.puntoSeleccionado.nivelDescubrimiento = NivelDescubrimiento.ORO;
-        }
-
-        // ✅ Si estamos en modo misión, emitir evento
-        if (this.modoVisita) {
-            this.puntoVisitado.emit(this.puntoSeleccionado.id);
-            this.cerrarDetalle();
-        } else {
-            // Modo exploración normal
-            this.desbloquearPuntosDependientes(this.puntoSeleccionado.id);
-            this.cerrarDetalle();
-        }
-    }
-
-    private desbloquearPuntosDependientes(puntoId: number): void {
-        this.puntos.forEach(punto => {
-            if (punto.requisitos && punto.requisitos.includes(puntoId)) {
-                const requisitosCompletos = punto.requisitos.every(reqId =>
-                    this.puntos.find(p => p.id === reqId)?.visitado
-                );
-                if (requisitosCompletos) {
-                    punto.desbloqueado = true;
+                        this.preguntaDialogo = '';
+                    }
+                },
+                error: (error) => {
+                    console.error('Error en diálogo:', error);
                 }
-            }
-        });
+            });
     }
 
-    obtenerIconoCategoria(categoria: CategoriaPunto): string {
-        return ''
+    // ==================== UTILIDADES ====================
+
+    puntosVisitados(): number {
+        return this.puntos.filter(p => p.visitado).length;
     }
 
-    obtenerColorNivel(nivel: NivelDescubrimiento): string {
-        const colores = {
-            [NivelDescubrimiento.NO_VISITADO]: '#999',
-            [NivelDescubrimiento.BRONCE]: '#CD7F32',
-            [NivelDescubrimiento.PLATA]: '#C0C0C0',
-            [NivelDescubrimiento.ORO]: '#FFD700'
+    porcentajeVisitados(): number {
+        if (this.puntos.length === 0) return 0;
+        return (this.puntosVisitados() / this.puntos.length) * 100;
+    }
+
+    onImageError(event: any): void {
+        event.target.src = 'https://upload.wikimedia.org/wikipedia/commons/0/03/Ecuador_ingapirca_inca_ruins.jpg';
+    }
+
+    obtenerColorNivel(nivel: NivelDescubrimiento | NivelCapa | null): string {
+        if (!nivel) return '#999999';
+
+        if (Object.values(NivelDescubrimiento).includes(nivel as any)) {
+            const colores: Record<NivelDescubrimiento, string> = {
+                [NivelDescubrimiento.NO_VISITADO]: '#999999',
+                [NivelDescubrimiento.BRONCE]: '#CD7F32',
+                [NivelDescubrimiento.PLATA]: '#C0C0C0',
+                [NivelDescubrimiento.ORO]: '#FFD700'
+            };
+            return colores[nivel as NivelDescubrimiento];
+        }
+
+        return '#8B4513';
+    }
+
+    obtenerEmojiCategoria(categoria: CategoriaPunto): string {
+        const emojis: Record<CategoriaPunto, string> = {
+            [CategoriaPunto.TEMPLO]: '☀️',
+            [CategoriaPunto.PLAZA]: '🗺️',
+            [CategoriaPunto.VIVIENDA]: '🏠',
+            [CategoriaPunto.DEPOSITO]: '📦',
+            [CategoriaPunto.OBSERVATORIO]: '👁️',
+            [CategoriaPunto.CEREMONIAL]: '💧',
+            [CategoriaPunto.CAMINO]: '🛤️'
         };
-        return colores[nivel];
+        return emojis[categoria] || '✨';
+    }
+
+    obtenerIconoCapa(nivelCapa: NivelCapa): string {
+        const iconos: Record<NivelCapa, string> = {
+            [NivelCapa.SUPERFICIE]: '🏛️',
+            [NivelCapa.INCA]: '☀️',
+            [NivelCapa.CANARI]: '🌙',
+            [NivelCapa.ANCESTRAL]: '⭐'
+        };
+        return iconos[nivelCapa] || '📜';
     }
 
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
+
         if (this.typingInterval) {
             clearInterval(this.typingInterval);
         }
