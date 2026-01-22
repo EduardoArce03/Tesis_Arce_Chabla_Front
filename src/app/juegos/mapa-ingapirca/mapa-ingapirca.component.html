@@ -238,6 +238,18 @@
 
                                         @if (!foto.completada) {
                                             <p-button label="Tomar Foto" icon="pi pi-camera" size="small" class="mt-2"></p-button>
+                                            <p-fileUpload
+                                                mode="basic"
+                                                name="fotografia"
+                                                accept="image/*"
+                                                [maxFileSize]="5000000"
+                                                [auto]="true"
+                                                chooseLabel="📷 Subir Foto"
+                                                chooseIcon="pi pi-upload"
+                                                (onSelect)="subirFotografia($event, objetivo)"
+                                                [customUpload]="true"
+                                                (uploadHandler)="procesarFotografia($event, objetivo)">
+                                            </p-fileUpload>
                                         } @else {
                                             <span class="completado-badge">✓ Completada</span>
                                         }

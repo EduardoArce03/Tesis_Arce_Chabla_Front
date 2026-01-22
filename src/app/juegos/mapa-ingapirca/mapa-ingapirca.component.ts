@@ -28,6 +28,7 @@ import {
     CategoriaPunto
 } from '../../models/explorasion.model';
 import { CapasPuntoComponent } from '@/components/capas-punto.component';
+import { FileSelectEvent, FileUpload, FileUploadHandlerEvent } from 'primeng/fileupload';
 
 @Component({
     selector: 'app-mapa-ingapirca',
@@ -41,7 +42,8 @@ import { CapasPuntoComponent } from '@/components/capas-punto.component';
         DialogModule,
         ProgressBarModule,
         ToastModule,
-        CapasPuntoComponent
+        CapasPuntoComponent,
+        FileUpload
     ],
     providers: [MessageService],
     templateUrl: './mapa-ingapirca.component.html',
@@ -286,9 +288,9 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         }, 1500);
     }
 
-    generarNarrativaFallback(capa: CapaPuntoDTO): string {
-        const punto = this.puntoSeleccionado!;
-        return `En la ${capa.nombre}, ${punto.nombre} revela secretos ancestrales. Los vestigios de esta época nos transportan a un tiempo donde la civilización ${capa.nombre.toLowerCase()} floreció en estas tierras sagradas...`;
+    private generarNarrativaFallback(capa: CapaPuntoDTO): string {
+        const nombrePunto = this.puntoSeleccionado?.nombre || 'este lugar';
+        return `Has descubierto ${nombrePunto} en la capa ${capa.nombre}. ${capa.descripcion}`;
     }
 
     animarTexto(texto: string): void {
@@ -360,6 +362,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     }
 
     // ==================== UTILIDADES ====================
+    protected objetivo: any;
 
     puntosVisitados(): number {
         return this.puntos.filter(p => p.visitado).length;
@@ -420,5 +423,13 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         if (this.typingInterval) {
             clearInterval(this.typingInterval);
         }
+    }
+
+    protected subirFotografia($event: FileSelectEvent, objetivo: any) {
+
+    }
+
+    protected procesarFotografia($event: FileUploadHandlerEvent, objetivo: any) {
+
     }
 }
