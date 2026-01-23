@@ -276,7 +276,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
 
     // ==================== NARRATIVA ====================
 
-    cargarNarrativa(capa: CapaPuntoDTO): void {
+     cargarNarrativa(capa: CapaPuntoDTO): void {
         this.cargandoNarrativa = true;
         this.narrativaVisible = '';
         this.narrativaCompleta = false;
