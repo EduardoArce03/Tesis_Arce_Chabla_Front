@@ -1453,25 +1453,31 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
 
     private activarSabiduriaAmawta(): void {
         if (!this.puzzle || !this.puzzle.polyPieces || this.puzzle.polyPieces.length <= 1) {
+            console.log('⚠️ Puzzle no válido para Sabiduría Amawta');
             return;
         }
 
+        // Buscar la mejor pieza para auto-colocar
         let mejorPieza: any = null;
         let menorDistancia = Infinity;
 
         this.puzzle.polyPieces.forEach((pp: any) => {
+            // Solo piezas individuales sin rotación
             if (pp.pieces.length === 1 && pp.rot === 0) {
+                // Calcular posición correcta de esta pieza
                 const posicionCorrecta = {
                     x: this.puzzle!.offsx + (pp.pckxmin - 0.5) * this.puzzle!.scalex,
                     y: this.puzzle!.offsy + (pp.pckymin - 0.5) * this.puzzle!.scaley
                 };
 
+                // Calcular distancia actual a la posición correcta
                 const distancia = Math.hypot(
                     pp.x - posicionCorrecta.x,
                     pp.y - posicionCorrecta.y
                 );
 
-                if (distancia < menorDistancia) {
+                // Ignorar piezas que ya están muy cerca (ya colocadas)
+                if (distancia > 10 && distancia < menorDistancia) {
                     menorDistancia = distancia;
                     mejorPieza = pp;
                 }
@@ -1480,21 +1486,238 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
 
         if (!mejorPieza) {
             console.log('⚠️ No hay piezas disponibles para auto-colocar');
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Sin piezas',
+                detail: 'No hay piezas sueltas para colocar'
+            });
             return;
         }
 
-        const pieza = mejorPieza;
+        console.log('🎯 Auto-colocando pieza:', mejorPieza.pieces[0].kx, mejorPieza.pieces[0].ky);
 
-        pieza.canvas.classList.add('moving');
+        // ⬇️ CALCULAR LA POSICIÓN EXACTA USANDO moveToInitialPlace
+        // Esta es la posición donde debería estar la pieza
+        const posicionFinal = {
+            x: this.puzzle.offsx + (mejorPieza.pckxmin - 0.5) * this.puzzle.scalex,
+            y: this.puzzle.offsy + (mejorPieza.pckymin - 0.5) * this.puzzle.scaley
+        };
 
-        setTimeout(() => {
-            pieza.moveToInitialPlace();
-            pieza.canvas.classList.remove('moving');
+        console.log('📍 Posición actual:', mejorPieza.x, mejorPieza.y);
+        console.log('📍 Posición destino:', posicionFinal.x, posicionFinal.y);
+        console.log('📏 Distancia a recorrer:', Math.hypot(mejorPieza.x - posicionFinal.x, mejorPieza.y - posicionFinal.y));
+
+        // Agregar clase de animación
+        mejorPieza.canvas.classList.add('moving');
+        mejorPieza.selected = true;
+        mejorPieza.drawImage(true); // Resaltar con efecto dorado
+
+        // PASO 1: Animar el movimiento
+        const duracionAnimacion = 1200; // ms
+        const pasos = 50;
+        const intervalo = duracionAnimacion / pasos;
+
+        const posInicial = { x: mejorPieza.x, y: mejorPieza.y };
+        let pasoActual = 0;
+
+        const intervaloId = setInterval(() => {
+            pasoActual++;
+            const progreso = pasoActual / pasos;
+
+            // Interpolación suave (ease-in-out)
+            const t = progreso < 0.5
+                ? 2 * progreso * progreso
+                : -1 + (4 - 2 * progreso) * progreso;
+
+            // Calcular nueva posición
+            const nuevaX = posInicial.x + (posicionFinal.x - posInicial.x) * t;
+            const nuevaY = posInicial.y + (posicionFinal.y - posInicial.y) * t;
+
+            // Mover la pieza
+            mejorPieza.moveTo(nuevaX, nuevaY);
+
+            if (pasoActual >= pasos) {
+                clearInterval(intervaloId);
+
+                // PASO 2: Asegurar posición EXACTA usando moveToInitialPlace
+                console.log('✅ Animación completada, colocando en posición exacta...');
+                mejorPieza.moveToInitialPlace(); // ⬅️ Esto asegura la posición correcta
+
+                mejorPieza.canvas.classList.remove('moving');
+
+                console.log('📍 Posición final real:', mejorPieza.x, mejorPieza.y);
+
+                // PASO 3: Forzar el merge con búsqueda agresiva
+                setTimeout(() => {
+                    this.forzarMergePiezaAgresivo(mejorPieza);
+                }, 200);
+            }
+        }, intervalo);
+    }
+
+// ⬇️ VERSIÓN MEJORADA: Búsqueda más agresiva de merge
+    private forzarMergePiezaAgresivo(pieza: any): void {
+        if (!this.puzzle) return;
+
+        console.log('🔍 Buscando merge para pieza en:', pieza.pieces[0].kx, pieza.pieces[0].ky);
+        console.log('📊 Total de polyPieces:', this.puzzle.polyPieces.length);
+
+        let mergeRealizado = false;
+        let intentos = 0;
+
+        // Intentar múltiples veces con diferentes umbrales
+        const umbrales = [
+            this.puzzle.dConnect,              // Umbral normal
+            this.puzzle.dConnect * 1.5,        // 50% más grande
+            this.puzzle.dConnect * 2,          // El doble
+            this.puzzle.scalex                 // Tamaño de una pieza completa
+        ];
+
+        for (const umbral of umbrales) {
+            if (mergeRealizado) break;
+
+            console.log(`   🔍 Intento ${++intentos} con umbral:`, umbral.toFixed(2));
+
+            for (let i = this.puzzle.polyPieces.length - 1; i >= 0; i--) {
+                const otraPieza = this.puzzle.polyPieces[i];
+
+                if (otraPieza === pieza) continue;
+
+                // Método 1: ifNear (verifica adyacencia lógica)
+                if (pieza.ifNear(otraPieza)) {
+                    console.log('   ✅ Piezas adyacentes por ifNear!');
+                    this.realizarMerge(pieza, otraPieza);
+                    mergeRealizado = true;
+                    break;
+                }
+
+                // Método 2: Verificar cada pieza individual dentro de los polypieces
+                for (const p1 of pieza.pieces) {
+                    for (const p2 of otraPieza.pieces) {
+                        // Verificar si son adyacentes en la grilla
+                        const esAdyacente =
+                            (p1.kx === p2.kx && Math.abs(p1.ky - p2.ky) === 1) || // Arriba/abajo
+                            (p1.ky === p2.ky && Math.abs(p1.kx - p2.kx) === 1);   // Izq/der
+
+                        if (esAdyacente) {
+                            // Calcular distancia física entre los centros
+                            const org1 = pieza.getOrgP();
+                            const org2 = otraPieza.getOrgP();
+                            const dist = Math.hypot(org1.x - org2.x, org1.y - org2.y);
+
+                            console.log(`   📏 Piezas adyacentes en grilla (${p1.kx},${p1.ky}) <-> (${p2.kx},${p2.ky}), distancia: ${dist.toFixed(2)}`);
+
+                            if (dist < umbral) {
+                                console.log('   ✅ Merge por adyacencia + distancia!');
+                                this.realizarMerge(pieza, otraPieza);
+                                mergeRealizado = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (mergeRealizado) break;
+                }
+                if (mergeRealizado) break;
+            }
+        }
+
+        if (!mergeRealizado) {
+            console.log('⚠️ No se pudo hacer merge automático');
+            console.log('💡 Sugerencia: La pieza está colocada, intenta moverla manualmente un poco');
+
+            // Resaltar la pieza para que el usuario sepa dónde está
+            pieza.selected = true;
+            pieza.drawImage(true);
 
             setTimeout(() => {
-                this.intentarMergeAutomatico(pieza);
+                pieza.selected = false;
+                pieza.drawImage();
+            }, 2000);
+
+            this.messageService.add({
+                severity: 'info',
+                summary: '✨ Pieza colocada',
+                detail: 'La pieza está en su posición. Tócala para conectarla.',
+                life: 4000
+            });
+        }
+
+        // Verificar victoria
+        this.checkWin();
+    }
+
+// ⬇️ MÉTODO AUXILIAR: Realizar merge
+    private realizarMerge(pieza1: any, pieza2: any): void {
+        if (!this.puzzle) return;
+
+        console.log('🔗 Realizando merge...');
+
+        // El polypiece más grande absorbe al más pequeño
+        if (pieza2.pieces.length > pieza1.pieces.length) {
+            pieza2.selected = true;
+            pieza2.drawImage(true);
+            pieza2.merge(pieza1);
+
+            setTimeout(() => {
+                pieza2.selected = false;
+                pieza2.drawImage();
             }, 500);
-        }, 100);
+        } else {
+            pieza1.selected = true;
+            pieza1.drawImage(true);
+            pieza1.merge(pieza2);
+
+            setTimeout(() => {
+                pieza1.selected = false;
+                pieza1.drawImage();
+            }, 500);
+        }
+
+        this.puzzle.evaluateZIndex();
+
+        this.messageService.add({
+            severity: 'success',
+            summary: '✨ ¡Pieza conectada!',
+            detail: 'La Sabiduría del Amawta guió la pieza',
+            life: 3000
+        });
+
+        console.log('✅ Merge completado! Piezas restantes:', this.puzzle.polyPieces.length);
+    }
+
+// Función auxiliar para forzar el merge de una pieza
+    private forzarMergePieza(pieza: any): void {
+        if (!this.puzzle) return;
+
+        // Buscar piezas vecinas para merge
+        this.puzzle.polyPieces.forEach((otraPieza: any) => {
+            if (otraPieza !== pieza) {
+                // Calcular distancia entre piezas
+                const distancia = Math.hypot(
+                    pieza.x - otraPieza.x,
+                    pieza.y - otraPieza.y
+                );
+
+                // Si están lo suficientemente cerca, intentar merge
+                if (distancia < this.puzzle!.scalex * 1.5) {
+                    pieza.merge(otraPieza);
+                    this.checkWin();
+                }
+            }
+        });
+
+        // Verificar si el puzzle está completo
+        this.verificarPuzzleCompleto();
+    }
+
+// Verificar si el puzzle está completo
+    private verificarPuzzleCompleto(): void {
+        if (!this.puzzle) return;
+
+        if (this.puzzle.polyPieces.length === 1) {
+            console.log('🎉 ¡Puzzle completado!');
+            this.checkWin();
+        }
     }
 
     private intentarMergeAutomatico(pieza: any): void {
@@ -1570,7 +1793,7 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
         console.log('🖼️ Cargando imagen:', imageUrl);
 
         this.puzzle.srcImage = new Image();
-        this.puzzle.srcImage.crossOrigin = 'Anonymous';
+        this.puzzle.srcImage.crossOrigin = 'anonymous';
 
         this.puzzle.srcImage.onload = () => {
             console.log('✅ Imagen cargada:', this.puzzle!.srcImage.naturalWidth, 'x', this.puzzle!.srcImage.naturalHeight);
