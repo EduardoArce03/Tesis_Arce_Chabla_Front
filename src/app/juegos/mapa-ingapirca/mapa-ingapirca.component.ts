@@ -441,4 +441,103 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     protected procesarFotografia($event: FileUploadHandlerEvent, objetivo: any) {
 
     }
+
+    caminosSVG: string[] = [];
+
+
+
+    // ⬇️ MÉTODO MEJORADO - Genera caminos consistentes
+    generarCaminos(): string[] {
+        if (!this.puntos || this.puntos.length === 0) return [];
+
+        const caminos: string[] = [];
+        const puntosOrdenados = [...this.puntos].sort((a, b) => a.id - b.id);
+
+        // Conectar puntos consecutivos con curvas suaves
+        for (let i = 0; i < puntosOrdenados.length - 1; i++) {
+            const punto1 = puntosOrdenados[i];
+            const punto2 = puntosOrdenados[i + 1];
+
+            const x1 = punto1.coordenadaX * 10;
+            const y1 = punto1.coordenadaY * 10;
+            const x2 = punto2.coordenadaX * 10;
+            const y2 = punto2.coordenadaY * 10;
+
+            // ⬇️ PUNTO DE CONTROL BASADO EN POSICIÓN (consistente)
+            // Usamos un hash simple basado en las coordenadas
+            const seed = (punto1.id + punto2.id) * 0.123; // Seed consistente
+            const offsetX = Math.sin(seed) * 80; // -80 a 80
+            const offsetY = Math.cos(seed) * 80;
+
+            const ctrlX = (x1 + x2) / 2 + offsetX;
+            const ctrlY = (y1 + y2) / 2 + offsetY;
+
+            caminos.push(`M ${x1},${y1} Q ${ctrlX},${ctrlY} ${x2},${y2}`);
+        }
+
+        return caminos;
+    }
+
+    // ⬇️ OPCIONAL: Método para generar caminos entre puntos específicos
+    generarCaminosConectados(): string[] {
+        if (!this.puntos || this.puntos.length < 2) return [];
+
+        const caminos: string[] = [];
+
+        // Definir conexiones específicas entre puntos
+        const conexiones = this.obtenerConexionesPuntos();
+
+        conexiones.forEach(conexion => {
+            const punto1 = this.puntos.find(p => p.id === conexion.desde);
+            const punto2 = this.puntos.find(p => p.id === conexion.hasta);
+
+            if (punto1 && punto2) {
+                const x1 = punto1.coordenadaX * 10;
+                const y1 = punto1.coordenadaY * 10;
+                const x2 = punto2.coordenadaX * 10;
+                const y2 = punto2.coordenadaY * 10;
+
+                // Curvatura basada en la distancia
+                const distancia = Math.hypot(x2 - x1, y2 - y1);
+                const curvatura = distancia * 0.3; // 30% de la distancia
+
+                // Calcular punto de control perpendicular
+                const midX = (x1 + x2) / 2;
+                const midY = (y1 + y2) / 2;
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+
+                // Perpendicular
+                const perpX = -dy / distancia * curvatura;
+                const perpY = dx / distancia * curvatura;
+
+                const ctrlX = midX + perpX;
+                const ctrlY = midY + perpY;
+
+                caminos.push(`M ${x1},${y1} Q ${ctrlX},${ctrlY} ${x2},${y2}`);
+            }
+        });
+
+        return caminos;
+    }
+
+    // ⬇️ Define qué puntos conectar (ajusta según tu lógica)
+    private obtenerConexionesPuntos(): Array<{desde: number, hasta: number}> {
+        // Si tus puntos tienen un orden lógico, conéctalos en secuencia
+        const conexiones: Array<{desde: number, hasta: number}> = [];
+
+        const puntosOrdenados = [...this.puntos]
+            .filter(p => p.desbloqueado)
+            .sort((a, b) => a.id - b.id);
+
+        for (let i = 0; i < puntosOrdenados.length - 1; i++) {
+            conexiones.push({
+                desde: puntosOrdenados[i].id,
+                hasta: puntosOrdenados[i + 1].id
+            });
+        }
+
+        return conexiones;
+    }
+
 }

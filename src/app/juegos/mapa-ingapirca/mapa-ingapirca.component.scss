@@ -47,13 +47,18 @@
             border-radius: 8px;
             border: 3px solid #8B4513;
 
+            // ⬇️ HOVER SIN MOVIMIENTO - SOLO OPACIDAD Y SOMBRA
             .punto-interes {
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: opacity 0.2s ease;
 
                 &.desbloqueado:hover {
-                    transform: scale(1.2);
-                    filter: drop-shadow(0 0 10px rgba(218, 165, 32, 0.6));
+                    opacity: 0.9;
+
+                    .punto-circulo {
+                        filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
+                        transition: filter 0.2s ease;
+                    }
                 }
 
                 &.bloqueado {
@@ -61,21 +66,25 @@
                     opacity: 0.5;
                 }
 
-                .glow-pulse {
-                    animation: pulse 2s ease-in-out infinite;
+                .punto-circulo {
+                    transition: filter 0.2s ease;
                 }
 
-                @keyframes pulse {
-                    0%, 100% {
-                        r: 30;
-                        opacity: 0.3;
-                    }
-                    50% {
-                        r: 40;
-                        opacity: 0.1;
-                    }
+                // ⬇️ ANIMACIÓN DE PULSO MÁS SUAVE
+                .glow-pulse {
+                    animation: pulse 2.5s ease-in-out infinite;
                 }
             }
+        }
+    }
+
+    // ⬇️ ANIMACIÓN MEJORADA (sin cambio de tamaño)
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 0.2;
+        }
+        50% {
+            opacity: 0.4;
         }
     }
 

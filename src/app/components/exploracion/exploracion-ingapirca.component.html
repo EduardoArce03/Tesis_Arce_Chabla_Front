@@ -56,24 +56,24 @@
 
             <!-- Caminos decorativos -->
             <path
-                d="M 300,400 Q 500,300 700,500"
+                d="M 200,300 L 400,450 L 600,350 L 800,500"
                 stroke="#8B4513"
-                stroke-width="3"
+                stroke-width="2"
                 fill="none"
-                stroke-dasharray="10,5"
-                opacity="0.3"/>
+                stroke-dasharray="8,4"
+                opacity="0.2"/>
 
             <path
-                d="M 350,550 Q 450,450 650,300"
+                d="M 300,200 L 500,400 L 700,300"
                 stroke="#8B4513"
-                stroke-width="3"
+                stroke-width="2"
                 fill="none"
-                stroke-dasharray="10,5"
-                opacity="0.3"/>
+                stroke-dasharray="8,4"
+                opacity="0.2"/>
 
             <!-- Puntos de interés -->
             <g *ngFor="let punto of puntos"
-               [attr.transform]="'translate(' + (punto.coordenadaX * 10) + ',' + (punto.coordenadaY * 10) + ')'"
+               [attr.data-punto-id]="punto.id"
                class="punto-interes"
                [class.desbloqueado]="punto.desbloqueado"
                [class.visitado]="punto.visitado"
@@ -85,13 +85,18 @@
                 <!-- Glow effect para puntos desbloqueados no visitados -->
                 <circle
                     *ngIf="punto.desbloqueado && !punto.visitado"
+                    [attr.cx]="punto.coordenadaX * 10"
+                    [attr.cy]="punto.coordenadaY * 10"
                     r="35"
-                    [attr.fill]="obtenerColorNivel(punto.nivelDescubrimiento)"
-                    opacity="0.2"
-                    class="glow-pulse"/>
+                    [attr.fill]="'url(#glow' + obtenerColorNivelNombre(punto.nivelDescubrimiento) + ')'"
+                    opacity="0.3"
+                    class="glow-pulse"
+                    pointer-events="none"/>
 
                 <!-- Círculo principal del punto -->
                 <circle
+                    [attr.cx]="punto.coordenadaX * 10"
+                    [attr.cy]="punto.coordenadaY * 10"
                     r="25"
                     [attr.fill]="punto.desbloqueado ? obtenerColorNivel(punto.nivelDescubrimiento) : '#cccccc'"
                     [attr.stroke]="punto.visitado ? '#FFD700' : '#8B4513'"
@@ -100,26 +105,29 @@
 
                 <!-- Icono del punto -->
                 <text
+                    [attr.x]="punto.coordenadaX * 10"
+                    [attr.y]="punto.coordenadaY * 10 + 8"
                     text-anchor="middle"
-                    dy="8"
                     font-size="24"
-                    [attr.fill]="punto.desbloqueado ? '#ffffff' : '#666666'">
+                    [attr.fill]="punto.desbloqueado ? '#ffffff' : '#666666'"
+                    pointer-events="none">
                     {{ obtenerEmojiCategoria(punto.categoria) }}
                 </text>
 
                 <!-- Badge de nivel (solo si visitado) -->
-                <g *ngIf="punto.visitado && punto.nivelDescubrimiento !== NivelDescubrimiento.NO_VISITADO">
+                <g *ngIf="punto.visitado && punto.nivelDescubrimiento !== NivelDescubrimiento.NO_VISITADO"
+                   pointer-events="none">
                     <circle
-                        cx="20"
-                        cy="-20"
+                        [attr.cx]="punto.coordenadaX * 10 + 20"
+                        [attr.cy]="punto.coordenadaY * 10 - 20"
                         r="12"
                         [attr.fill]="obtenerColorNivel(punto.nivelDescubrimiento)"
                         stroke="#ffffff"
                         stroke-width="2"/>
 
                     <text
-                        x="20"
-                        y="-15"
+                        [attr.x]="punto.coordenadaX * 10 + 20"
+                        [attr.y]="punto.coordenadaY * 10 - 15"
                         text-anchor="middle"
                         font-size="14"
                         font-weight="bold"
@@ -131,9 +139,11 @@
                 <!-- Candado para puntos bloqueados -->
                 <text
                     *ngIf="!punto.desbloqueado"
+                    [attr.x]="punto.coordenadaX * 10"
+                    [attr.y]="punto.coordenadaY * 10 + 8"
                     text-anchor="middle"
-                    dy="8"
-                    font-size="20">
+                    font-size="20"
+                    pointer-events="none">
                     🔒
                 </text>
             </g>

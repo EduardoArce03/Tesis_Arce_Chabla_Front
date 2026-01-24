@@ -43,6 +43,10 @@
 // MAPA SVG
 // ========================================
 
+// ========================================
+// MAPA SVG
+// ========================================
+
 .mapa-container {
     background: white;
     border-radius: 12px;
@@ -58,45 +62,21 @@
         display: block;
     }
 
-    // Puntos de interés
+    // Puntos de interés - SIN HOVER SCALE
     .punto-interes {
         cursor: pointer;
-        transition: all 0.3s ease;
-
-        &.desbloqueado:hover {
-            transform: scale(1.15);
-            filter: brightness(1.2);
-        }
+        transition: opacity 0.2s ease;
 
         &.bloqueado {
             cursor: not-allowed;
-            opacity: 0.6;
+            opacity: 0.5;
         }
 
         // Círculo del punto
         .punto-circulo {
-            transition: all 0.3s ease;
+            transition: filter 0.2s ease;
         }
 
-        &.desbloqueado:hover .punto-circulo {
-            filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
-        }
-
-        // Animación de pulso para puntos desbloqueados
-        .glow-pulse {
-            animation: pulse 2s infinite;
-        }
-    }
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.2;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.4;
-        transform: scale(1.1);
     }
 }
 

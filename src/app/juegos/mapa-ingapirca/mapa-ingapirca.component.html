@@ -31,47 +31,98 @@
                     <circle cx="10" cy="10" r="2" fill="#d4c4a8" opacity="0.3"/>
                     <circle cx="50" cy="50" r="2" fill="#d4c4a8" opacity="0.3"/>
                 </pattern>
+
+                <radialGradient id="glowBronce">
+                    <stop offset="0%" stop-color="#CD7F32" stop-opacity="0.4"/>
+                    <stop offset="100%" stop-color="#CD7F32" stop-opacity="0"/>
+                </radialGradient>
             </defs>
 
             <rect width="1000" height="700" fill="url(#terreno)"/>
 
-            <path d="M 300,400 Q 500,300 700,500" stroke="#8B4513" stroke-width="3" fill="none" stroke-dasharray="10,5" opacity="0.3"/>
-            <path d="M 350,550 Q 450,450 650,300" stroke="#8B4513" stroke-width="3" fill="none" stroke-dasharray="10,5" opacity="0.3"/>
+            <!-- ⬇️ CAMINOS DINÁMICOS -->
+            @for (camino of caminosSVG; track $index) {
+                <path
+                    [attr.d]="camino"
+                    stroke="#8B4513"
+                    stroke-width="2.5"
+                    fill="none"
+                    stroke-dasharray="10,5"
+                    opacity="0.25"
+                    stroke-linecap="round"
+                    class="camino-punto"/>
+            }
 
             <!-- Puntos de interés -->
             @for (punto of puntos; track punto.id) {
-                <g
-                    [attr.transform]="'translate(' + (punto.coordenadaX * 10) + ',' + (punto.coordenadaY * 10) + ')'"
-                    class="punto-interes"
-                    [class.desbloqueado]="punto.desbloqueado"
-                    [class.visitado]="punto.visitado"
-                    (click)="seleccionarPunto(punto)"
-                    [pTooltip]="punto.nombre"
-                    tooltipPosition="top">
+                <g class="punto-interes"
+                   [class.desbloqueado]="punto.desbloqueado"
+                   [class.visitado]="punto.visitado"
+                   [class.bloqueado]="!punto.desbloqueado"
+                   (click)="seleccionarPunto(punto)"
+                   [pTooltip]="punto.nombre"
+                   tooltipPosition="top">
 
+                    <!-- Glow effect -->
                     @if (punto.desbloqueado && !punto.visitado) {
-                        <circle r="35" fill="#CD7F32" opacity="0.2" class="glow-pulse"/>
+                        <circle
+                            [attr.cx]="punto.coordenadaX * 10"
+                            [attr.cy]="punto.coordenadaY * 10"
+                            r="35"
+                            fill="url(#glowBronce)"
+                            class="glow-pulse"
+                            pointer-events="none"/>
                     }
 
+                    <!-- Círculo principal -->
                     <circle
+                        [attr.cx]="punto.coordenadaX * 10"
+                        [attr.cy]="punto.coordenadaY * 10"
                         r="25"
                         [attr.fill]="punto.desbloqueado ? '#8B4513' : '#cccccc'"
                         [attr.stroke]="punto.visitado ? '#FFD700' : '#8B4513'"
-                        stroke-width="3"/>
+                        stroke-width="3"
+                        class="punto-circulo"/>
 
-                    <text text-anchor="middle" dy="8" font-size="24" [attr.fill]="punto.desbloqueado ? '#ffffff' : '#666666'">
+                    <!-- Icono -->
+                    <text
+                        [attr.x]="punto.coordenadaX * 10"
+                        [attr.y]="punto.coordenadaY * 10 + 8"
+                        text-anchor="middle"
+                        font-size="24"
+                        [attr.fill]="punto.desbloqueado ? '#ffffff' : '#666666'"
+                        pointer-events="none">
                         {{ obtenerEmojiCategoria(punto.categoria) }}
                     </text>
 
+                    <!-- Badge visitado -->
                     @if (punto.visitado) {
-                        <g>
-                            <circle cx="20" cy="-20" r="12" fill="#FFD700" stroke="#fff" stroke-width="2"/>
-                            <text x="20" y="-15" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">V</text>
+                        <g pointer-events="none">
+                            <circle
+                                [attr.cx]="punto.coordenadaX * 10 + 20"
+                                [attr.cy]="punto.coordenadaY * 10 - 20"
+                                r="12"
+                                fill="#FFD700"
+                                stroke="#fff"
+                                stroke-width="2"/>
+                            <text
+                                [attr.x]="punto.coordenadaX * 10 + 20"
+                                [attr.y]="punto.coordenadaY * 10 - 15"
+                                text-anchor="middle"
+                                font-size="14"
+                                font-weight="bold"
+                                fill="#fff">V</text>
                         </g>
                     }
 
+                    <!-- Candado -->
                     @if (!punto.desbloqueado) {
-                        <text text-anchor="middle" dy="8" font-size="20">🔒</text>
+                        <text
+                            [attr.x]="punto.coordenadaX * 10"
+                            [attr.y]="punto.coordenadaY * 10 + 8"
+                            text-anchor="middle"
+                            font-size="20"
+                            pointer-events="none">🔒</text>
                     }
                 </g>
             }
