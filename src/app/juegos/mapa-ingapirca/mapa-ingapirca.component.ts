@@ -371,7 +371,6 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     }
 
     // ==================== UTILIDADES ====================
-    protected objetivo: any;
 
     puntosVisitados(): number {
         return this.puntos.filter(p => p.visitado).length;
@@ -434,12 +433,196 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         }
     }
 
-    protected subirFotografia($event: FileSelectEvent, objetivo: any) {
+    cargandoFoto = false;
 
+    subirFotografia(event: FileSelectEvent, objetivo: any): void {
+        console.log('📸 Archivo seleccionado:', event.files[0]);
+
+        // No hacer nada aquí, el procesamiento real ocurre en uploadHandler
+        // Este método es solo informativo
     }
 
-    protected procesarFotografia($event: FileUploadHandlerEvent, objetivo: any) {
+    procesarFotografia(event: FileUploadHandlerEvent, objetivo: any): void {
+        if (!event.files || event.files.length === 0) {
+            return;
+        }
 
+        const file = event.files[0];
+
+        const objetivoRef = objetivo; // Guardar referencia
+
+        console.log('📸 Procesando fotografía:', {
+            nombre: file.name,
+            tamaño: file.size,
+            tipo: file.type,
+            objetivo: objetivoRef // Verificar que existe
+        });
+
+        console.log('📸 Procesando fotografía:', {
+            nombre: file.name,
+            tamaño: file.size,
+            tipo: file.type
+        });
+
+        // Validar tamaño (máximo 5MB)
+        if (file.size > 5000000) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Archivo muy grande',
+                detail: 'La imagen no debe superar 5MB'
+            });
+            return;
+        }
+
+        // Validar tipo
+        if (!file.type.startsWith('image/')) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Formato inválido',
+                detail: 'Solo se permiten archivos de imagen'
+            });
+            return;
+        }
+
+        this.cargandoFoto = true;
+
+        // Convertir a Base64
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            const base64String = reader.result as string;
+
+            // Enviar al backend
+            this.capturarFotografia(objetivo, base64String);
+        };
+
+        reader.onerror = (error) => {
+            console.error('Error leyendo archivo:', error);
+            this.cargandoFoto = false;
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo leer el archivo'
+            });
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    private capturarFotografia(objetivo: any, imagenBase64: string): void {
+        if (!this.capaActiva) {
+            this.cargandoFoto = false;
+            return;
+        }
+
+        // Preparar request
+        const request = {
+            partidaId: this.partidaId,
+            objetivoId: objetivo.id,
+            imagenBase64: imagenBase64,
+            descripcionUsuario: null // Opcional: podrías pedir al usuario que describa la foto
+        };
+
+        console.log('📤 Enviando fotografía al backend...');
+
+        this.exploracionService.capturarFotografia(request)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    this.cargandoFoto = false;
+
+                    if (response.exito) {
+                        // Marcar objetivo como completado
+                        objetivo.completada = true;
+
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: '📸 ¡Fotografía Capturada!',
+                            detail: response.mensaje,
+                            life: 5000
+                        });
+
+                        // Mostrar análisis de IA
+                        if (response.analisisIA) {
+                            setTimeout(() => {
+                                this.messageService.add({
+                                    severity: 'info',
+                                    summary: '🤖 Análisis IA',
+                                    detail: response.analisisIA.descripcionIA,
+                                    life: 8000
+                                });
+                            }, 1000);
+                        }
+
+                        // Mostrar recompensas
+                        if (response.recompensas && response.recompensas.length > 0) {
+                            setTimeout(() => {
+                                const recompensasTexto = response.recompensas
+                                    .map(r => `${r.tipo}: +${r.cantidad}`)
+                                    .join(', ');
+
+                                this.messageService.add({
+                                    severity: 'success',
+                                    summary: '🎁 Recompensas',
+                                    detail: recompensasTexto,
+                                    life: 6000
+                                });
+                            }, 2000);
+                        }
+
+                        // Actualizar progreso de la capa
+                        if (this.capaActiva) {
+                            this.capaActiva.fotografiasCompletadas++;
+
+                            // Verificar si completó todas las fotos
+                            const todasCapturadas = this.capaActiva.fotografiasPendientes
+                                .every(obj => obj.completada);
+
+                            if (todasCapturadas) {
+                                setTimeout(() => {
+                                    this.messageService.add({
+                                        severity: 'success',
+                                        summary: '✨ ¡Capa Completada!',
+                                        detail: 'Has capturado todas las fotografías de esta capa',
+                                        life: 5000
+                                    });
+                                }, 3000);
+                            }
+                        }
+
+                    } else {
+                        // Error: no cumple criterios
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: 'Fotografía no válida',
+                            detail: response.mensaje,
+                            life: 5000
+                        });
+
+                        if (response.analisisIA) {
+                            setTimeout(() => {
+                                this.messageService.add({
+                                    severity: 'info',
+                                    summary: '💡 Sugerencia IA',
+                                    detail: response.analisisIA.descripcionIA,
+                                    life: 8000
+                                });
+                            }, 1000);
+                        }
+                    }
+                },
+                error: (error) => {
+                    this.cargandoFoto = false;
+                    console.error('❌ Error capturando fotografía:', error);
+
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo procesar la fotografía. Intenta de nuevo.',
+                        life: 5000
+                    });
+                }
+            });
     }
 
     caminosSVG: string[] = [];

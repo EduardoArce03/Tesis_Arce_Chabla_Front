@@ -297,9 +297,9 @@
                                                 [auto]="true"
                                                 chooseLabel="📷 Subir Foto"
                                                 chooseIcon="pi pi-upload"
-                                                (onSelect)="subirFotografia($event, objetivo)"
+                                                (onSelect)="subirFotografia($event, foto)"
                                                 [customUpload]="true"
-                                                (uploadHandler)="procesarFotografia($event, objetivo)">
+                                                (uploadHandler)="procesarFotografia($event, foto)">
                                             </p-fileUpload>
                                         } @else {
                                             <span class="completado-badge">✓ Completada</span>

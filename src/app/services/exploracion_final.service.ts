@@ -130,15 +130,15 @@ export class ExploracionService {
 
     capturarFotografia(request: {
         partidaId: number;
-        objetivoId: number;
+        objetivoId: any;
         imagenBase64: string;
-        descripcionUsuario?: string;
+        descripcionUsuario: null
     }): Observable<{
         exito: boolean;
         mensaje: string;
         fotografiaId: number | null;
         analisisIA: any;
-        recompensas: RecompensaDTO[];
+        recompensas: RecompensaDTO[]
     }> {
         return this.http.post<any>(
             `${this.apiUrl}/fotografia/capturar`,
