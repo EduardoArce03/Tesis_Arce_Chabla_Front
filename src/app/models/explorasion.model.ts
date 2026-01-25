@@ -143,12 +143,22 @@ export interface NivelCapaDTO {
 // ========================================
 // DTOs PARA SISTEMA DE CAPAS POR PUNTO
 // ========================================
+export interface MarcarObjetivoManualRequest {
+    partidaId: number;
+    objetivoId: number;
+}
 
+export interface MarcarObjetivoManualResponse {
+    exito: boolean;
+    mensaje: string;
+    recompensas: RecompensaDTO[];
+}
 /**
  * ✅ Capa de un punto específico con progreso detallado
  * Este DTO viene del backend ExploracionCapasService
  */
 export interface CapaPuntoDTO {
+    id: number;
     nivelCapa: NivelCapa;
     nombre: string;
     descripcion: string;

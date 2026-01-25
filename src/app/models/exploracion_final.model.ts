@@ -244,3 +244,11 @@ export interface NarrativaGenerada {
     elementosClave: string[];
     timestamp: Date;
 }
+export interface DialogarEspirituRequest {
+    jugadorId: string;      // String
+    capaId: number;         // Long (en Kotlin)
+    pregunta: string;       // String
+    partidaId: number;      // Long
+    nivelCapa: NivelCapa;   // Enum
+    puntoInteresId: number; // Long
+}

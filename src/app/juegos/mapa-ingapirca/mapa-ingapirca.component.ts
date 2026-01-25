@@ -29,6 +29,7 @@ import {
 } from '../../models/explorasion.model';
 import { CapasPuntoComponent } from '@/components/capas-punto.component';
 import { FileSelectEvent, FileUpload, FileUploadHandlerEvent } from 'primeng/fileupload';
+import { DialogarEspirituRequest } from '@/models/exploracion_final.model';
 
 @Component({
     selector: 'app-mapa-ingapirca',
@@ -77,6 +78,14 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
 
     // Diálogo
     preguntaDialogo = '';
+    preguntaActual = '';  // ⬅️ AGREGAR ESTA
+    mostrarRespuestaEspiritu = false;
+    respuestaEspiritu = '';
+    respuestaEspirituVisible = '';
+    nombreEspirituActual = '';
+    cargandoRespuesta = false;
+    typingIntervalEspiritu: any;
+    respuestaCompletaEspiritu = false;
 
     // IDs
     partidaId = 1;
@@ -325,33 +334,56 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     // ==================== DIÁLOGO ====================
 
     enviarPregunta(): void {
-
-
         console.log('🔍 DEBUG enviarPregunta:', {
-                pregunta: this.preguntaDialogo,
-                capaActiva: this.capaActiva,
-                puntoSeleccionado: this.puntoSeleccionado
-            });
+            pregunta: this.preguntaDialogo,
+            capaActiva: this.capaActiva,
+            puntoSeleccionado: this.puntoSeleccionado
+        });
 
-// 1️⃣ CORRECCIÓN DEL CRASH:
-        // Agregamos !this.puntoSeleccionado a la validación.
-        // Si no hay punto seleccionado, no intentamos enviar nada.
+        // Validar datos
         if (!this.preguntaDialogo.trim() || !this.capaActiva || !this.puntoSeleccionado) {
             console.warn("Faltan datos: No hay punto seleccionado o capa activa.");
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Datos incompletos',
+                detail: 'Debes escribir una pregunta válida'
+            });
             return;
         }
-        this.exploracionService.dialogarConEspiritu({
-            partidaId: this.partidaId,
-            nivelCapa: this.capaActiva.nivelCapa,
-            pregunta: this.preguntaDialogo,
-            puntoInteresId: this.puntoSeleccionado!.id
-        }).pipe(takeUntil(this.destroy$))
+
+        this.preguntaActual = this.preguntaDialogo;
+
+        // ⬇️ ESTRUCTURA CORRECTA DEL REQUEST
+        const request: {
+            jugadorId: string;
+            capaId: any;
+            pregunta: string;
+            partidaId: number;
+            nivelCapa: NivelCapa;
+            puntoInteresId: number
+        } = {
+            jugadorId: this.usuarioId.toString(),  // String
+            capaId: this.capaActiva.id,            // Long (number en TS)
+            pregunta: this.preguntaDialogo,        // String
+            partidaId: this.partidaId,             // Long (number en TS)
+            nivelCapa: this.capaActiva.nivelCapa,  // NivelCapa (enum)
+            puntoInteresId: this.puntoSeleccionado.id  // Long (number en TS)
+        };
+
+        console.log('📤 Enviando request de diálogo:', request);
+
+        this.cargandoRespuesta = true;
+
+        this.exploracionService.dialogarConEspiritu(request)
+            .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (response) => {
+                    console.log('✅ Respuesta de diálogo:', response);
+                    this.cargandoRespuesta = false;
                     if (response.exito && response.respuestaEspiritu) {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'this.capaActiva!.nombreEspiritu',
+                            summary: '🌟 Espíritu Ancestral',  // ⬅️ CORREGIDO
                             detail: response.respuestaEspiritu,
                             life: 10000
                         });
@@ -361,14 +393,103 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                             this.capaActiva.dialogosRealizados++;
                         }
 
+                        // Verificar conocimiento desbloqueado
+                        if (response.conocimientoDesbloqueado) {
+
+                        }
+
+                        // Limpiar pregunta
+                        this.respuestaEspiritu = response.respuestaEspiritu;
+                        this.nombreEspirituActual = this.obtenerNombreEspiritu(this.capaActiva?.nivelCapa);
+                        this.mostrarRespuestaEspiritu = true;
+
+                        // Animar texto typewriter
+                        this.animarRespuestaEspiritu(response.respuestaEspiritu);
+
+                        // Incrementar contador
+                        if (this.capaActiva) {
+                            this.capaActiva.dialogosRealizados++;
+                        }
+
+                        // Conocimiento desbloqueado
+                        if (response.conocimientoDesbloqueado) {
+                        }
+
+                        // Limpiar pregunta
                         this.preguntaDialogo = '';
+
+                    } else {
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: 'Sin respuesta',
+                            detail: response.mensaje || 'El espíritu no pudo responder',
+                            life: 5000
+                        });
                     }
                 },
                 error: (error) => {
-                    console.error('Error en diálogo:', error);
+                    console.error('❌ Error en diálogo:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: error.error?.message || 'No se pudo comunicar con el espíritu',
+                        life: 5000
+                    });
+                    this.cargandoRespuesta = false;
+
                 }
             });
     }
+
+    private animarRespuestaEspiritu(texto: string): void {
+        this.respuestaEspirituVisible = '';
+        this.respuestaCompletaEspiritu = false;
+
+        if (this.typingIntervalEspiritu) {
+            clearInterval(this.typingIntervalEspiritu);
+        }
+
+        let index = 0;
+        this.typingIntervalEspiritu = setInterval(() => {
+            if (index < texto.length) {
+                this.respuestaEspirituVisible += texto.charAt(index);
+                index++;
+            } else {
+                clearInterval(this.typingIntervalEspiritu);
+                this.respuestaCompletaEspiritu = true;
+            }
+        }, 30); // 30ms por carácter
+    }
+
+    // ⬇️ NUEVO: Saltar animación
+    saltarAnimacionEspiritu(): void {
+        if (this.typingIntervalEspiritu) {
+            clearInterval(this.typingIntervalEspiritu);
+            this.respuestaEspirituVisible = this.respuestaEspiritu;
+            this.respuestaCompletaEspiritu = true;
+        }
+    }
+
+    // ⬇️ NUEVO: Cerrar diálogo
+    cerrarRespuestaEspiritu(): void {
+        this.mostrarRespuestaEspiritu = false;
+
+        if (this.typingIntervalEspiritu) {
+            clearInterval(this.typingIntervalEspiritu);
+        }
+    }
+
+    // ⬇️ NUEVO: Obtener nombre del espíritu
+    protected obtenerNombreEspiritu(nivel: NivelCapa | undefined): string {
+        const nombres: Record<NivelCapa, string> = {
+            [NivelCapa.SUPERFICIE]: 'Guardián de la Superficie',
+            [NivelCapa.INCA]: 'Espíritu del Inti',
+            [NivelCapa.CANARI]: 'Amawta Cañari',
+            [NivelCapa.ANCESTRAL]: 'Espíritu Primordial'
+        };
+        return nombres[nivel as keyof typeof nombres] || 'Espíritu Ancestral';
+    }
+
 
     // ==================== UTILIDADES ====================
 
@@ -414,14 +535,14 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         return emojis[categoria] || '✨';
     }
 
-    obtenerIconoCapa(nivelCapa: NivelCapa): string {
+    obtenerIconoCapa(nivelCapa: NivelCapa | undefined): string {
         const iconos: Record<NivelCapa, string> = {
             [NivelCapa.SUPERFICIE]: '🏛️',
             [NivelCapa.INCA]: '☀️',
             [NivelCapa.CANARI]: '🌙',
             [NivelCapa.ANCESTRAL]: '⭐'
         };
-        return iconos[nivelCapa] || '📜';
+        return iconos[nivelCapa as keyof typeof iconos] || '📜';
     }
 
     ngOnDestroy(): void {
@@ -723,4 +844,108 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         return conexiones;
     }
 
+    marcarCompletadoManual(objetivo: any): void {
+        console.log('✋ Marcando objetivo manualmente:', objetivo);
+
+        // ⬇️ CONFIRMACIÓN NATIVA (no requiere ConfirmationService)
+        const confirmado = window.confirm(
+            '¿Estás seguro de marcar este objetivo como completado sin validación de IA?\n\n' +
+            '⚠️ Recibirás menos recompensas (50% del valor normal).\n\n' +
+            'Presiona OK para continuar o Cancelar para volver.'
+        );
+
+        if (!confirmado) {
+            return;
+        }
+
+        // Si confirmó, proceder
+        this.confirmarCompletadoManual(objetivo);
+    }
+
+    private confirmarCompletadoManual(objetivo: any): void {
+        if (!this.capaActiva) {
+            return;
+        }
+
+        const request = {
+            partidaId: this.partidaId,
+            objetivoId: objetivo.id
+        };
+
+        console.log('📤 Enviando marcado manual:', request);
+
+        this.exploracionService.marcarObjetivoCompletadoManual(request)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    console.log('✅ Objetivo marcado:', response);
+
+                    if (response.exito) {
+                        // Marcar como completado
+                        objetivo.completada = true;
+                        objetivo.validadaPorIA = false;  // No fue validada por IA
+
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: '✅ Objetivo Completado',
+                            detail: response.mensaje,
+                            life: 5000
+                        });
+
+                        // Mostrar recompensas si las hay
+                        if (response.recompensas && response.recompensas.length > 0) {
+                            setTimeout(() => {
+                                const recompensasTexto = response.recompensas
+                                    .map(r => `${r.tipo}: +${r.cantidad}`)
+                                    .join(', ');
+
+                                this.messageService.add({
+                                    severity: 'info',
+                                    summary: '🎁 Recompensas',
+                                    detail: recompensasTexto,
+                                    life: 6000
+                                });
+                            }, 1000);
+                        }
+
+                        // Actualizar contador
+                        if (this.capaActiva) {
+                            this.capaActiva.fotografiasCompletadas++;
+
+                            // Verificar si completó todas
+                            const todasCapturadas = this.capaActiva.fotografiasPendientes
+                                .every(obj => obj.completada);
+
+                            if (todasCapturadas) {
+                                setTimeout(() => {
+                                    this.messageService.add({
+                                        severity: 'success',
+                                        summary: '✨ ¡Capa Completada!',
+                                        detail: 'Has completado todos los objetivos fotográficos',
+                                        life: 5000
+                                    });
+                                }, 2000);
+                            }
+                        }
+
+                    } else {
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: 'No se pudo completar',
+                            detail: response.mensaje,
+                            life: 5000
+                        });
+                    }
+                },
+                error: (error) => {
+                    console.error('❌ Error marcando objetivo:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo marcar el objetivo como completado',
+                        life: 5000
+                    });
+                }
+            });
+    }
 }

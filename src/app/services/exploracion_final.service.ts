@@ -15,9 +15,10 @@ import {
     CapaPuntoDTO,
     ObjetivoFotograficoDTO,
     DescubrirCapaPuntoRequest,
-    DescubrirCapaPuntoResponse
+    DescubrirCapaPuntoResponse, MarcarObjetivoManualRequest, MarcarObjetivoManualResponse
 } from '../models/explorasion.model';
 import { environment } from '@/env/environment';
+import { DialogarEspirituRequest } from '@/models/exploracion_final.model';
 
 @Injectable({ providedIn: 'root' })
 export class ExploracionService {
@@ -156,12 +157,7 @@ export class ExploracionService {
     // DIÁLOGOS CON ESPÍRITUS
     // ========================================
 
-    dialogarConEspiritu(request: {
-        partidaId: number;
-        nivelCapa: string;
-        pregunta: string;
-        puntoInteresId?: number;
-    }): Observable<{
+    dialogarConEspiritu(request: DialogarEspirituRequest): Observable<{
         exito: boolean;
         mensaje: string;
         respuestaEspiritu: string | null;
@@ -239,5 +235,12 @@ export class ExploracionService {
 
     private obtenerImagenComoBlob(url: string): Observable<Blob> {
         return this.http.get(url, { responseType: 'blob' });
+    }
+
+    marcarObjetivoCompletadoManual(request: MarcarObjetivoManualRequest): Observable<MarcarObjetivoManualResponse> {
+        return this.http.post<MarcarObjetivoManualResponse>(
+            `${this.apiUrl}/fotografia/marcar-manual`,
+            request
+        );
     }
 }

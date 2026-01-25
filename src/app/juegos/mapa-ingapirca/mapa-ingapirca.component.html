@@ -301,6 +301,15 @@
                                                 [customUpload]="true"
                                                 (uploadHandler)="procesarFotografia($event, foto)">
                                             </p-fileUpload>
+                                            <p-button
+                                                label="Marcar como Completado"
+                                                icon="pi pi-check-circle"
+                                                severity="secondary"
+                                                [outlined]="true"
+                                                size="small"
+                                                styleClass="w-full mt-2"
+                                                (onClick)="marcarCompletadoManual(foto)">
+                                            </p-button>
                                         } @else {
                                             <span class="completado-badge">✓ Completada</span>
                                         }
@@ -314,30 +323,109 @@
                     @if (tabActivo === 2) {
                         <div class="dialogo-panel">
                             <div class="espiritu-avatar">
-                                <span class="espiritu-icono">👻</span>
-                                <h3>{{ capaActiva.fotografiasRequeridas }}</h3>
+                                <span class="espiritu-icono">{{ obtenerIconoCapa(capaActiva.nivelCapa) }}</span>
+                                <h3>{{ obtenerNombreEspiritu(capaActiva.nivelCapa) }}</h3>
                                 <p class="espiritu-nombre-kichwa">{{ capaActiva.nombre }}</p>
                             </div>
 
                             <div class="dialogo-stats">
-                                <p>Diálogos realizados: <strong>{{ capaActiva.dialogosRealizados }}/{{ capaActiva.dialogosRealizados }}</strong></p>
+                                <p>Diálogos realizados: <strong>{{ capaActiva.dialogosRealizados }}</strong></p>
                             </div>
 
                             <div class="dialogo-input">
+                                <label for="pregunta-espiritu">
+                                    <i class="pi pi-comments"></i> Pregúntale al espíritu ancestral
+                                </label>
                                 <textarea
+                                    id="pregunta-espiritu"
                                     [(ngModel)]="preguntaDialogo"
-                                    placeholder="Pregúntale al espíritu sobre este lugar, su historia, su cultura..."
-                                    rows="3">
-                                </textarea>
+                                    placeholder="Pregunta sobre este lugar sagrado, su historia, ceremonias, significado cultural..."
+                                    rows="4"
+                                    [disabled]="cargandoRespuesta">
+            </textarea>
+
                                 <p-button
-                                    label="Preguntar"
+                                    label="Consultar al Espíritu"
                                     icon="pi pi-send"
                                     (onClick)="enviarPregunta()"
-                                    [disabled]="!preguntaDialogo?.trim()">
+                                    [disabled]="!preguntaDialogo?.trim() || cargandoRespuesta"
+                                    [loading]="cargandoRespuesta"
+                                    styleClass="w-full">
                                 </p-button>
+
+                                <small class="hint">
+                                    <i class="pi pi-info-circle"></i>
+                                    El espíritu ancestral responderá tus dudas sobre la cultura Cañari
+                                </small>
                             </div>
                         </div>
                     }
+
+                    <!-- ⬇️ DIÁLOGO DE RESPUESTA DEL ESPÍRITU -->
+                    <p-dialog
+                        [(visible)]="mostrarRespuestaEspiritu"
+                        [modal]="true"
+                        [style]="{width: '90vw', maxWidth: '700px'}"
+                        [closable]="true"
+                        [dismissableMask]="false"
+                        styleClass="dialogo-espiritu"
+                        (onHide)="cerrarRespuestaEspiritu()">
+
+                        <ng-template pTemplate="header">
+                            <div class="dialogo-espiritu-header">
+                                <div class="espiritu-avatar-modal">
+                                    <span class="espiritu-icono-grande">{{ obtenerIconoCapa(capaActiva?.nivelCapa) }}</span>
+                                </div>
+                                <div>
+                                    <h2>{{ nombreEspirituActual }}</h2>
+                                    <p class="espiritu-subtitulo">Espíritu Ancestral Cañari</p>
+                                </div>
+                            </div>
+                        </ng-template>
+
+                        <div class="dialogo-espiritu-content">
+                            <!-- Pregunta del usuario -->
+                            <div class="pregunta-usuario">
+                                <div class="pregunta-label">
+                                    <i class="pi pi-user"></i>
+                                    <span>Tu pregunta:</span>
+                                </div>
+                                <p>"{{ preguntaActual || 'Sin pregunta' }}"</p>
+                            </div>
+
+                            <!-- Respuesta del espíritu -->
+                            <div class="respuesta-espiritu" (click)="saltarAnimacionEspiritu()">
+                                <div class="respuesta-label">
+                                    <i class="pi pi-star"></i>
+                                    <span>Respuesta del espíritu:</span>
+                                </div>
+
+                                @if (cargandoRespuesta) {
+                                    <div class="loading-respuesta">
+                                        <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+                                        <p>El espíritu está meditando tu pregunta...</p>
+                                    </div>
+                                } @else {
+                                    <p class="texto-respuesta">{{ respuestaEspirituVisible }}</p>
+
+                                    @if (!respuestaCompletaEspiritu) {
+                                        <small class="hint-click">
+                                            <i class="pi pi-hand-pointer"></i> Click para mostrar todo
+                                        </small>
+                                    }
+                                }
+                            </div>
+                        </div>
+
+                        <ng-template pTemplate="footer">
+                            <p-button
+                                label="Entendido"
+                                icon="pi pi-check"
+                                (onClick)="cerrarRespuestaEspiritu()"
+                                styleClass="w-full">
+                            </p-button>
+                        </ng-template>
+                    </p-dialog>
 
                     <!-- TAB 4: MISIÓN -->
                     @if (tabActivo === 3) {
