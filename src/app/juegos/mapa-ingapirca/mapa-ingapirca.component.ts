@@ -30,6 +30,9 @@ import {
 import { CapasPuntoComponent } from '@/components/capas-punto.component';
 import { FileSelectEvent, FileUpload, FileUploadHandlerEvent } from 'primeng/fileupload';
 import { DialogarEspirituRequest } from '@/models/exploracion_final.model';
+import { SesionService } from '@/services/sesion.service';
+import { CategoriasCultural, NivelDificultad } from '@/models/juego.model';
+import { GuardarPartidaRequest, PartidaService } from '@/services/partida.service';
 
 @Component({
     selector: 'app-mapa-ingapirca',
@@ -91,6 +94,15 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     partidaId = 1;
     usuarioId = 1;
 
+    tiempoInicio!: Date;
+    puntuacionTotal = 0;
+    puntosExplorados = 0;
+    fotografiasCapturadas = 0;
+    dialogosRealizados = 0;
+    nivelSeleccionado = NivelDificultad.FACIL; // Ajusta según tu lógica
+    categoriaSeleccionada = CategoriasCultural.LUGARES;
+    exploracionCompletada = false;
+
     private destroy$ = new Subject<void>();
 
     // Enums para template
@@ -100,7 +112,9 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
 
     constructor(
         private exploracionService: ExploracionService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private sesionService: SesionService,
+        private guardarPartidaService: PartidaService
     ) {}
 
     ngOnInit(): void {
@@ -110,6 +124,9 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     // ==================== INICIALIZACIÓN ====================
 
     inicializar(): void {
+        this.tiempoInicio = new Date(); // ⬅️ AGREGAR
+        this.puntuacionTotal = 0;
+        this.exploracionCompletada = false;
         this.exploracionService.inicializarExploracion(this.partidaId, this.usuarioId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
@@ -169,23 +186,42 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
             return;
         }
 
+        // ⬇️ AGREGAR ESTOS LOGS
+        console.log('============================================');
+        console.log('🎯 PUNTO SELECCIONADO:', punto.nombre, 'ID:', punto.id);
+        console.log('============================================');
+
         this.puntoSeleccionado = punto;
         this.mostrarModalCapas = true;
+        if (!punto.visitado) {
+            this.puntosExplorados++; // ⬅️ AGREGAR
+            this.puntuacionTotal += 10; // ⬅️ AGREGAR
+            punto.visitado = true;
+        }
+        // ⬇️ AGREGAR ESTE LOG
+        console.log('📤 Llamando a obtenerCapasPunto con:');
+        console.log('   - puntoId:', punto.id);
+        console.log('   - partidaId:', this.partidaId);
 
         // Cargar las 4 capas del punto
         this.exploracionService.obtenerCapasPunto(punto.id, this.partidaId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (capas) => {
+                    // ⬇️ AGREGAR ESTOS LOGS CRÍTICOS
+                    console.log('✅ CAPAS RECIBIDAS para punto', punto.nombre, ':', capas);
+                    console.log('   Total de capas:', capas.length);
+                    capas.forEach((capa, index) => {
+                        console.log(`   Capa ${index + 1}:`, capa.nombre,
+                            '- Desbloqueada:', capa.desbloqueada,
+                            '- Fotos:', capa.fotografiasCompletadas + '/' + capa.fotografiasRequeridas);
+                    });
+                    console.log('============================================');
+
                     this.capasPunto = capas;
                 },
                 error: (error) => {
-                    console.error('Error cargando capas:', error);
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'No se pudieron cargar las capas del punto'
-                    });
+                    console.error('❌ ERROR cargando capas:', error);
                 }
             });
     }
@@ -268,6 +304,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                     }
                 });
         }
+        this.verificarExploracionCompleta(); // ⬅️ AGREGAR
     }
 
     cerrarModalExploracion(): void {
@@ -281,6 +318,29 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
 
         // Recargar puntos para actualizar progreso en el mapa
         this.cargarPuntos();
+        this.verificarExploracionCompleta(); // ⬅️ AGREGAR
+
+    }
+
+    private guardarPartidaIncompleta(): void {
+        const usuario = this.sesionService.getUsuario();
+        if (!usuario) return;
+
+        const tiempoSegundos = Math.floor((new Date().getTime() - this.tiempoInicio.getTime()) / 1000);
+
+        const datosPartida: GuardarPartidaRequest = {
+            jugadorId: usuario.id.toString(),
+            nivel: this.nivelSeleccionado,
+            categoria: this.categoriaSeleccionada,
+            puntuacion: this.puntuacionTotal,
+            intentos: this.puntosExplorados,
+            tiempoSegundos: tiempoSegundos,
+            completada: false // ⬅️ Incompleta
+        };
+
+        console.log('💾 Guardando exploración incompleta:', datosPartida);
+
+        this.guardarPartidaService.guardarPartida(datosPartida).subscribe();
     }
 
     // ==================== NARRATIVA ====================
@@ -381,6 +441,8 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                     console.log('✅ Respuesta de diálogo:', response);
                     this.cargandoRespuesta = false;
                     if (response.exito && response.respuestaEspiritu) {
+                        this.dialogosRealizados++; // ⬅️ AGREGAR
+                        this.puntuacionTotal += 15; // ⬅️ AGREGAR
                         this.messageService.add({
                             severity: 'success',
                             summary: '🌟 Espíritu Ancestral',  // ⬅️ CORREGIDO
@@ -439,6 +501,59 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
 
                 }
             });
+    }
+
+    verificarExploracionCompleta(): void {
+        const todosPuntosExplorados = this.puntos.every(p => p.visitado);
+
+        if (todosPuntosExplorados && !this.exploracionCompletada) {
+            this.exploracionCompletada = true;
+            this.guardarPartidaCompletada();
+
+            this.messageService.add({
+                severity: 'success',
+                summary: '🎉 ¡Exploración Completa!',
+                detail: 'Has explorado todos los puntos de Ingapirca',
+                life: 5000
+            });
+        }
+    }
+
+    private guardarPartidaCompletada(): void {
+        const usuario = this.sesionService.getUsuario();
+        if (!usuario) {
+            console.warn('⚠️ No hay usuario en sesión');
+            return;
+        }
+
+        const tiempoSegundos = Math.floor((new Date().getTime() - this.tiempoInicio.getTime()) / 1000);
+
+        const datosPartida: GuardarPartidaRequest = {
+            jugadorId: usuario.id.toString(),
+            nivel: this.nivelSeleccionado,
+            categoria: this.categoriaSeleccionada,
+            puntuacion: this.puntuacionTotal,
+            intentos: this.puntosExplorados, // Puntos explorados como "intentos"
+            tiempoSegundos: tiempoSegundos,
+            completada: true
+        };
+
+        console.log('💾 Guardando exploración completada:', datosPartida);
+
+        this.guardarPartidaService.guardarPartida(datosPartida).subscribe({
+            next: (response) => {
+                console.log('✅ Exploración guardada:', response);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: '💾 Progreso Guardado',
+                    detail: 'Tu exploración ha sido guardada exitosamente',
+                    life: 3000
+                });
+            },
+            error: (error) => {
+                console.error('❌ Error al guardar:', error);
+            }
+        });
     }
 
     private animarRespuestaEspiritu(texto: string): void {
@@ -546,6 +661,10 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        if (this.tiempoInicio && !this.exploracionCompletada && this.puntosExplorados > 0) {
+            console.log('⚠️ Abandonó la exploración');
+            this.guardarPartidaIncompleta();
+        }
         this.destroy$.next();
         this.destroy$.complete();
 
@@ -653,6 +772,9 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                     this.cargandoFoto = false;
 
                     if (response.exito) {
+                        objetivo.completada = true;
+                        this.fotografiasCapturadas++; // ⬅️ AGREGAR
+                        this.puntuacionTotal += 25;
                         // Marcar objetivo como completado
                         objetivo.completada = true;
 

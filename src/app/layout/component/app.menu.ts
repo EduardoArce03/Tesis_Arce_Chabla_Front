@@ -533,19 +533,11 @@ export class AppMenu implements OnInit {
                         tooltip: 'Juegalo ya!'
                     },
                     {
-                        label: 'Misiones',
-                        icon: 'pi pi-book',
-                        routerLink: '/juegos/misiones',
-                        description: 'Completa desafíos educativos',
-                        disabled: true,
-                        tooltip: 'Próximamente disponible'
-                    },
-                    {
                         label: 'Exploración Ingapirca',
                         icon: 'pi pi-map',
                         routerLink: '/juegos/exploracion',
                         description: 'Descubre el sitio arqueológico',
-                        disabled: true,
+                        disabled: false,
                         tooltip: 'Próximamente disponible'
                     },
 

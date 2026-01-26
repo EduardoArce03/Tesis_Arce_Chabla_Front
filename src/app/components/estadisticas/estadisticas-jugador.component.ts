@@ -9,6 +9,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { ChartModule } from 'primeng/chart';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
+import { MessageModule } from 'primeng/message';
 
 import { EstadisticasService } from '@/services/estadisticas.service';
 import { SesionService } from '@/services/sesion.service';
@@ -29,7 +30,8 @@ import { CategoriasCultural, NivelDificultad } from '@/models/juego.model';
         ProgressBarModule,
         ChartModule,
         SkeletonModule,
-        TooltipModule
+        TooltipModule,
+        MessageModule
     ],
     templateUrl: './estadisticas-jugador.component.html',
     styleUrls: ['./estadisticas-jugador.component.scss']
@@ -37,6 +39,7 @@ import { CategoriasCultural, NivelDificultad } from '@/models/juego.model';
 export class EstadisticasJugadorComponent implements OnInit {
     estadisticas?: EstadisticasDetalladasResponse;
     cargando = true;
+    error: string | null = null;
 
     // Datos para gráficos
     chartPuntuaciones: any;
@@ -45,6 +48,7 @@ export class EstadisticasJugadorComponent implements OnInit {
 
     // Opciones de gráficos
     chartOptions: any;
+    chartDoughnutOptions: any;
 
     constructor(
         private estadisticasService: EstadisticasService,
@@ -55,111 +59,310 @@ export class EstadisticasJugadorComponent implements OnInit {
     }
 
     ngOnInit() {
+        console.log('🚀 Iniciando componente de estadísticas');
+
         const usuario = this.sesionService.getUsuario();
+        console.log('👤 Usuario obtenido:', usuario);
 
         if (!usuario) {
+            console.warn('⚠️ No hay usuario en sesión, redirigiendo...');
             this.router.navigate(['/bienvenida']);
             return;
         }
 
+        console.log('📊 Cargando estadísticas para usuario ID:', usuario.id);
         this.cargarEstadisticas(usuario.id);
     }
 
     cargarEstadisticas(usuarioId: number) {
+        console.log('🔄 Iniciando carga de estadísticas para ID:', usuarioId);
         this.cargando = true;
+        this.error = null;
 
         this.estadisticasService.obtenerEstadisticasDetalladas(usuarioId).subscribe({
             next: (data) => {
+                console.log('✅ Estadísticas recibidas exitosamente:', data);
                 this.estadisticas = data;
+
+                // Debug detallado
+                console.log('📈 Resumen General:', data.resumenGeneral);
+                console.log('📋 Historial (primeras 3):', data.historialPartidas?.slice(0, 3));
+                console.log('🎯 Estadísticas por nivel:', data.estadisticasPorNivel);
+                console.log('🎨 Estadísticas por categoría:', data.estadisticasPorCategoria);
+                console.log('📊 Gráfico puntuaciones:', data.graficoPuntuaciones);
+                console.log('🏆 Mejores partidas:', data.mejoresPartidas);
+                console.log('🔥 Rachas:', data.rachas);
+
                 this.generarGraficos();
                 this.cargando = false;
             },
             error: (error) => {
-                console.error('Error al cargar estadísticas:', error);
+                console.error('❌ Error completo:', error);
+                console.error('📍 Status:', error.status);
+                console.error('📍 StatusText:', error.statusText);
+                console.error('📍 Error:', error.error);
+                console.error('📍 Message:', error.message);
+
+                this.error = this.obtenerMensajeError(error);
                 this.cargando = false;
             }
         });
     }
 
-    configurarGraficos() {
-        const documentStyle = getComputedStyle(document.documentElement);
-        const textColor = documentStyle.getPropertyValue('--text-color');
-        const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
-        const surfaceBorder = documentStyle.getPropertyValue('--surface-border');
+    obtenerMensajeError(error: any): string {
+        if (error.status === 0) {
+            return 'No se puede conectar con el servidor. Verifica que el backend esté corriendo.';
+        } else if (error.status === 404) {
+            return 'No se encontraron estadísticas para este usuario. ¿Has jugado alguna partida?';
+        } else if (error.status === 401 || error.status === 403) {
+            return 'No tienes permisos para ver estas estadísticas.';
+        } else if (error.status >= 500) {
+            return 'Error en el servidor. Por favor, intenta más tarde.';
+        }
+        return error.error?.message || error.message || 'Error desconocido al cargar estadísticas';
+    }
 
+    configurarGraficos() {
+        // Configuración para gráficos de línea y barras
         this.chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
+                    display: true,
+                    position: 'bottom',
                     labels: {
-                        color: textColor
+                        padding: 20,
+                        font: {
+                            size: 13,
+                            weight: '600',
+                            family: 'system-ui, -apple-system, sans-serif'
+                        },
+                        color: '#666',
+                        usePointStyle: true,
+                        pointStyle: 'circle',
                     }
+                },
+                tooltip: {
+                    enabled: true,
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#333',
+                    bodyColor: '#666',
+                    borderColor: '#667eea',
+                    borderWidth: 2,
+                    padding: 12,
+                    cornerRadius: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: '700',
+                        family: 'system-ui, -apple-system, sans-serif'
+                    },
+                    bodyFont: {
+                        size: 13,
+                        weight: '600',
+                        family: 'system-ui, -apple-system, sans-serif'
+                    },
+                    displayColors: true,
+                    boxWidth: 12,
+                    boxHeight: 12,
+                    usePointStyle: true,
                 }
             },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: textColorSecondary
-                    },
+                x: {
                     grid: {
-                        color: surfaceBorder,
-                        drawBorder: false
+                        display: false,
+                        drawBorder: false,
+                    },
+                    ticks: {
+                        color: '#999',
+                        font: {
+                            size: 12,
+                            weight: '600',
+                            family: 'system-ui, -apple-system, sans-serif'
+                        },
+                        padding: 10,
+                    },
+                    border: {
+                        display: false
                     }
                 },
-                x: {
-                    ticks: {
-                        color: textColorSecondary
-                    },
+                y: {
+                    beginAtZero: true,
                     grid: {
-                        color: surfaceBorder,
-                        drawBorder: false
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        drawBorder: false,
+                        lineWidth: 1,
+                    },
+                    ticks: {
+                        color: '#999',
+                        font: {
+                            size: 12,
+                            weight: '600',
+                            family: 'system-ui, -apple-system, sans-serif'
+                        },
+                        padding: 10,
+                        stepSize: 20,
+                    },
+                    border: {
+                        display: false
                     }
                 }
-            }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuart',
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            },
+        };
+
+        // Configuración para gráfico doughnut
+        this.chartDoughnutOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 13,
+                            weight: '600',
+                            family: 'system-ui, -apple-system, sans-serif'
+                        },
+                        color: '#666',
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                    }
+                },
+                tooltip: {
+                    enabled: true,
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#333',
+                    bodyColor: '#666',
+                    borderColor: '#667eea',
+                    borderWidth: 2,
+                    padding: 12,
+                    cornerRadius: 12,
+                    callbacks: {
+                        label: (context: any) => {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 1000,
+                easing: 'easeInOutQuart',
+            },
         };
     }
 
     generarGraficos() {
-        if (!this.estadisticas) return;
+        if (!this.estadisticas) {
+            console.warn('⚠️ No hay estadísticas para generar gráficos');
+            return;
+        }
+
+        console.log('📊 Generando gráficos...');
 
         // Gráfico de puntuaciones a lo largo del tiempo
+        const puntuacionesData = this.estadisticas.graficoPuntuaciones || [];
+        console.log('📈 Datos de puntuaciones:', puntuacionesData);
+
         this.chartPuntuaciones = {
-            labels: this.estadisticas.graficoPuntuaciones.map(p => p.fecha),
+            labels: puntuacionesData.map(p => p.fecha),
             datasets: [
                 {
                     label: 'Puntuación',
-                    data: this.estadisticas.graficoPuntuaciones.map(p => p.puntuacion),
+                    data: puntuacionesData.map(p => p.puntuacion),
                     fill: true,
-                    borderColor: '#8B4513',
-                    backgroundColor: 'rgba(139, 69, 19, 0.2)',
-                    tension: 0.4
+                    tension: 0.4,
+                    borderColor: '#667eea',
+                    backgroundColor: (context: any) => {
+                        const ctx = context.chart.ctx;
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                        gradient.addColorStop(0, 'rgba(102, 126, 234, 0.4)');
+                        gradient.addColorStop(1, 'rgba(102, 126, 234, 0.0)');
+                        return gradient;
+                    },
+                    borderWidth: 3,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 3,
+                    pointHoverRadius: 8,
+                    pointHoverBackgroundColor: '#764ba2',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3,
                 }
             ]
         };
 
         // Gráfico por nivel
+        const nivelData = this.estadisticas.estadisticasPorNivel || [];
+        console.log('🎯 Datos por nivel:', nivelData);
+
         this.chartPorNivel = {
-            labels: this.estadisticas.estadisticasPorNivel.map(e => this.getNivelLabel(e.nivel)),
+            labels: nivelData.map(e => this.getNivelLabel(e.nivel)),
             datasets: [
                 {
-                    label: 'Partidas Jugadas',
-                    data: this.estadisticas.estadisticasPorNivel.map(e => e.partidasJugadas),
-                    backgroundColor: ['#667eea', '#FFA500', '#dc3545']
+                    data: nivelData.map(e => e.partidasJugadas),
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.8)',   // Verde (Fácil)
+                        'rgba(245, 158, 11, 0.8)',   // Naranja (Medio)
+                        'rgba(239, 68, 68, 0.8)',    // Rojo (Difícil)
+                    ],
+                    borderColor: [
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(239, 68, 68, 1)',
+                    ],
+                    borderWidth: 3,
+                    hoverOffset: 15,
+                    hoverBorderWidth: 4,
+                    hoverBorderColor: '#ffffff',
                 }
             ]
         };
 
         // Gráfico por categoría
+        const categoriaData = this.estadisticas.estadisticasPorCategoria || [];
+        console.log('🎨 Datos por categoría:', categoriaData);
+
         this.chartPorCategoria = {
-            labels: this.estadisticas.estadisticasPorCategoria.map(e => this.getCategoriaLabel(e.categoria)),
+            labels: categoriaData.map(e => this.getCategoriaLabel(e.categoria)),
             datasets: [
                 {
                     label: 'Puntuación Promedio',
-                    data: this.estadisticas.estadisticasPorCategoria.map(e => e.puntuacionPromedio),
-                    backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe']
+                    data: categoriaData.map(e => e.puntuacionPromedio),
+                    backgroundColor: (context: any) => {
+                        const ctx = context.chart.ctx;
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                        gradient.addColorStop(0, 'rgba(102, 126, 234, 0.9)');
+                        gradient.addColorStop(1, 'rgba(118, 75, 162, 0.7)');
+                        return gradient;
+                    },
+                    borderColor: '#667eea',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
                 }
             ]
         };
+
+        console.log('✅ Gráficos generados exitosamente');
     }
 
     getNivelLabel(nivel: NivelDificultad): string {
@@ -208,5 +411,12 @@ export class EstadisticasJugadorComponent implements OnInit {
 
     volverAlDashboard() {
         this.router.navigate(['/']);
+    }
+
+    recargarEstadisticas() {
+        const usuario = this.sesionService.getUsuario();
+        if (usuario) {
+            this.cargarEstadisticas(usuario.id);
+        }
     }
 }

@@ -1,19 +1,22 @@
 <div class="estadisticas-container">
-    <!-- Header -->
+    <!-- Header Mejorado -->
     <div class="estadisticas-header">
         <div class="header-content">
-            <div class="header-info">
-                <h1>
+            <div class="header-left">
+                <div class="header-icon-wrapper">
                     <i class="pi pi-chart-bar"></i>
-                    Mis Estadísticas
-                </h1>
-                <p>Analiza tu rendimiento y progreso en el juego</p>
+                </div>
+                <div class="header-text">
+                    <h1>Mis Estadísticas</h1>
+                    <p>Analiza tu rendimiento y progreso en el juego</p>
+                </div>
             </div>
             <p-button
-                label="Volver al Dashboard"
+                label="Volver"
                 icon="pi pi-arrow-left"
                 (onClick)="volverAlDashboard()"
-                [outlined]="true">
+                [outlined]="true"
+                styleClass="header-button">
             </p-button>
         </div>
     </div>
@@ -22,297 +25,374 @@
     <div class="loading-state" *ngIf="cargando">
         <div class="grid">
             <div class="col-12 md:col-6 lg:col-3" *ngFor="let i of [1,2,3,4]">
-                <p-card>
-                    <p-skeleton width="100%" height="100px"></p-skeleton>
-                </p-card>
+                <div class="skeleton-card">
+                    <p-skeleton width="100%" height="150px"></p-skeleton>
+                </div>
             </div>
         </div>
-        <p-card styleClass="mt-4">
+        <div class="skeleton-card mt-4">
             <p-skeleton width="100%" height="300px"></p-skeleton>
-        </p-card>
+        </div>
     </div>
 
     <!-- Content -->
     <div class="estadisticas-content" *ngIf="!cargando && estadisticas">
 
-        <!-- Resumen General -->
-        <div class="resumen-section">
-            <h2 class="section-title">
-                <i class="pi pi-chart-line"></i>
-                Resumen General
-            </h2>
-
-            <div class="grid">
-                <!-- Total Partidas -->
-                <div class="col-12 md:col-6 lg:col-3">
-                    <p-card styleClass="stat-card total-card">
-                        <div class="stat-content">
-                            <div class="stat-icon">
-                                <i class="pi pi-play-circle"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value">{{ estadisticas.resumenGeneral.totalPartidas }}</span>
-                                <span class="stat-label">Partidas Totales</span>
-                                <span class="stat-detail">
-                                    {{ estadisticas.resumenGeneral.partidasCompletadas }} completadas
-                                </span>
-                            </div>
-                        </div>
-                        <div class="stat-progress">
-                            <p-progressBar
-                                [value]="estadisticas.resumenGeneral.tasaCompletacion"
-                                [showValue]="false">
-                            </p-progressBar>
-                            <span class="progress-text">
-                                {{ estadisticas.resumenGeneral.tasaCompletacion.toFixed(0) }}% tasa de completación
-                            </span>
-                        </div>
-                    </p-card>
+        <!-- Resumen General - Rediseñado -->
+        <div class="stats-grid">
+            <!-- Total Partidas -->
+            <div class="stat-card-modern total-partidas">
+                <div class="stat-card-header">
+                    <div class="stat-icon-circle">
+                        <i class="pi pi-play-circle"></i>
+                    </div>
+                    <div class="stat-trend">
+                        <span class="trend-icon">📈</span>
+                    </div>
                 </div>
-
-                <!-- Puntuación Total -->
-                <div class="col-12 md:col-6 lg:col-3">
-                    <p-card styleClass="stat-card puntos-card">
-                        <div class="stat-content">
-                            <div class="stat-icon">
-                                <i class="pi pi-star-fill"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value">{{ estadisticas.resumenGeneral.puntuacionTotal }}</span>
-                                <span class="stat-label">Puntos Totales</span>
-                                <span class="stat-detail">
-                                    Promedio: {{ estadisticas.resumenGeneral.puntuacionPromedio.toFixed(0) }}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="best-score" *ngIf="estadisticas.resumenGeneral.mejorPuntuacion">
-                            <i class="pi pi-trophy"></i>
-                            Mejor: {{ estadisticas.resumenGeneral.mejorPuntuacion }}
-                        </div>
-                    </p-card>
+                <div class="stat-card-body">
+                    <h3 class="stat-title">Total Partidas</h3>
+                    <div class="stat-value-wrapper">
+                        <span class="stat-value">{{ estadisticas.resumenGeneral.totalPartidas }}</span>
+                        <span class="stat-unit">partidas</span>
+                    </div>
+                    <div class="stat-detail-row">
+                        <span class="detail-label">Completadas</span>
+                        <span class="detail-value">{{ estadisticas.resumenGeneral.partidasCompletadas }}</span>
+                    </div>
+                    <div class="progress-container">
+                        <p-progressBar
+                            [value]="estadisticas.resumenGeneral.tasaCompletacion"
+                            [showValue]="false">
+                        </p-progressBar>
+                        <span class="progress-label">{{ estadisticas.resumenGeneral.tasaCompletacion.toFixed(0) }}% tasa de completación</span>
+                    </div>
                 </div>
+            </div>
 
-                <!-- Tiempo Jugado -->
-                <div class="col-12 md:col-6 lg:col-3">
-                    <p-card styleClass="stat-card tiempo-card">
-                        <div class="stat-content">
-                            <div class="stat-icon">
-                                <i class="pi pi-clock"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value">{{ estadisticas.resumenGeneral.tiempoTotalMinutos }}</span>
-                                <span class="stat-label">Minutos Jugados</span>
-                                <span class="stat-detail">
-                                    Promedio: {{ estadisticas.resumenGeneral.tiempoPromedioMinutos.toFixed(1) }} min
-                                </span>
-                            </div>
-                        </div>
-                    </p-card>
+            <!-- Puntuación Total -->
+            <div class="stat-card-modern puntos-totales">
+                <div class="stat-card-header">
+                    <div class="stat-icon-circle">
+                        <i class="pi pi-star-fill"></i>
+                    </div>
+                    <div class="stat-badge best-score-badge" *ngIf="estadisticas.resumenGeneral.mejorPuntuacion">
+                        <i class="pi pi-trophy"></i>
+                        {{ estadisticas.resumenGeneral.mejorPuntuacion }}
+                    </div>
                 </div>
+                <div class="stat-card-body">
+                    <h3 class="stat-title">Puntos Totales</h3>
+                    <div class="stat-value-wrapper">
+                        <span class="stat-value">{{ estadisticas.resumenGeneral.puntuacionTotal }}</span>
+                        <span class="stat-unit">pts</span>
+                    </div>
+                    <div class="stat-detail-row">
+                        <span class="detail-label">Promedio</span>
+                        <span class="detail-value">{{ estadisticas.resumenGeneral.puntuacionPromedio.toFixed(0) }} pts</span>
+                    </div>
+                </div>
+            </div>
 
-                <!-- Precisión -->
-                <div class="col-12 md:col-6 lg:col-3">
-                    <p-card styleClass="stat-card precision-card">
-                        <div class="stat-content">
-                            <div class="stat-icon">
-                                <i class="pi pi-bullseye"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value">{{ estadisticas.resumenGeneral.precisionPromedio.toFixed(0) }}%</span>
-                                <span class="stat-label">Precisión Promedio</span>
-                                <span class="stat-detail">
-                                    {{ estadisticas.resumenGeneral.precisionPromedio >= 80 ? '¡Excelente!' : 'Sigue mejorando' }}
-                                </span>
-                            </div>
+            <!-- Tiempo Jugado -->
+            <div class="stat-card-modern tiempo-jugado">
+                <div class="stat-card-header">
+                    <div class="stat-icon-circle">
+                        <i class="pi pi-clock"></i>
+                    </div>
+                </div>
+                <div class="stat-card-body">
+                    <h3 class="stat-title">Tiempo Jugado</h3>
+                    <div class="stat-value-wrapper">
+                        <span class="stat-value">{{ estadisticas.resumenGeneral.tiempoTotalMinutos }}</span>
+                        <span class="stat-unit">min</span>
+                    </div>
+                    <div class="stat-detail-row">
+                        <span class="detail-label">Promedio por partida</span>
+                        <span class="detail-value">{{ estadisticas.resumenGeneral.tiempoPromedioMinutos.toFixed(1) }} min</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Precisión -->
+            <div class="stat-card-modern precision">
+                <div class="stat-card-header">
+                    <div class="stat-icon-circle">
+                        <i class="pi pi-bullseye"></i>
+                    </div>
+                    <div class="stat-badge" [ngClass]="estadisticas.resumenGeneral.precisionPromedio >= 80 ? 'success-badge' : 'warning-badge'">
+                        {{ estadisticas.resumenGeneral.precisionPromedio >= 80 ? '¡Excelente!' : 'Mejorando' }}
+                    </div>
+                </div>
+                <div class="stat-card-body">
+                    <h3 class="stat-title">Precisión</h3>
+                    <div class="stat-value-wrapper">
+                        <span class="stat-value">{{ estadisticas.resumenGeneral.precisionPromedio.toFixed(0) }}</span>
+                        <span class="stat-unit">%</span>
+                    </div>
+                    <div class="precision-chart">
+                        <div class="precision-ring" [style.--precision]="estadisticas.resumenGeneral.precisionPromedio">
+                            <svg viewBox="0 0 36 36">
+                                <path class="circle-bg"
+                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path class="circle"
+                                      [attr.stroke-dasharray]="estadisticas.resumenGeneral.precisionPromedio + ', 100'"
+                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
                         </div>
-                    </p-card>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Rachas -->
-        <div class="rachas-section">
-            <h2 class="section-title">
-                <i class="pi pi-bolt"></i>
-                Rachas
-            </h2>
+        <!-- Rachas - Rediseñadas -->
+        <div class="rachas-container">
+            <div class="section-header">
+                <h2>
+                    <i class="pi pi-bolt"></i>
+                    Rachas y Logros
+                </h2>
+            </div>
 
-            <div class="grid">
-                <div class="col-12 md:col-4">
-                    <p-card styleClass="racha-card actual">
-                        <div class="racha-content">
-                            <div class="racha-icon">🔥</div>
-                            <div class="racha-info">
-                                <span class="racha-value">{{ estadisticas.rachas.rachaActual }}</span>
-                                <span class="racha-label">Racha Actual</span>
-                            </div>
-                        </div>
-                    </p-card>
+            <div class="rachas-grid">
+                <div class="racha-card racha-actual">
+                    <div class="racha-background">
+                        <div class="racha-icon">🔥</div>
+                    </div>
+                    <div class="racha-content">
+                        <span class="racha-label">Racha Actual</span>
+                        <span class="racha-value">{{ estadisticas.rachas.rachaActual }}</span>
+                        <span class="racha-subtitle">partidas consecutivas</span>
+                    </div>
+                    <div class="racha-decoration"></div>
                 </div>
 
-                <div class="col-12 md:col-4">
-                    <p-card styleClass="racha-card mejor">
-                        <div class="racha-content">
-                            <div class="racha-icon">🏆</div>
-                            <div class="racha-info">
-                                <span class="racha-value">{{ estadisticas.rachas.mejorRacha }}</span>
-                                <span class="racha-label">Mejor Racha</span>
-                            </div>
-                        </div>
-                    </p-card>
+                <div class="racha-card racha-mejor">
+                    <div class="racha-background">
+                        <div class="racha-icon">🏆</div>
+                    </div>
+                    <div class="racha-content">
+                        <span class="racha-label">Mejor Racha</span>
+                        <span class="racha-value">{{ estadisticas.rachas.mejorRacha }}</span>
+                        <span class="racha-subtitle">récord personal</span>
+                    </div>
+                    <div class="racha-decoration"></div>
                 </div>
 
-                <div class="col-12 md:col-4">
-                    <p-card styleClass="racha-card consecutivas">
-                        <div class="racha-content">
-                            <div class="racha-icon">⚡</div>
-                            <div class="racha-info">
-                                <span class="racha-value">{{ estadisticas.rachas.partidasConsecutivasSinPerder }}</span>
-                                <span class="racha-label">Sin Perder</span>
-                            </div>
-                        </div>
-                    </p-card>
+                <div class="racha-card racha-invicto">
+                    <div class="racha-background">
+                        <div class="racha-icon">⚡</div>
+                    </div>
+                    <div class="racha-content">
+                        <span class="racha-label">Racha Invicta</span>
+                        <span class="racha-value">{{ estadisticas.rachas.partidasConsecutivasSinPerder }}</span>
+                        <span class="racha-subtitle">partidas sin perder</span>
+                    </div>
+                    <div class="racha-decoration"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Gráficos -->
-        <div class="graficos-section">
-            <div class="grid">
-                <!-- Gráfico de Puntuaciones -->
-                <div class="col-12 lg:col-8">
-                    <p-card>
-                        <ng-template pTemplate="header">
-                            <div class="card-header">
-                                <h3>
-                                    <i class="pi pi-chart-line"></i>
-                                    Evolución de Puntuaciones
-                                </h3>
-                                <p>Últimas 10 partidas</p>
+        <!-- Gráficos - Mejorados -->
+        <div class="charts-section">
+            <div class="charts-grid">
+                <!-- Gráfico Principal -->
+                <div class="chart-card chart-main">
+                    <div class="chart-header">
+                        <div class="chart-title-wrapper">
+                            <i class="pi pi-chart-line"></i>
+                            <div>
+                                <h3>Evolución de Puntuaciones</h3>
+                                <p>Últimas 10 partidas jugadas</p>
                             </div>
-                        </ng-template>
+                        </div>
+                    </div>
+                    <div class="chart-body">
                         <p-chart
                             type="line"
                             [data]="chartPuntuaciones"
                             [options]="chartOptions"
                             [style]="{'height': '300px'}">
                         </p-chart>
-                    </p-card>
+                    </div>
                 </div>
 
                 <!-- Gráfico por Nivel -->
-                <div class="col-12 lg:col-4">
-                    <p-card>
-                        <ng-template pTemplate="header">
-                            <div class="card-header">
-                                <h3>
-                                    <i class="pi pi-chart-bar"></i>
-                                    Por Nivel
-                                </h3>
-                                <p>Distribución</p>
+                <div class="chart-card chart-doughnut">
+                    <div class="chart-header">
+                        <div class="chart-title-wrapper">
+                            <i class="pi pi-chart-pie"></i>
+                            <div>
+                                <h3>Por Nivel</h3>
+                                <p>Distribución de partidas</p>
                             </div>
-                        </ng-template>
+                        </div>
+                    </div>
+                    <div class="chart-body">
                         <p-chart
                             type="doughnut"
                             [data]="chartPorNivel"
                             [style]="{'height': '300px'}">
                         </p-chart>
-                    </p-card>
+                    </div>
                 </div>
+            </div>
 
-                <!-- Gráfico por Categoría -->
-                <div class="col-12">
-                    <p-card>
-                        <ng-template pTemplate="header">
-                            <div class="card-header">
-                                <h3>
-                                    <i class="pi pi-chart-bar"></i>
-                                    Rendimiento por Categoría
-                                </h3>
-                                <p>Puntuación promedio por tipo de juego</p>
-                            </div>
-                        </ng-template>
-                        <p-chart
-                            type="bar"
-                            [data]="chartPorCategoria"
-                            [options]="chartOptions"
-                            [style]="{'height': '250px'}">
-                        </p-chart>
-                    </p-card>
+            <!-- Gráfico por Categoría -->
+            <div class="chart-card chart-full">
+                <div class="chart-header">
+                    <div class="chart-title-wrapper">
+                        <i class="pi pi-chart-bar"></i>
+                        <div>
+                            <h3>Rendimiento por Categoría</h3>
+                            <p>Puntuación promedio por tipo de juego</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <p-chart
+                        type="bar"
+                        [data]="chartPorCategoria"
+                        [options]="chartOptions"
+                        [style]="{'height': '280px'}">
+                    </p-chart>
                 </div>
             </div>
         </div>
 
-        <!-- Mejores Partidas -->
-        <div class="mejores-section">
-            <h2 class="section-title">
-                <i class="pi pi-trophy"></i>
-                Top 5 Mejores Partidas
-            </h2>
+        <!-- Top Partidas - Rediseñado -->
+        <div class="top-partidas-section">
+            <div class="section-header">
+                <h2>
+                    <i class="pi pi-trophy"></i>
+                    Top 5 Mejores Partidas
+                </h2>
+            </div>
 
-            <p-card>
-                <p-table
-                    [value]="estadisticas.mejoresPartidas"
-                    [tableStyle]="{'min-width': '50rem'}"
-                    styleClass="mejores-table">
-                    <ng-template pTemplate="header">
-                        <tr>
-                            <th>Posición</th>
-                            <th>Fecha</th>
-                            <th>Nivel</th>
-                            <th>Categoría</th>
-                            <th>Puntuación</th>
-                            <th>Tiempo</th>
-                            <th>Precisión</th>
-                        </tr>
-                    </ng-template>
-                    <ng-template pTemplate="body" let-partida let-rowIndex="rowIndex">
-                        <tr>
-                            <td>
-                                <span class="position-badge" [ngClass]="'position-' + (rowIndex + 1)">
-                                    {{ rowIndex === 0 ? '🥇' : rowIndex === 1 ? '🥈' : rowIndex === 2 ? '🥉' : '#' + (rowIndex + 1) }}
-                                </span>
-                            </td>
-                            <td>{{ formatearFecha(partida.fechaInicio) }}</td>
-                            <td>
-                                <p-tag
-                                    [value]="getNivelLabel(partida.nivel)"
-                                    [severity]="getNivelSeverity(partida.nivel)">
-                                </p-tag>
-                            </td>
-                            <td>{{ getCategoriaLabel(partida.categoria) }}</td>
-                            <td class="puntuacion-cell">
-                                <strong>{{ partida.puntuacion }}</strong> pts
-                            </td>
-                            <td>{{ formatearTiempo(partida.tiempoSegundos) }}</td>
-                            <td>
-                                <div class="precision-bar">
-                                    <p-progressBar
-                                        [value]="partida.precision"
-                                        [showValue]="false">
-                                    </p-progressBar>
-                                    <span>{{ partida.precision.toFixed(0) }}%</span>
-                                </div>
-                            </td>
-                        </tr>
-                    </ng-template>
-                </p-table>
-            </p-card>
+            <div class="top-partidas-grid">
+                <div class="top-partida-card" *ngFor="let partida of estadisticas.mejoresPartidas; let i = index"
+                     [ngClass]="'position-' + (i + 1)">
+                    <div class="partida-position">
+                        <span class="position-number">{{ i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i + 1) }}</span>
+                    </div>
+                    <div class="partida-info">
+                        <div class="partida-header-row">
+                            <p-tag
+                                [value]="getNivelLabel(partida.nivel)"
+                                [severity]="getNivelSeverity(partida.nivel)">
+                            </p-tag>
+                            <span class="partida-fecha">{{ formatearFecha(partida.fechaInicio) }}</span>
+                        </div>
+                        <div class="partida-categoria">{{ getCategoriaLabel(partida.categoria) }}</div>
+                        <div class="partida-stats-row">
+                            <div class="stat-item">
+                                <i class="pi pi-star-fill"></i>
+                                <span class="stat-value-large">{{ partida.puntuacion }}</span>
+                                <span class="stat-label-small">puntos</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item">
+                                <i class="pi pi-clock"></i>
+                                <span>{{ formatearTiempo(partida.tiempoSegundos) }}</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item">
+                                <i class="pi pi-bullseye"></i>
+                                <span>{{ partida.precision.toFixed(0) }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Historial Completo -->
-        <div class="historial-section">
-            <h2 class="section-title">
-                <i class="pi pi-history"></i>
-                Historial de Partidas
-            </h2>
+        <!-- Análisis por Nivel - Mejorado -->
+        <div class="nivel-analysis-section">
+            <div class="section-header">
+                <h2>
+                    <i class="pi pi-sliders-h"></i>
+                    Análisis por Nivel de Dificultad
+                </h2>
+            </div>
 
-            <p-card>
+            <div class="nivel-cards-grid">
+                <div class="nivel-card" *ngFor="let stats of estadisticas.estadisticasPorNivel"
+                     [ngClass]="'nivel-' + stats.nivel.toLowerCase()">
+                    <div class="nivel-card-header">
+                        <div class="nivel-badge-large">
+                            <span class="nivel-icon">{{ stats.nivel === 'FACIL' ? '🟢' : stats.nivel === 'MEDIO' ? '🟡' : '🔴' }}</span>
+                            <span class="nivel-text">{{ getNivelLabel(stats.nivel) }}</span>
+                        </div>
+                        <p-tag
+                            [value]="stats.partidasJugadas + ' partidas'"
+                            [severity]="getNivelSeverity(stats.nivel)">
+                        </p-tag>
+                    </div>
+
+                    <div class="nivel-stats-grid">
+                        <div class="nivel-stat-item">
+                            <div class="stat-icon-small">✓</div>
+                            <div class="stat-text">
+                                <span class="stat-label">Completadas</span>
+                                <span class="stat-value">{{ stats.partidasCompletadas }}</span>
+                            </div>
+                        </div>
+
+                        <div class="nivel-stat-item">
+                            <div class="stat-icon-small">⭐</div>
+                            <div class="stat-text">
+                                <span class="stat-label">Puntuación Promedio</span>
+                                <span class="stat-value">{{ stats.puntuacionPromedio.toFixed(0) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="nivel-stat-item">
+                            <div class="stat-icon-small">🏆</div>
+                            <div class="stat-text">
+                                <span class="stat-label">Mejor Puntuación</span>
+                                <span class="stat-value">{{ stats.mejorPuntuacion || 'N/A' }}</span>
+                            </div>
+                        </div>
+
+                        <div class="nivel-stat-item">
+                            <div class="stat-icon-small">🎯</div>
+                            <div class="stat-text">
+                                <span class="stat-label">Precisión Promedio</span>
+                                <span class="stat-value">{{ stats.precisionPromedio.toFixed(0) }}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="nivel-progress-section">
+                        <div class="progress-header">
+                            <span>Rendimiento</span>
+                            <span class="progress-percentage">{{ stats.precisionPromedio.toFixed(0) }}%</span>
+                        </div>
+                        <p-progressBar
+                            [value]="stats.precisionPromedio"
+                            [showValue]="false">
+                        </p-progressBar>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial Completo - Tabla Mejorada -->
+        <div class="historial-section">
+            <div class="section-header">
+                <h2>
+                    <i class="pi pi-history"></i>
+                    Historial de Partidas
+                </h2>
+            </div>
+
+            <div class="historial-card">
                 <p-table
                     [value]="estadisticas.historialPartidas"
                     [paginator]="true"
                     [rows]="10"
-                    [tableStyle]="{'min-width': '50rem'}">
+                    [tableStyle]="{'min-width': '50rem'}"
+                    styleClass="modern-table">
                     <ng-template pTemplate="header">
                         <tr>
                             <th>Fecha</th>
@@ -326,7 +406,7 @@
                         </tr>
                     </ng-template>
                     <ng-template pTemplate="body" let-partida>
-                        <tr [ngClass]="{'partida-completada': partida.completada}">
+                        <tr [ngClass]="{'completed-row': partida.completada}">
                             <td>{{ formatearFecha(partida.fechaInicio) }}</td>
                             <td>
                                 <p-tag
@@ -338,21 +418,28 @@
                             <td>
                                 <p-tag
                                     [value]="partida.completada ? 'Completada' : 'Incompleta'"
-                                    [severity]="partida.completada ? 'success' : 'warn'">
+                                    [severity]="partida.completada ? 'success' : 'warn'"
+                                    [icon]="partida.completada ? 'pi pi-check' : 'pi pi-times'">
                                 </p-tag>
                             </td>
-                            <td class="puntuacion-cell">{{ partida.puntuacion }}</td>
+                            <td><strong class="score-highlight">{{ partida.puntuacion }}</strong></td>
                             <td>{{ partida.intentos }}</td>
                             <td>{{ formatearTiempo(partida.tiempoSegundos) }}</td>
-                            <td>{{ partida.precision.toFixed(0) }}%</td>
+                            <td>
+                                <div class="precision-mini-bar">
+                                    <span class="precision-text">{{ partida.precision.toFixed(0) }}%</span>
+                                    <div class="mini-progress" [style.width.%]="partida.precision"></div>
+                                </div>
+                            </td>
                         </tr>
                     </ng-template>
                     <ng-template pTemplate="emptymessage">
                         <tr>
-                            <td colspan="8" class="text-center">
-                                <div class="empty-state">
+                            <td colspan="8">
+                                <div class="empty-table-state">
                                     <i class="pi pi-inbox"></i>
-                                    <p>No hay partidas registradas aún</p>
+                                    <h3>No hay partidas registradas</h3>
+                                    <p>Comienza a jugar para ver tu historial aquí</p>
                                     <p-button
                                         label="Jugar Ahora"
                                         icon="pi pi-play"
@@ -363,73 +450,25 @@
                         </tr>
                     </ng-template>
                 </p-table>
-            </p-card>
-        </div>
-
-        <!-- Estadísticas Detalladas por Nivel -->
-        <div class="detalle-nivel-section">
-            <h2 class="section-title">
-                <i class="pi pi-sliders-h"></i>
-                Análisis por Nivel de Dificultad
-            </h2>
-
-            <div class="grid">
-                <div class="col-12 md:col-4" *ngFor="let stats of estadisticas.estadisticasPorNivel">
-                    <p-card [styleClass]="'nivel-detail-card ' + stats.nivel.toLowerCase()">
-                        <div class="nivel-header">
-                            <h3>{{ getNivelLabel(stats.nivel) }}</h3>
-                            <p-tag
-                                [value]="stats.partidasJugadas + ' partidas'"
-                                [severity]="getNivelSeverity(stats.nivel)">
-                            </p-tag>
-                        </div>
-
-                        <div class="nivel-stats">
-                            <div class="stat-row">
-                                <span class="label">Completadas:</span>
-                                <span class="value">{{ stats.partidasCompletadas }}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="label">Puntuación Promedio:</span>
-                                <span class="value">{{ stats.puntuacionPromedio.toFixed(0) }}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="label">Mejor Puntuación:</span>
-                                <span class="value">{{ stats.mejorPuntuacion || 'N/A' }}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="label">Precisión Promedio:</span>
-                                <span class="value">{{ stats.precisionPromedio.toFixed(0) }}%</span>
-                            </div>
-                        </div>
-
-                        <div class="nivel-progress">
-                            <p-progressBar
-                                [value]="stats.precisionPromedio"
-                                [showValue]="false">
-                            </p-progressBar>
-                        </div>
-                    </p-card>
-                </div>
             </div>
         </div>
 
     </div>
 
-    <!-- Empty State -->
-    <div class="empty-state-container" *ngIf="!cargando && estadisticas && estadisticas.resumenGeneral.totalPartidas === 0">
-        <p-card>
-            <div class="empty-content">
-                <i class="pi pi-inbox" style="font-size: 4rem; color: #999;"></i>
-                <h2>No tienes estadísticas aún</h2>
-                <p>Juega tu primera partida para comenzar a ver tu progreso</p>
-                <p-button
-                    label="Comenzar a Jugar"
-                    icon="pi pi-play"
-                    size="large"
-                    routerLink="/juegos/memoria-cultural">
-                </p-button>
+    <!-- Empty State Mejorado -->
+    <div class="empty-state-modern" *ngIf="!cargando && estadisticas && estadisticas.resumenGeneral.totalPartidas === 0">
+        <div class="empty-state-content">
+            <div class="empty-state-illustration">
+                <i class="pi pi-chart-bar"></i>
             </div>
-        </p-card>
+            <h2>¡Comienza Tu Aventura!</h2>
+            <p>Aún no tienes estadísticas. Juega tu primera partida y comienza a ver tu progreso aquí.</p>
+            <p-button
+                label="Comenzar a Jugar"
+                icon="pi pi-play"
+                size="large"
+                routerLink="/juegos/memoria-cultural">
+            </p-button>
+        </div>
     </div>
 </div>

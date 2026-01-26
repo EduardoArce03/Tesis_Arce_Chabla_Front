@@ -28,6 +28,10 @@ import {
 } from '@/models/juego.model';
 import { PartidaService } from '@/components/partida.service';
 
+// ⬇️ NUEVO: Importar servicio para guardar estadísticas
+import { PartidaService as GuardarPartidaService, GuardarPartidaRequest } from '@/services/partida.service';
+import { SesionService } from '@/services/sesion.service';
+
 @Component({
     standalone: true,
     imports: [
@@ -60,7 +64,11 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
     juegoIniciado = false;
     interval: any;
     juegoGameOver = false;
+    cargandoJuego = false;
 
+    // Tracking de la partida
+    puntuacion = 0;
+    juegoCompletado = false;
 
     // ==================== CONFIGURACIÓN ====================
     categoriaSeleccionada: CategoriasCultural = CategoriasCultural.VESTIMENTA;
@@ -72,7 +80,7 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
     estadoPartida!: EstadoPartida;
 
     // Vidas
-    vidasArray: boolean[] = [true, true, true];
+    vidasArray: boolean[] = [];
 
     // Combos
     mostrarCombo = false;
@@ -114,18 +122,33 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
         { label: 'Difícil (12 pares)', value: NivelDificultad.DIFICIL }
     ];
 
+    debesMostrarPreguntaDespues = false;
+
     constructor(
         private partidaService: PartidaService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        // ⬇️ NUEVO: Inyectar servicios para guardar estadísticas
+        private guardarPartidaService: GuardarPartidaService,
+        private sesionService: SesionService
     ) {}
 
     ngOnInit(): void {
         this.jugadorId = this.obtenerJugadorId();
+        console.log('🎮 Componente de Memoria Cultural iniciado');
+        console.log('👤 Jugador ID:', this.jugadorId);
     }
 
     // ==================== INICIALIZACIÓN ====================
 
     private obtenerJugadorId(): string {
+        // Primero intentar obtener del servicio de sesión
+        const usuario = this.sesionService.getUsuario();
+        if (usuario) {
+            console.log('👤 Usuario de sesión:', usuario);
+            return usuario.id.toString();
+        }
+
+        // Fallback al método anterior
         let id = localStorage.getItem('jugadorId');
         if (!id) {
             id = 'jugador_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -135,6 +158,8 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
     }
 
     iniciarJuego(): void {
+        this.cargandoJuego = true; // ← Activar loading
+
         const request: IniciarPartidaRequest = {
             jugadorId: this.jugadorId,
             nivel: this.nivelSeleccionado,
@@ -151,6 +176,7 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
                 this.resetearEstadoJuego();
                 this.juegoIniciado = true;
                 this.iniciarCronometro();
+                this.cargandoJuego = false; // ← Desactivar loading
 
                 this.messageService.add({
                     severity: 'success',
@@ -208,6 +234,7 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
         this.puntuacionFinal = 0;
         this.insigniasNuevas = [];
         this.mostrarCombo = false;
+        this.puntuacion = 0; // ⬇️ Resetear puntuación
 
         if (this.interval) {
             clearInterval(this.interval);
@@ -243,10 +270,29 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
         if (tarjeta1.elementoId === tarjeta2.elementoId && tarjeta1.id !== tarjeta2.id) {
             // ¡PAREJA CORRECTA!
             this.procesarParejaCorrecta(tarjeta1);
+            this.puntuacion += this.calcularPuntos();
         } else {
             // ERROR
             this.procesarError(tarjeta1);
         }
+    }
+
+    calcularPuntos(): number {
+        let puntosBase = 10;
+
+        switch (this.nivelSeleccionado) {
+            case NivelDificultad.FACIL:
+                puntosBase = 10;
+                break;
+            case NivelDificultad.MEDIO:
+                puntosBase = 20;
+                break;
+            case NivelDificultad.DIFICIL:
+                puntosBase = 30;
+                break;
+        }
+
+        return puntosBase;
     }
 
     private procesarParejaCorrecta(tarjeta: TarjetaMemoria): void {
@@ -312,7 +358,7 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
 
                 if (response.vidasRestantes === 0) {
                     this.manejarGameOver();
-                    return; // Salir, no mostrar narrativa
+                    return;
                 }
 
                 setTimeout(() => {
@@ -324,7 +370,6 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
                     this.elementoActual = tarjeta;
                     this.mostrarNarrativaEducativa = true;
 
-                    // ⬇️ NUEVO: Solo preparar pregunta si el backend lo indica
                     this.debesMostrarPreguntaDespues = response.mostrarPregunta;
                 }, 1000);
             },
@@ -338,7 +383,7 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
         });
     }
 
-    // ⬇️ NUEVO MÉTODO
+    // ⬇️ MODIFICADO: Guardar partida incompleta en Game Over
     private manejarGameOver(): void {
         console.log('💀 GAME OVER - Sin vidas');
 
@@ -350,12 +395,48 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
             this.tarjetasSeleccionadas.forEach(t => t.volteada = false);
             this.tarjetasSeleccionadas = [];
 
+            // ⬇️ NUEVO: Guardar partida incompleta
+            this.guardarPartidaIncompleta();
+
             // Mostrar diálogo de Game Over
             this.juegoGameOver = true;
         }, 1500);
     }
 
-    // ⬇️ NUEVO MÉTODO: Reiniciar después de Game Over
+    // ⬇️ NUEVO MÉTODO: Guardar partida incompleta
+    private guardarPartidaIncompleta(): void {
+        console.log('💾 Guardando partida incompleta (Game Over)');
+
+        const usuario = this.sesionService.getUsuario();
+        if (!usuario) {
+            console.warn('⚠️ No hay usuario en sesión, no se puede guardar');
+            return;
+        }
+
+        const tiempoSegundos = Math.floor((new Date().getTime() - this.tiempoInicio.getTime()) / 1000);
+
+        const datosPartida: GuardarPartidaRequest = {
+            jugadorId: usuario.id.toString(),
+            nivel: this.nivelSeleccionado,
+            categoria: this.categoriaSeleccionada,
+            puntuacion: this.puntuacion,
+            intentos: this.intentos,
+            tiempoSegundos: tiempoSegundos,
+            completada: false // ⬅️ IMPORTANTE: marcar como incompleta
+        };
+
+        console.log('📋 Datos de partida incompleta:', datosPartida);
+
+        this.guardarPartidaService.guardarPartida(datosPartida).subscribe({
+            next: (response) => {
+                console.log('✅ Partida incompleta guardada:', response);
+            },
+            error: (error) => {
+                console.error('❌ Error al guardar partida incompleta:', error);
+            }
+        });
+    }
+
     reiniciarDespuesGameOver(): void {
         this.juegoGameOver = false;
         this.juegoIniciado = false;
@@ -363,9 +444,6 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
         this.tarjetas = [];
         this.resetearEstadoJuego();
     }
-
-    debesMostrarPreguntaDespues = false;
-
 
     // ==================== GAMIFICACIÓN: HINTS ====================
 
@@ -416,7 +494,6 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
     cerrarNarrativa(): void {
         this.mostrarNarrativaEducativa = false;
 
-        // ⬇️ MODIFICADO: Solo mostrar pregunta si el backend lo indicó
         if (this.debesMostrarPreguntaDespues &&
             this.narrativaActual?.preguntaRecuperacion &&
             this.estadoPartida.vidas.vidasActuales < 3) {
@@ -476,7 +553,6 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
             this.animacionCombo = 'combo';
         }
 
-        // Ocultar después de 2 segundos
         setTimeout(() => {
             this.mostrarCombo = false;
         }, 2000);
@@ -502,9 +578,11 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
         }
     }
 
+    // ⬇️ MODIFICADO: Guardar en estadísticas después de finalizar
     private finalizarJuego(): void {
         clearInterval(this.interval);
         this.juegoTerminado = true;
+        this.juegoCompletado = true; // ⬅️ Marcar como completado
 
         if (!this.partidaId) return;
 
@@ -514,8 +592,12 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
             tiempoSegundos: this.tiempoTranscurrido
         };
 
+        console.log('🏁 Finalizando juego con request:', request);
+
         this.partidaService.finalizarPartida(request).subscribe({
             next: (response) => {
+                console.log('✅ Partida finalizada, respuesta del backend:', response);
+
                 this.puntuacionFinal = response.puntuacion;
                 this.insigniasNuevas = response.insignias;
                 this.estadisticasFinales = response.estadisticas;
@@ -526,9 +608,12 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
                     detail: `Puntuación: ${response.puntuacion}`,
                     life: 5000
                 });
+
+                // ⬇️ NUEVO: Guardar en estadísticas
+                this.guardarPartidaCompletada(response.puntuacion);
             },
             error: (error) => {
-                console.error('Error al finalizar partida:', error);
+                console.error('❌ Error al finalizar partida:', error);
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
@@ -538,12 +623,59 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
         });
     }
 
+    // ⬇️ NUEVO MÉTODO: Guardar partida completada
+    private guardarPartidaCompletada(puntuacionFinal: number): void {
+        console.log('💾 Guardando partida completada en estadísticas');
+
+        const usuario = this.sesionService.getUsuario();
+        if (!usuario) {
+            console.warn('⚠️ No hay usuario en sesión, no se puede guardar');
+            return;
+        }
+
+        const tiempoSegundos = Math.floor((new Date().getTime() - this.tiempoInicio.getTime()) / 1000);
+
+        const datosPartida: GuardarPartidaRequest = {
+            jugadorId: usuario.id.toString(),
+            nivel: this.nivelSeleccionado,
+            categoria: this.categoriaSeleccionada,
+            puntuacion: puntuacionFinal, // Usar la puntuación final del backend
+            intentos: this.intentos,
+            tiempoSegundos: tiempoSegundos,
+            completada: true // ⬅️ IMPORTANTE: marcar como completada
+        };
+
+        console.log('📋 Datos de partida completada:', datosPartida);
+
+        this.guardarPartidaService.guardarPartida(datosPartida).subscribe({
+            next: (response) => {
+                console.log('✅ Partida completada guardada en estadísticas:', response);
+                console.log('🎉 Ahora las estadísticas deberían mostrar esta partida!');
+
+                this.messageService.add({
+                    severity: 'success',
+                    summary: '¡Partida guardada!',
+                    detail: 'Puedes ver tus estadísticas en el dashboard',
+                    life: 3000
+                });
+            },
+            error: (error) => {
+                console.error('❌ Error al guardar partida en estadísticas:', error);
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Advertencia',
+                    detail: 'La partida se completó pero no se guardó en estadísticas',
+                    life: 4000
+                });
+            }
+        });
+    }
+
     // ==================== HELPERS ====================
 
     private actualizarVidasArray(): void {
-
         if (!this.estadoPartida || !this.estadoPartida.vidas) {
-            this.vidasArray = [true, true, true]; // Default
+            this.vidasArray = []; // ← Dejar vacío si no hay estado
             return;
         }
 
@@ -586,6 +718,7 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
     reiniciarJuego(): void {
         this.juegoIniciado = false;
         this.juegoTerminado = false;
+        this.juegoCompletado = false;
         this.tarjetas = [];
         this.resetearEstadoJuego();
     }
@@ -606,6 +739,12 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         if (this.interval) {
             clearInterval(this.interval);
+        }
+
+        // ⬇️ NUEVO: Guardar partida incompleta si abandonó el juego
+        if (this.juegoIniciado && !this.juegoTerminado && !this.juegoGameOver && this.intentos > 0) {
+            console.log('⚠️ Jugador abandonó la partida, guardando como incompleta');
+            this.guardarPartidaIncompleta();
         }
     }
 }

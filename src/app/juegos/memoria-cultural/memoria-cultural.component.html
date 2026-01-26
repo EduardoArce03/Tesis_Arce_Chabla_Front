@@ -2,18 +2,22 @@
 <div class="memoria-game-container">
 
     <!-- ==================== PANEL DE CONFIGURACIÓN ==================== -->
-    <div class="config-panel" *ngIf="!juegoIniciado">
-        <p-card>
+    <div class="config-panel" *ngIf="!juegoIniciado && !cargandoJuego">
+        <p-card styleClass="config-card">
             <ng-template pTemplate="header">
                 <div class="card-header">
-                    <h2>🎮 Juego de Memoria Cultural</h2>
+                    <div class="header-icon">🎮</div>
+                    <h2>Juego de Memoria Cultural</h2>
                     <p>Aprende sobre la cultura Cañari e Inca mientras juegas</p>
                 </div>
             </ng-template>
 
             <div class="config-content">
                 <div class="field">
-                    <label for="nivel">Nivel de Dificultad</label>
+                    <label for="nivel">
+                        <i class="pi pi-sliders-h"></i>
+                        Nivel de Dificultad
+                    </label>
                     <p-select
                         id="nivel"
                         [options]="nivelesDisponibles"
@@ -26,7 +30,10 @@
                 </div>
 
                 <div class="field">
-                    <label for="categoria">Categoría Cultural</label>
+                    <label for="categoria">
+                        <i class="pi pi-th-large"></i>
+                        Categoría Cultural
+                    </label>
                     <p-selectButton
                         id="categoria"
                         [options]="categoriasDisponibles"
@@ -42,25 +49,45 @@
                         icon="pi pi-play"
                         (onClick)="iniciarJuego()"
                         [style]="{'width':'100%'}"
-                        styleClass="p-button-lg p-button-success">
+                        styleClass="p-button-lg start-button">
                     </p-button>
                 </div>
             </div>
         </p-card>
     </div>
 
+    <!-- ==================== PANTALLA DE CARGA ==================== -->
+    <div class="loading-screen" *ngIf="cargandoJuego">
+        <div class="loading-content">
+            <div class="loading-icon">
+                <div class="chakana-loader">✦</div>
+            </div>
+            <h2 class="loading-title">Preparando tu juego...</h2>
+            <p class="loading-subtitle">Cargando elementos culturales</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+            <div class="loading-facts">
+                <p class="fact-text">💡 Los Cañaris habitaron el sur del Ecuador</p>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== PANEL DE JUEGO ==================== -->
-    <div class="game-panel" *ngIf="juegoIniciado && !juegoTerminado">
+    <div class="game-panel" *ngIf="juegoIniciado && !juegoTerminado && !cargandoJuego">
 
         <!-- HUD Superior con Gamificación -->
         <div class="game-header">
-            <p-card>
+            <p-card styleClass="hud-card">
                 <div class="hud-container">
                     <!-- Columna Izquierda: Vidas y Stats -->
                     <div class="hud-left">
                         <!-- Sistema de Vidas -->
                         <div class="vidas-container">
-                            <span class="vidas-label">Vidas:</span>
+                            <span class="vidas-label">
+                                <i class="pi pi-heart-fill"></i>
+                                Vidas:
+                            </span>
                             <div class="vidas-hearts">
                                 <i *ngFor="let vida of vidasArray"
                                    class="pi"
@@ -80,7 +107,7 @@
                                 <span>{{ intentos }} intentos</span>
                             </div>
                             <div class="stat-item">
-                                <i class="pi pi-check"></i>
+                                <i class="pi pi-check-circle"></i>
                                 <span>{{ parejasEncontradas }} / {{ tarjetas.length / 2 }}</span>
                             </div>
                         </div>
@@ -108,7 +135,8 @@
                             (onClick)="solicitarHint()"
                             [disabled]="!estadoPartida || estadoPartida.hints?.usosRestantes === 0"
                             severity="info"
-                            [outlined]="true">
+                            [outlined]="true"
+                            styleClass="hint-button">
                         </p-button>
 
                         <!-- Botón Reiniciar -->
@@ -116,7 +144,8 @@
                             icon="pi pi-refresh"
                             label="Reiniciar"
                             (onClick)="reiniciarJuego()"
-                            severity="secondary">
+                            severity="secondary"
+                            [outlined]="true">
                         </p-button>
                     </div>
                 </div>
@@ -136,13 +165,15 @@
                 <div class="card-inner">
                     <div class="card-back">
                         <div class="back-pattern">
-                            <i class="pi pi-star-fill"></i>
-                            <span class="chakana">✦</span>
+                            <div class="chakana">✦</div>
+                            <div class="pattern-dots"></div>
                         </div>
                     </div>
 
                     <div class="card-front">
-                        <img [src]="tarjeta.imagen" [alt]="tarjeta.nombreEspanol">
+                        <div class="card-image">
+                            <img [src]="tarjeta.imagen" [alt]="tarjeta.nombreEspanol">
+                        </div>
                         <div class="card-label">
                             <p class="kichwa-name">{{ tarjeta.nombreKichwa }}</p>
                             <p class="spanish-name">{{ tarjeta.nombreEspanol }}</p>
@@ -154,15 +185,13 @@
 
         <!-- Animación de Combo Flotante -->
         <div class="combo-animation" *ngIf="mostrarCombo" [ngClass]="animacionCombo">
-            <div class="combo-burst">
-                {{ obtenerIconoCombo() }}
-            </div>
+            <div class="combo-burst">{{ obtenerIconoCombo() }}</div>
             <div class="combo-title">{{ obtenerTextoCombo() }}</div>
             <div class="combo-multiplier">x{{ estadoPartida?.combo?.multiplicador }}</div>
         </div>
     </div>
 
-    <!-- ==================== DIÁLOGO: NARRATIVA EDUCATIVA ==================== -->
+    <!-- ==================== DIÁLOGOS (igual que antes) ==================== -->
     <p-dialog
         [(visible)]="mostrarNarrativaEducativa"
         [modal]="true"
@@ -170,7 +199,6 @@
         [style]="{width: '550px'}"
         header="💔 Momento de Aprendizaje"
         styleClass="narrativa-dialog">
-
         <div class="narrativa-content" *ngIf="narrativaActual">
             <div class="narrativa-header">
                 <img [src]="elementoActual?.imagen"
@@ -181,13 +209,10 @@
                     <p class="kichwa-subtitle">{{ narrativaActual.nombreKichwa }}</p>
                 </div>
             </div>
-
             <p-divider></p-divider>
-
             <div class="narrativa-descripcion">
                 <p>{{ narrativaActual.descripcion }}</p>
             </div>
-
             <div class="narrativa-stats">
                 <span class="stat-warning">
                     <i class="pi pi-exclamation-triangle"></i>
@@ -195,7 +220,6 @@
                 </span>
             </div>
         </div>
-
         <ng-template pTemplate="footer">
             <p-button
                 label="Continuar"
@@ -206,7 +230,6 @@
         </ng-template>
     </p-dialog>
 
-    <!-- ==================== DIÁLOGO: PREGUNTA DE RECUPERACIÓN ==================== -->
     <p-dialog
         [(visible)]="mostrarPregunta"
         [modal]="true"
@@ -214,12 +237,10 @@
         [style]="{width: '500px'}"
         header="❤️ Recupera 1 Vida"
         styleClass="pregunta-dialog">
-
         <div class="pregunta-content" *ngIf="narrativaActual?.preguntaRecuperacion">
             <div class="pregunta-texto">
                 <p>{{ narrativaActual?.preguntaRecuperacion?.pregunta }}</p>
             </div>
-
             <div class="pregunta-opciones">
                 <p-button
                     *ngFor="let opcion of narrativaActual?.preguntaRecuperacion?.opciones; let i = index"
@@ -227,10 +248,9 @@
                     (onClick)="responderPregunta(i)"
                     [outlined]="true"
                     [style]="{'width':'100%', 'margin-bottom': '0.5rem'}"
-                    styleClass="p-button-lg">
+                    styleClass="p-button-lg opcion-button">
                 </p-button>
             </div>
-
             <div class="pregunta-info">
                 <small>
                     <i class="pi pi-info-circle"></i>
@@ -240,17 +260,15 @@
         </div>
     </p-dialog>
 
-    <!-- ==================== DIÁLOGO: HINT ==================== -->
     <p-dialog
         [(visible)]="mostrarDialogoHint"
         [modal]="true"
         [style]="{width: '450px'}"
         header="💡 Pista Cultural"
         styleClass="hint-dialog">
-
         <div class="hint-content">
             <div class="hint-icon">
-                <i class="pi pi-lightbulb" style="font-size: 3rem; color: #f39c12;"></i>
+                <i class="pi pi-lightbulb"></i>
             </div>
             <p class="hint-mensaje">{{ hintMensaje }}</p>
             <div class="hint-costo">
@@ -258,7 +276,6 @@
                 <span>-{{ estadoPartida?.hints?.costo }} puntos</span>
             </div>
         </div>
-
         <ng-template pTemplate="footer">
             <p-button
                 label="Entendido"
@@ -268,44 +285,36 @@
         </ng-template>
     </p-dialog>
 
-    <!-- ==================== DIÁLOGO: VICTORIA ==================== -->
     <p-dialog
         [(visible)]="juegoTerminado"
         [modal]="true"
         [closable]="false"
         [style]="{width: '600px'}"
-        header="¡Allillachu! (¡Muy bien!)"
+        header="🎉 ¡Allillachu! (¡Muy bien!)"
         styleClass="victoria-dialog">
-
         <div class="resultados-content">
-            <!-- Puntuación Final -->
             <div class="puntuacion-final">
-                <i class="pi pi-star-fill" style="color: gold; font-size: 3rem;"></i>
+                <div class="trophy-icon">🏆</div>
                 <h3>{{ puntuacionFinal }} puntos</h3>
             </div>
-
             <p-divider></p-divider>
-
-            <!-- Estadísticas Detalladas -->
             <div class="estadisticas-finales">
                 <div class="estadistica">
                     <i class="pi pi-clock"></i>
-                    <span class="label">Tiempo:</span>
+                    <span class="label">Tiempo</span>
                     <span class="valor">{{ estadisticasFinales?.tiempoTotal || tiempoTranscurrido }}s</span>
                 </div>
                 <div class="estadistica">
                     <i class="pi pi-sync"></i>
-                    <span class="label">Intentos:</span>
+                    <span class="label">Intentos</span>
                     <span class="valor">{{ intentos }}</span>
                 </div>
                 <div class="estadistica">
                     <i class="pi pi-percentage"></i>
-                    <span class="label">Precisión:</span>
+                    <span class="label">Precisión</span>
                     <span class="valor">{{ calcularPrecision() }}%</span>
                 </div>
             </div>
-
-            <!-- Estadísticas Gamificación -->
             <div class="estadisticas-gamificacion" *ngIf="estadisticasFinales">
                 <div class="stat-game">
                     <i class="pi pi-heart-fill"></i>
@@ -324,12 +333,9 @@
                     <span>{{ estadisticasFinales.nuevosDescubrimientos }} descubrimientos</span>
                 </div>
             </div>
-
             <p-divider></p-divider>
-
-            <!-- Insignias -->
             <div *ngIf="insigniasNuevas.length > 0" class="insignias-nuevas">
-                <h4>🏆 ¡Nuevas Insignias!</h4>
+                <h4>🏆 ¡Nuevas Insignias Desbloqueadas!</h4>
                 <div class="insignias-grid">
                     <div *ngFor="let insignia of insigniasNuevas" class="insignia-item">
                         <div class="insignia-icono">{{ insignia.icono }}</div>
@@ -339,26 +345,24 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Mensaje si no hay insignias -->
             <div *ngIf="insigniasNuevas.length === 0" class="sin-insignias">
                 <p>💪 ¡Sigue jugando para desbloquear insignias!</p>
             </div>
         </div>
-
         <ng-template pTemplate="footer">
             <p-button
                 label="Jugar de nuevo"
                 icon="pi pi-refresh"
                 (onClick)="reiniciarJuego()"
-                styleClass="p-button-lg">
+                styleClass="p-button-lg p-button-success">
             </p-button>
             <p-button
                 label="Volver al menú"
                 icon="pi pi-home"
                 severity="secondary"
                 (onClick)="volverAlMenu()"
-                styleClass="p-button-lg">
+                styleClass="p-button-lg"
+                [outlined]="true">
             </p-button>
         </ng-template>
     </p-dialog>
@@ -370,16 +374,12 @@
         [style]="{width: '500px'}"
         header="💀 Game Over"
         styleClass="gameover-dialog">
-
         <div class="gameover-content">
             <div class="gameover-icon">
-                <i class="pi pi-times-circle" style="font-size: 5rem; color: #e74c3c;"></i>
+                <i class="pi pi-times-circle"></i>
             </div>
-
             <h3>¡Te has quedado sin vidas!</h3>
-
             <p-divider></p-divider>
-
             <div class="gameover-stats">
                 <div class="stat-item">
                     <i class="pi pi-check"></i>
@@ -394,13 +394,11 @@
                     <span>{{ intentos }} intentos realizados</span>
                 </div>
             </div>
-
             <div class="gameover-message">
                 <p><strong>¡No te rindas!</strong></p>
                 <p>Cada partida es una oportunidad para aprender más sobre la cultura Cañari.</p>
             </div>
         </div>
-
         <ng-template pTemplate="footer">
             <p-button
                 label="Intentar de nuevo"
@@ -413,11 +411,11 @@
                 icon="pi pi-home"
                 severity="secondary"
                 (onClick)="volverAlMenu()"
-                styleClass="p-button-lg">
+                styleClass="p-button-lg"
+                [outlined]="true">
             </p-button>
         </ng-template>
     </p-dialog>
 </div>
 
-<!-- Toast para notificaciones -->
 <p-toast position="top-center"></p-toast>

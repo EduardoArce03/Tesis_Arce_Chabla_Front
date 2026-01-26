@@ -5,48 +5,143 @@
     background: linear-gradient(135deg, #f8f4e6 0%, #e8dcc4 100%);
     position: relative;
 
+    // ==================== PANTALLA DE CARGA ====================
+    .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
+        z-index: 9999;
+
+        .loading-content {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 450px;
+
+            .loading-icon {
+                .chakana-loader {
+                    font-size: 5rem;
+                    color: #8B4513;
+                    animation: rotate 2s linear infinite;
+                }
+            }
+
+            .loading-title {
+                font-size: 1.8rem;
+                font-weight: 700;
+                color: #8B4513;
+                margin: 1.5rem 0 0.5rem;
+            }
+
+            .loading-subtitle {
+                color: #666;
+                margin-bottom: 2rem;
+            }
+
+            .loading-bar {
+                width: 100%;
+                height: 6px;
+                background: #e0e0e0;
+                border-radius: 10px;
+                overflow: hidden;
+                margin-bottom: 2rem;
+
+                .loading-progress {
+                    height: 100%;
+                    background: linear-gradient(90deg, #8B4513, #D2691E, #8B4513);
+                    background-size: 200% 100%;
+                    animation: loading 1.5s linear infinite;
+                }
+            }
+
+            .loading-facts {
+                background: #fff3cd;
+                padding: 1rem;
+                border-radius: 8px;
+                border-left: 4px solid #D2691E;
+
+                .fact-text {
+                    margin: 0;
+                    color: #856404;
+                    font-size: 0.9rem;
+                }
+            }
+        }
+    }
+
     // ==================== PANEL DE CONFIGURACIÓN ====================
     .config-panel {
         max-width: 600px;
         margin: 0 auto;
 
+        ::ng-deep .config-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+
+            .p-card-body {
+                padding: 0;
+            }
+        }
+
         .card-header {
             text-align: center;
-            padding: 1.5rem;
+            padding: 2.5rem 2rem;
+            background: linear-gradient(135deg, #8B4513, #654321);
+            color: white;
+
+            .header-icon {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+                animation: bounce 2s infinite;
+            }
 
             h2 {
-                margin: 0;
-                color: #8B4513;
+                margin: 0 0 0.5rem;
                 font-size: 2rem;
+                font-weight: 700;
             }
 
             p {
-                margin: 0.5rem 0 0;
-                color: #666;
-                font-size: 1.1rem;
+                margin: 0;
+                opacity: 0.9;
             }
         }
 
         .config-content {
-            padding: 1.5rem;
+            padding: 2rem;
 
             .field {
                 margin-bottom: 1.5rem;
 
                 label {
-                    display: block;
-                    margin-bottom: 0.5rem;
-                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    margin-bottom: 0.75rem;
+                    font-weight: 700;
                     color: #8B4513;
-                    font-size: 1rem;
                 }
 
-                ::ng-deep .p-selectbutton {
-                    display: flex;
-                    width: 100%;
+                ::ng-deep .start-button {
+                    background: linear-gradient(135deg, #8B4513, #654321) !important;
+                    border: none !important;
+                    font-size: 1.2rem;
+                    font-weight: 700;
+                    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
 
-                    .p-button {
-                        flex: 1;
+                    &:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
                     }
                 }
             }
@@ -58,6 +153,16 @@
         .game-header {
             margin-bottom: 2rem;
 
+            ::ng-deep .hud-card {
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+
+                .p-card-body {
+                    padding: 1.5rem;
+                }
+            }
+
             .hud-container {
                 display: flex;
                 justify-content: space-between;
@@ -66,19 +171,20 @@
                 flex-wrap: wrap;
 
                 .hud-left {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-
                     .vidas-container {
                         display: flex;
                         align-items: center;
-                        gap: 0.75rem;
+                        gap: 1rem;
+                        margin-bottom: 1rem;
 
                         .vidas-label {
-                            font-weight: 600;
+                            font-weight: 700;
                             color: #8B4513;
                             font-size: 1.1rem;
+
+                            i {
+                                color: #e74c3c;
+                            }
                         }
 
                         .vidas-hearts {
@@ -87,7 +193,6 @@
 
                             i {
                                 font-size: 1.8rem;
-                                transition: all 0.3s ease;
 
                                 &.vida-llena {
                                     color: #e74c3c;
@@ -95,7 +200,7 @@
                                 }
 
                                 &.vida-vacia {
-                                    color: #bdc3c7;
+                                    color: #ddd;
                                     opacity: 0.3;
                                 }
                             }
@@ -110,12 +215,10 @@
                             display: flex;
                             align-items: center;
                             gap: 0.5rem;
-                            font-size: 1rem;
                             font-weight: 600;
                             color: #555;
 
                             i {
-                                font-size: 1.3rem;
                                 color: #8B4513;
                             }
                         }
@@ -123,54 +226,40 @@
                 }
 
                 .hud-center {
-                    flex: 1;
-                    display: flex;
-                    justify-content: center;
-
                     .combo-display {
                         background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
                         padding: 1rem 2rem;
                         border-radius: 15px;
                         box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
                         text-align: center;
-                        animation: pulse 0.5s ease-in-out;
 
                         &.super-combo {
                             background: linear-gradient(135deg, #f39c12, #e67e22);
-                            animation: superPulse 0.8s ease-in-out;
-                        }
-
-                        &.gran-combo {
-                            background: linear-gradient(135deg, #e74c3c, #c0392b);
                         }
 
                         .combo-icon {
                             font-size: 2rem;
-                            margin-bottom: 0.25rem;
                         }
 
                         .combo-text {
                             display: flex;
                             align-items: center;
-                            justify-content: center;
                             gap: 0.5rem;
                             color: white;
 
                             .combo-label {
                                 font-weight: 700;
                                 font-size: 1.2rem;
-                                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
                             }
 
                             .combo-mult {
                                 font-size: 1.5rem;
-                                font-weight: 800;
                                 color: #ffd700;
                             }
                         }
 
                         .combo-counter {
-                            color: rgba(255,255,255,0.9);
+                            color: white;
                             font-size: 0.9rem;
                             margin-top: 0.25rem;
                         }
@@ -180,17 +269,16 @@
                 .hud-right {
                     display: flex;
                     gap: 1rem;
-                    align-items: center;
                 }
             }
         }
     }
 
-    // ==================== TABLERO DE JUEGO ====================
+    // ==================== TABLERO DE JUEGO - CORREGIDO ====================
     .game-board {
         display: grid;
         gap: 1rem;
-        padding: 2rem;
+        padding: 1rem;
         max-width: 1200px;
         margin: 0 auto;
 
@@ -207,24 +295,19 @@
         }
 
         .memory-card {
+            width: 100%;
             aspect-ratio: 3/4;
             cursor: pointer;
             perspective: 1000px;
-            transition: transform 0.2s;
 
             &:hover:not(.matched) {
                 transform: scale(1.05);
             }
 
             &.matched {
-                opacity: 0.6;
-                pointer-events: none;
-
-                .card-inner {
-                    .card-front {
-                        border: 3px solid #27ae60;
-                        box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
-                    }
+                .card-inner .card-front {
+                    border: 3px solid #27ae60;
+                    box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
                 }
             }
 
@@ -248,29 +331,32 @@
                 backface-visibility: hidden;
                 border-radius: 12px;
                 box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                overflow: hidden;
             }
 
             .card-back {
                 background: linear-gradient(135deg, #8B4513, #654321);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-direction: column;
 
                 .back-pattern {
-                    text-align: center;
-                    color: white;
-
-                    i {
-                        font-size: 3rem;
-                        display: block;
-                        margin-bottom: 0.5rem;
-                    }
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
 
                     .chakana {
                         font-size: 4rem;
-                        opacity: 0.3;
+                        color: rgba(255, 215, 0, 0.4);
+                        animation: rotate 20s linear infinite;
+                    }
+
+                    .pattern-dots {
+                        position: absolute;
+                        width: 60%;
+                        height: 60%;
+                        border: 2px solid rgba(255, 215, 0, 0.3);
+                        border-radius: 8px;
+                        transform: rotate(45deg);
                     }
                 }
             }
@@ -280,33 +366,36 @@
                 transform: rotateY(180deg);
                 display: flex;
                 flex-direction: column;
-                padding: 0.5rem;
+                overflow: hidden;
 
-                img {
-                    width: 100%;
-                    height: 70%;
-                    object-fit: cover;
-                    border-radius: 8px;
+                .card-image {
+                    flex: 1;
+                    overflow: hidden;
+                    min-height: 0;
+
+                    img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                    }
                 }
 
                 .card-label {
-                    margin-top: 0.5rem;
+                    padding: 0.75rem;
+                    background: linear-gradient(135deg, #8B4513, #654321);
                     text-align: center;
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
+                    flex-shrink: 0;
 
                     .kichwa-name {
-                        font-weight: bold;
-                        color: #8B4513;
+                        font-weight: 700;
+                        color: white;
                         font-size: 0.95rem;
-                        margin: 0.25rem 0;
+                        margin: 0 0 0.25rem;
                     }
 
                     .spanish-name {
                         font-size: 0.8rem;
-                        color: #666;
+                        color: rgba(255, 255, 255, 0.9);
                         margin: 0;
                     }
                 }
@@ -314,7 +403,7 @@
         }
     }
 
-    // ==================== ANIMACIÓN COMBO FLOTANTE ====================
+    // ==================== ANIMACIÓN COMBO ====================
     .combo-animation {
         position: fixed;
         top: 50%;
@@ -334,10 +423,7 @@
             font-size: 3rem;
             font-weight: 900;
             color: #fff;
-            text-shadow:
-                0 0 10px rgba(255,107,107,0.8),
-                0 0 20px rgba(255,107,107,0.6),
-                0 0 30px rgba(255,107,107,0.4);
+            text-shadow: 0 0 10px rgba(255,107,107,0.8);
             margin-top: 1rem;
         }
 
@@ -345,27 +431,32 @@
             font-size: 4rem;
             font-weight: 900;
             color: #ffd700;
-            text-shadow:
-                0 0 10px rgba(255,215,0,0.8),
-                0 0 20px rgba(255,215,0,0.6);
         }
 
-        &.super-combo {
-            .combo-title {
-                color: #f39c12;
-                animation: rainbow 1s linear infinite;
-            }
+        &.super-combo .combo-title {
+            animation: rainbow 1s linear infinite;
         }
     }
 
-    // ==================== DIÁLOGOS PERSONALIZADOS ====================
+    // ==================== DIÁLOGOS ====================
+    ::ng-deep .narrativa-dialog,
+    ::ng-deep .pregunta-dialog,
+    ::ng-deep .hint-dialog,
+    ::ng-deep .victoria-dialog,
+    ::ng-deep .gameover-dialog {
+        .p-dialog-header {
+            background: linear-gradient(135deg, #8B4513, #654321);
+            color: white;
+        }
 
-    ::ng-deep .narrativa-dialog {
-        .narrativa-content {
+        .narrativa-content,
+        .pregunta-content,
+        .hint-content,
+        .resultados-content,
+        .gameover-content {
             .narrativa-header {
                 display: flex;
                 gap: 1.5rem;
-                align-items: center;
                 margin-bottom: 1rem;
 
                 .narrativa-imagen {
@@ -376,144 +467,55 @@
                     border: 3px solid #8B4513;
                 }
 
-                .narrativa-titulo {
-                    flex: 1;
-
-                    h3 {
-                        margin: 0 0 0.5rem;
-                        color: #8B4513;
-                        font-size: 1.5rem;
-                    }
-
-                    .kichwa-subtitle {
-                        color: #666;
-                        font-style: italic;
-                        margin: 0;
-                    }
+                .narrativa-titulo h3 {
+                    margin: 0 0 0.5rem;
+                    color: #8B4513;
                 }
             }
 
-            .narrativa-descripcion {
+            .narrativa-descripcion,
+            .pregunta-texto {
                 padding: 1rem;
                 background: #f8f9fa;
                 border-radius: 8px;
-                line-height: 1.6;
-                margin-bottom: 1rem;
-
-                p {
-                    margin: 0;
-                    color: #333;
-                }
-            }
-
-            .narrativa-stats {
-                text-align: center;
-                padding: 0.75rem;
-                background: #fff3cd;
-                border-radius: 8px;
-                border-left: 4px solid #ffc107;
-
-                .stat-warning {
-                    color: #856404;
-                    font-weight: 600;
-
-                    i {
-                        margin-right: 0.5rem;
-                    }
-                }
-            }
-        }
-    }
-
-    ::ng-deep .pregunta-dialog {
-        .pregunta-content {
-            .pregunta-texto {
-                background: #e3f2fd;
-                padding: 1.5rem;
-                border-radius: 8px;
-                margin-bottom: 1.5rem;
-                border-left: 4px solid #2196f3;
-
-                p {
-                    margin: 0;
-                    font-size: 1.1rem;
-                    color: #1565c0;
-                    font-weight: 600;
-                }
-            }
-
-            .pregunta-opciones {
                 margin-bottom: 1rem;
             }
-
-            .pregunta-info {
-                text-align: center;
-                color: #666;
-
-                i {
-                    margin-right: 0.5rem;
-                }
-            }
-        }
-    }
-
-    ::ng-deep .hint-dialog {
-        .hint-content {
-            text-align: center;
-            padding: 1rem;
 
             .hint-icon {
-                margin-bottom: 1rem;
-                animation: swing 2s ease-in-out infinite;
+                i {
+                    font-size: 3rem;
+                    color: #f39c12;
+                    animation: swing 2s ease-in-out infinite;
+                }
             }
 
             .hint-mensaje {
-                font-size: 1.2rem;
-                color: #333;
-                line-height: 1.6;
-                margin: 1.5rem 0;
                 padding: 1rem;
                 background: #fff8e1;
                 border-radius: 8px;
                 border: 2px dashed #f39c12;
-            }
-
-            .hint-costo {
-                color: #e74c3c;
-                font-weight: 600;
-
-                i {
-                    margin-right: 0.5rem;
-                }
-            }
-        }
-    }
-
-    ::ng-deep .victoria-dialog {
-        .resultados-content {
-            text-align: center;
-            padding: 1rem;
-
-            .puntuacion-final {
                 margin: 1rem 0;
+            }
 
-                h3 {
-                    margin-top: 0.5rem;
-                    color: #8B4513;
-                    font-size: 2.5rem;
-                }
+            .trophy-icon {
+                font-size: 5rem;
+                animation: bounce 2s infinite;
+            }
+
+            .puntuacion-final h3 {
+                font-size: 2.5rem;
+                color: #8B4513;
+                margin: 1rem 0;
             }
 
             .estadisticas-finales {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 1.5rem;
-                margin: 1.5rem 0;
+                gap: 1rem;
+                margin: 1rem 0;
 
                 .estadistica {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.5rem;
+                    text-align: center;
                     padding: 1rem;
                     background: #f8f9fa;
                     border-radius: 8px;
@@ -526,14 +528,12 @@
                     .label {
                         font-size: 0.85rem;
                         color: #666;
-                        text-transform: uppercase;
-                        letter-spacing: 1px;
                     }
 
                     .valor {
                         font-size: 1.8rem;
-                        font-weight: bold;
-                        color: #8B4513;
+                        font-weight: 700;
+                        color: #333;
                     }
                 }
             }
@@ -542,7 +542,6 @@
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
                 gap: 1rem;
-                margin: 1rem 0;
 
                 .stat-game {
                     background: #e8f5e9;
@@ -553,127 +552,69 @@
                     gap: 0.75rem;
 
                     i {
-                        font-size: 1.5rem;
                         color: #27ae60;
                     }
+                }
+            }
 
-                    span {
-                        font-weight: 600;
-                        color: #2c3e50;
+            .insignias-grid {
+                display: flex;
+                justify-content: center;
+                gap: 2rem;
+
+                .insignia-item {
+                    text-align: center;
+                    background: white;
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+
+                    .insignia-icono {
+                        font-size: 4rem;
+                        animation: bounce 2s infinite;
+                    }
+
+                    .insignia-nombre {
+                        font-weight: 700;
+                        color: #8B4513;
+                        margin: 0.5rem 0;
                     }
                 }
             }
 
-            .insignias-nuevas {
-                margin-top: 1.5rem;
-                padding: 1.5rem;
-                background: linear-gradient(135deg, #fff9e6, #ffe6cc);
-                border-radius: 12px;
-
-                h4 {
-                    color: #8B4513;
-                    margin-bottom: 1.5rem;
-                    font-size: 1.3rem;
-                }
-
-                .insignias-grid {
-                    display: flex;
-                    justify-content: center;
-                    gap: 2rem;
-                    flex-wrap: wrap;
-
-                    .insignia-item {
-                        text-align: center;
-                        background: white;
-                        padding: 1.5rem;
-                        border-radius: 12px;
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                        transition: transform 0.3s ease;
-                        max-width: 150px;
-
-                        &:hover {
-                            transform: translateY(-5px);
-                        }
-
-                        .insignia-icono {
-                            font-size: 4rem;
-                            margin-bottom: 0.5rem;
-                            animation: bounce 2s infinite;
-                        }
-
-                        .insignia-nombre {
-                            margin: 0.5rem 0 0.25rem;
-                            font-weight: 700;
-                            color: #8B4513;
-                            font-size: 1rem;
-                        }
-
-                        .insignia-kichwa {
-                            margin: 0 0 0.5rem;
-                            font-style: italic;
-                            color: #666;
-                            font-size: 0.9rem;
-                        }
-
-                        small {
-                            color: #999;
-                            font-size: 0.75rem;
-                        }
-                    }
-                }
-            }
-
-            .sin-insignias {
-                padding: 2rem;
-                background: #f8f9fa;
-                border-radius: 8px;
-                margin-top: 1rem;
-
-                p {
-                    margin: 0;
-                    color: #666;
-                    font-size: 1.1rem;
-                }
+            .gameover-icon i {
+                font-size: 5rem;
+                color: #e74c3c;
             }
         }
     }
 
     // ==================== ANIMACIONES ====================
-    @keyframes heartbeat {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-    }
-
-    @keyframes pulse {
-        0% { transform: scale(0.9); opacity: 0; }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); opacity: 1; }
-    }
-
-    @keyframes superPulse {
-        0%, 100% { transform: scale(1); }
-        25% { transform: scale(1.1) rotate(-2deg); }
-        75% { transform: scale(1.1) rotate(2deg); }
-    }
-
-    @keyframes comboAppear {
-        0% {
-            transform: translate(-50%, -50%) scale(0);
-            opacity: 0;
-        }
-        50% {
-            transform: translate(-50%, -50%) scale(1.2);
-            opacity: 1;
-        }
-        100% {
-            transform: translate(-50%, -50%) scale(0);
-            opacity: 0;
-        }
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
     }
 
     @keyframes rotate {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    @keyframes heartbeat {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    @keyframes comboAppear {
+        0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        30% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+        70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
     }
 
     @keyframes rainbow {
@@ -684,22 +625,22 @@
         100% { color: #ff6b6b; }
     }
 
-    @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-
     @keyframes swing {
         0%, 100% { transform: rotate(-10deg); }
         50% { transform: rotate(10deg); }
     }
 
     // ==================== RESPONSIVE ====================
+    @media (max-width: 1200px) {
+        .game-header .hud-container {
+            flex-direction: column;
+        }
+    }
+
     @media (max-width: 768px) {
         padding: 1rem;
 
         .game-board {
-            padding: 1rem;
             gap: 0.5rem;
 
             &.grid-facil,
@@ -712,19 +653,8 @@
             }
         }
 
-        .game-header .hud-container {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        ::ng-deep .victoria-dialog .resultados-content {
-            .estadisticas-finales {
-                grid-template-columns: 1fr;
-            }
-
-            .estadisticas-gamificacion {
-                grid-template-columns: 1fr;
-            }
+        ::ng-deep .victoria-dialog .estadisticas-finales {
+            grid-template-columns: 1fr;
         }
     }
 }

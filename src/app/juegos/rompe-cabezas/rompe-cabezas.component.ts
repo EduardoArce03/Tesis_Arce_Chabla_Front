@@ -10,6 +10,9 @@ import { FinalizarPuzzleRequest, ImagenPuzzle, IniciarPuzzleRequest, ProgresoJug
 import { Divider } from 'primeng/divider';
 import { DesafioGenerado, DesafioPuzzleService, PowerUpDisponible, PowerUpPuzzle } from '@/services/desafio-puzzle.service';
 import { ProgressBar } from 'primeng/progressbar';
+import { GuardarPartidaRequest, PartidaService } from '@/services/partida.service';
+import { CategoriasCultural, NivelDificultad } from '@/models/juego.model';
+import { SesionService } from '@/services/sesion.service';
 
 // ============= CLASES AUXILIARES =============
 
@@ -885,10 +888,19 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     private puzzle?: Puzzle;
     private moving: any = {};
 
+    tiempoInicio!: Date;
+    puntuacion = 0;
+    intentos = 0; // Si cuentas movimientos
+    nivelSeleccionado = NivelDificultad.FACIL;
+    categoriaSeleccionada = CategoriasCultural.VESTIMENTA;
+    juegoCompletado = false;
+
     constructor(
         private puzzleService: PuzzleService,
         private desafioService: DesafioPuzzleService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private guardarPartidaService: PartidaService,
+        private sessionService: SesionService
     ) {}
 
     ngOnInit() {
@@ -961,6 +973,12 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     iniciarJuego(): void {
+
+        this.tiempoInicio = new Date(); // ← Agregar
+        this.intentos = 0; // ← Reset
+        this.puntuacion = 0; // ← Reset
+        this.juegoCompletado = false; // ← Reset
+
         if (!this.imagenActual || !this.puzzle) {
             console.error('❌ No hay imagen o puzzle');
             return;
@@ -1092,6 +1110,23 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
         }, 3000);
     }
 
+    calcularPuntuacion(tiempoSegundos: number): number {
+        let puntosBase = 100;
+
+        // Bonificación por velocidad
+        if (tiempoSegundos < 60) puntosBase += 50;
+        else if (tiempoSegundos < 120) puntosBase += 30;
+        else if (tiempoSegundos < 180) puntosBase += 10;
+
+        // Bonificación por nivel
+        switch (this.nivelSeleccionado) {
+            case NivelDificultad.FACIL: return puntosBase;
+            case NivelDificultad.MEDIO: return puntosBase * 1.5;
+            case NivelDificultad.DIFICIL: return puntosBase * 2;
+            default: return puntosBase;
+        }
+    }
+
     checkWin(): void {
         if (!this.puzzle || !this.puzzle.polyPieces) return;
 
@@ -1118,7 +1153,14 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
         };
 
         console.log('🏁 Finalizando puzzle:', request);
+        this.juegoCompletado = true;
 
+        // Calcular puntuación según tiempo
+        const tiempoSegundos = Math.floor((new Date().getTime() - this.tiempoInicio.getTime()) / 1000);
+        this.puntuacion = this.calcularPuntuacion(tiempoSegundos);
+
+        // Guardar partida
+        this.guardarPartidaCompletada(tiempoSegundos);
         this.puzzleService.finalizarPuzzle(request).subscribe({
             next: (response) => {
                 console.log('✅ Puzzle finalizado:', response);
@@ -1148,6 +1190,56 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
                 });
             }
         });
+    }
+
+    private guardarPartidaCompletada(tiempoSegundos: number): void {
+        const usuario = this.sessionService.getUsuario()
+        if (!usuario) {
+            console.warn('⚠️ No hay usuario en sesión');
+            return;
+        }
+
+        const datosPartida: GuardarPartidaRequest = {
+            jugadorId: usuario.id.toString(),
+            nivel: this.nivelSeleccionado,
+            categoria: this.categoriaSeleccionada,
+            puntuacion: this.puntuacion,
+            intentos: this.intentos || 1, // Mínimo 1
+            tiempoSegundos: tiempoSegundos,
+            completada: true
+        };
+
+        console.log('💾 Guardando rompecabezas completado:', datosPartida);
+
+        this.guardarPartidaService.guardarPartida(datosPartida).subscribe({
+            next: (response) => {
+                console.log('✅ Rompecabezas guardado:', response);
+            },
+            error: (error) => {
+                console.error('❌ Error al guardar:', error);
+            }
+        });
+    }
+
+    private guardarPartidaIncompleta(): void {
+        const usuario = this.sessionService.getUsuario();
+        if (!usuario) return;
+
+        const tiempoSegundos = Math.floor((new Date().getTime() - this.tiempoInicio.getTime()) / 1000);
+
+        const datosPartida: GuardarPartidaRequest = {
+            jugadorId: usuario.id.toString(),
+            nivel: this.nivelSeleccionado,
+            categoria: this.categoriaSeleccionada,
+            puntuacion: this.puntuacion,
+            intentos: this.intentos || 1,
+            tiempoSegundos: tiempoSegundos,
+            completada: false // ← Incompleta
+        };
+
+        console.log('💾 Guardando rompecabezas incompleto:', datosPartida);
+
+        this.guardarPartidaService.guardarPartida(datosPartida).subscribe();
     }
 
     continuarSiguiente(): void {
@@ -2043,6 +2135,10 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     ngOnDestroy(): void {
+        if (this.tiempoInicio && !this.juegoCompletado && this.intentos > 0) {
+            console.log('⚠️ Abandonó el rompecabezas');
+            this.guardarPartidaIncompleta();
+        }
         this.detenerContador();
         this.detenerContadorDesafio();
         this.resetGame();
