@@ -136,6 +136,7 @@ export class MemoriaCulturalComponent implements OnInit, OnDestroy {
         this.jugadorId = this.obtenerJugadorId();
         console.log('🎮 Componente de Memoria Cultural iniciado');
         console.log('👤 Jugador ID:', this.jugadorId);
+
     }
 
     // ==================== INICIALIZACIÓN ====================

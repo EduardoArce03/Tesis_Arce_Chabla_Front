@@ -33,6 +33,7 @@ import { DialogarEspirituRequest } from '@/models/exploracion_final.model';
 import { SesionService } from '@/services/sesion.service';
 import { CategoriasCultural, NivelDificultad } from '@/models/juego.model';
 import { GuardarPartidaRequest, PartidaService } from '@/services/partida.service';
+import { TextToSpeechService } from '@/components/text-to-speech.service';
 
 @Component({
     selector: 'app-mapa-ingapirca',
@@ -92,7 +93,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
 
     // IDs
     partidaId = 1;
-    usuarioId = 1;
+    usuarioId: number = 0;
 
     tiempoInicio!: Date;
     puntuacionTotal = 0;
@@ -114,14 +115,18 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         private exploracionService: ExploracionService,
         private messageService: MessageService,
         private sesionService: SesionService,
-        private guardarPartidaService: PartidaService
+        private guardarPartidaService: PartidaService,
+        private tts: TextToSpeechService
     ) {}
 
     ngOnInit(): void {
         this.inicializar();
+        console.log('xd')
+        this.tts.narrar('Esto es una prueba. Proceso a iniciar exploración de Ingapirca');
+        this.usuarioId = this.sesionService.getUsuario()?.id || 0;
     }
 
-    // ==================== INICIALIZACIÓN ====================
+        // ==================== INICIALIZACIÓN ====================
 
     inicializar(): void {
         this.tiempoInicio = new Date(); // ⬅️ AGREGAR
@@ -202,9 +207,9 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         console.log('📤 Llamando a obtenerCapasPunto con:');
         console.log('   - puntoId:', punto.id);
         console.log('   - partidaId:', this.partidaId);
-
+        console.log('usuarioId:', this.usuarioId);
         // Cargar las 4 capas del punto
-        this.exploracionService.obtenerCapasPunto(punto.id, this.partidaId)
+        this.exploracionService.obtenerCapasPunto(punto.id, this.partidaId, this.usuarioId )
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (capas) => {
@@ -296,7 +301,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
 
         // Recargar capas para ver progreso actualizado
         if (this.puntoSeleccionado) {
-            this.exploracionService.obtenerCapasPunto(this.puntoSeleccionado.id, this.partidaId)
+            this.exploracionService.obtenerCapasPunto(this.puntoSeleccionado.id, this.partidaId, this.usuarioId)
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
                     next: (capas) => {
@@ -355,6 +360,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
             this.cargandoNarrativa = false;
             this.narrativaActual = capa.narrativaTexto || this.generarNarrativaFallback(capa);
             this.animarTexto(this.narrativaActual);
+            this.tts.narrar(this.narrativaActual);
         }, 1500);
     }
 

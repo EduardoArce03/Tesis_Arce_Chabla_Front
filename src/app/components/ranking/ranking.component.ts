@@ -69,15 +69,15 @@ import { PartidaService } from '@/components/partida.service';
             </div>
 
             <!-- Podio Top 3 -->
-            <div class="podio-section" *ngIf="ranking.length >= 3">
+            <div class="podio-section" *ngIf="ranking.length >= 1">
                 <div class="podio-container">
                     <!-- Segundo Lugar -->
-                    <div class="podio-card segundo" *ngIf="ranking[1]">
+                    <div class="podio-card segundo" *ngIf="ranking.length >= 2 && ranking[1]">
                         <div class="podio-rank">2</div>
                         <div class="podio-medal">🥈</div>
                         <div class="podio-player">
-                            <div class="player-avatar silver">{{ obtenerIniciales(ranking[1].jugadorId) }}</div>
-                            <h3>{{ ranking[1].jugadorId }}</h3>
+                            <div class="player-avatar silver">{{ obtenerIniciales(ranking[1].nombreJugador) }}</div>
+                            <h3>{{ ranking[1].nombreJugador }}</h3>
                         </div>
                         <div class="podio-score">
                             <span class="score-value">{{ ranking[1].puntuacion }}</span>
@@ -96,7 +96,7 @@ import { PartidaService } from '@/components/partida.service';
                         <div class="podio-medal">🥇</div>
                         <div class="podio-player">
                             <div class="player-avatar gold">{{ obtenerIniciales(ranking[0].jugadorId) }}</div>
-                            <h3>{{ ranking[0].jugadorId }}</h3>
+                            <h3>{{ ranking[0].nombreJugador }}</h3>
                         </div>
                         <div class="podio-score">
                             <span class="score-value">{{ ranking[0].puntuacion }}</span>
@@ -109,12 +109,12 @@ import { PartidaService } from '@/components/partida.service';
                     </div>
 
                     <!-- Tercer Lugar -->
-                    <div class="podio-card tercero" *ngIf="ranking[2]">
+                    <div class="podio-card tercero" *ngIf="ranking.length >= 3 && ranking[2]">
                         <div class="podio-rank">3</div>
                         <div class="podio-medal">🥉</div>
                         <div class="podio-player">
                             <div class="player-avatar bronze">{{ obtenerIniciales(ranking[2].jugadorId) }}</div>
-                            <h3>{{ ranking[2].jugadorId }}</h3>
+                            <h3>{{ ranking[2].nombreJugador }}</h3>
                         </div>
                         <div class="podio-score">
                             <span class="score-value">{{ ranking[2].puntuacion }}</span>
@@ -128,15 +128,15 @@ import { PartidaService } from '@/components/partida.service';
                 </div>
             </div>
 
-            <!-- Tabla -->
-            <div class="tabla-section">
+            <!-- Tabla (solo si hay más de 3) -->
+            <div class="tabla-section" *ngIf="ranking.length > 3">
                 <div class="tabla-header">
                     <h2>Clasificación Completa</h2>
-                    <span class="total-count">{{ ranking.length }} jugadores</span>
+                    <span class="total-count">{{ obtenerRankingTabla().length }} jugadores más</span>
                 </div>
 
                 <div class="tabla-container">
-                    <p-table [value]="ranking.slice(3)">
+                    <p-table [value]="obtenerRankingTabla()">
                         <ng-template pTemplate="header">
                             <tr>
                                 <th style="width: 80px">Pos.</th>
@@ -158,7 +158,7 @@ import { PartidaService } from '@/components/partida.service';
                                 <td>
                                     <div class="player-cell">
                                         <div class="player-avatar-mini">{{ obtenerIniciales(item.jugadorId) }}</div>
-                                        <span class="player-name">{{ item.jugadorId }}</span>
+                                        <span class="player-name">{{ item.nombreJugador }}</span>
                                     </div>
                                 </td>
                                 <td>
@@ -184,16 +184,6 @@ import { PartidaService } from '@/components/partida.service';
                                 </td>
                                 <td>
                                     <span class="fecha-text">{{ formatearFecha(item.fecha) }}</span>
-                                </td>
-                            </tr>
-                        </ng-template>
-                        <ng-template pTemplate="emptymessage">
-                            <tr>
-                                <td colspan="7" class="empty-state">
-                                    <div class="empty-content">
-                                        <i class="pi pi-inbox"></i>
-                                        <p>No hay más jugadores en el ranking</p>
-                                    </div>
                                 </td>
                             </tr>
                         </ng-template>
@@ -619,25 +609,6 @@ import { PartidaService } from '@/components/partida.service';
                             font-size: 0.85rem;
                         }
                     }
-
-                    .empty-state {
-                        .empty-content {
-                            padding: 3rem;
-                            text-align: center;
-
-                            i {
-                                font-size: 3rem;
-                                color: #ddd;
-                                margin-bottom: 1rem;
-                            }
-
-                            p {
-                                color: #999;
-                                font-size: 1rem;
-                                margin: 0;
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -762,16 +733,36 @@ export class RankingComponent implements OnInit {
     cargarRanking() {
         if (this.nivelFiltro && this.categoriaFiltro) {
             this.partidaService.obtenerRankingPorNivelYCategoria(this.nivelFiltro, this.categoriaFiltro).subscribe({
-                next: (data) => this.ranking = data,
+                next: (data) => {
+                    console.log('🔍 RANKING RECIBIDO:', data);
+                    console.log('📊 Total de jugadores:', data.length);
+                    console.log('📋 Datos completos:', JSON.stringify(data, null, 2));
+                    this.ranking = data;
+                },
                 error: (error) => console.error('Error:', error)
             });
         } else {
             this.partidaService.obtenerRankingGlobal().subscribe({
-                next: (data) => this.ranking = data,
+                next: (data) => {
+                    console.log('🔍 RANKING GLOBAL RECIBIDO:', data);
+                    console.log('📊 Total de jugadores:', data.length);
+                    console.log('📋 Datos completos:', JSON.stringify(data, null, 2));
+                    this.ranking = data;
+                },
                 error: (error) => console.error('Error:', error)
             });
         }
     }
+
+    obtenerRankingTabla(): RankingResponse[] {
+        const tabla = this.ranking.length > 3 ? this.ranking.slice(3) : [];
+        console.log('📋 TABLA A MOSTRAR:', tabla);
+        console.log('   - Total ranking:', this.ranking.length);
+        console.log('   - En tabla:', tabla.length);
+        return tabla;
+    }
+
+    // ⬇️ NUEVO MÉTODO
 
     obtenerMejorPuntuacion(): number {
         return this.ranking.length > 0 ? this.ranking[0].puntuacion : 0;

@@ -33,7 +33,6 @@ import { Usuario } from '../../models/usuario.model';
                     <i class="pi pi-bars"></i>
                 </button>
                 <a class="layout-topbar-logo" routerLink="/">
-                    <!-- Logo UPS simplificado -->
                     <div class="ups-logo">
                         <i class="pi pi-graduation-cap"></i>
                     </div>
@@ -45,18 +44,9 @@ import { Usuario } from '../../models/usuario.model';
             </div>
 
             <!-- Acciones del Topbar -->
-            <div class="layout-topbar-actions">
+            <div class="layout-topbar-actions" *ngIf="usuario">
                 <!-- Información del Usuario -->
-                <div class="usuario-info" *ngIf="usuario">
-                    <div class="usuario-avatar">
-                        <p-avatar
-                            [label]="getIniciales(usuario.nombre)"
-                            shape="circle"
-                            [style]="{'background-color':'#8B4513', 'color': '#ffffff'}"
-                            size="large">
-                        </p-avatar>
-                    </div>
-
+                <div class="usuario-info">
                     <div class="usuario-detalles">
                         <span class="usuario-nombre">{{ usuario.nombre }}</span>
                         <span class="usuario-codigo" pTooltip="Código de Jugador" tooltipPosition="bottom">
@@ -64,118 +54,90 @@ import { Usuario } from '../../models/usuario.model';
                             {{ usuario.codigoJugador }}
                         </span>
                     </div>
-                </div>
 
-                <!-- Botones de acción -->
-                <div class="layout-config-menu">
-                    <!-- Modo Oscuro -->
-                    <button
-                        type="button"
-                        class="layout-topbar-action"
-                        (click)="toggleDarkMode()"
-                        pTooltip="Cambiar tema"
-                        tooltipPosition="bottom">
-                        <i [ngClass]="{
-                            'pi': true,
-                            'pi-moon': layoutService.isDarkTheme(),
-                            'pi-sun': !layoutService.isDarkTheme()
-                        }"></i>
-                    </button>
-
-                    <!-- Configurador de Temas -->
-                    <div class="relative">
-                        <button
-                            class="layout-topbar-action layout-topbar-action-highlight"
-                            pStyleClass="@next"
-                            enterFromClass="hidden"
-                            enterActiveClass="animate-scalein"
-                            leaveToClass="hidden"
-                            leaveActiveClass="animate-fadeout"
-                            [hideOnOutsideClick]="true"
-                            pTooltip="Personalizar colores"
-                            tooltipPosition="bottom">
-                            <i class="pi pi-palette"></i>
-                        </button>
-                        <app-configurator />
+                    <div class="usuario-avatar">
+                        <p-avatar
+                            [label]="getIniciales(usuario.nombre)"
+                            shape="circle"
+                            [style]="{'background-color':'#ffffff', 'color': '#8B4513'}"
+                            size="large">
+                        </p-avatar>
                     </div>
-
-                    <!-- Cerrar Sesión -->
-                    <button
-                        type="button"
-                        class="layout-topbar-action cerrar-sesion"
-                        (click)="cerrarSesion()"
-                        *ngIf="usuario"
-                        pTooltip="Cerrar sesión"
-                        tooltipPosition="bottom">
-                        <i class="pi pi-sign-out"></i>
-                    </button>
                 </div>
 
-                <!-- Menú Mobile -->
+                <!-- Botón Cerrar Sesión -->
                 <button
-                    class="layout-topbar-menu-button layout-topbar-action"
-                    pStyleClass="@next"
-                    enterFromClass="hidden"
-                    enterActiveClass="animate-scalein"
-                    leaveToClass="hidden"
-                    leaveActiveClass="animate-fadeout"
-                    [hideOnOutsideClick]="true">
-                    <i class="pi pi-ellipsis-v"></i>
+                    type="button"
+                    class="layout-topbar-action btn-cerrar-sesion"
+                    (click)="cerrarSesion()"
+                    pTooltip="Cerrar sesión"
+                    tooltipPosition="bottom">
+                    <i class="pi pi-sign-out"></i>
                 </button>
-
-                <!-- Menú Desktop -->
-                <div class="layout-topbar-menu hidden lg:block">
-                    <div class="layout-topbar-menu-content">
-                        <button
-                            type="button"
-                            class="layout-topbar-action"
-                            routerLink="/juegos/estadisticas">
-                            <i class="pi pi-chart-bar"></i>
-                            <span>Estadísticas</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="layout-topbar-action"
-                            routerLink="/juegos/ranking">
-                            <i class="pi pi-trophy"></i>
-                            <span>Ranking</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="layout-topbar-action"
-                            *ngIf="usuario">
-                            <i class="pi pi-user"></i>
-                            <span>{{ usuario.nombre }}</span>
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
     `,
     styles: [`
         .layout-topbar {
             background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
 
+            // ==================== LOGO ====================
             .layout-topbar-logo-container {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+
+                .layout-menu-button {
+                    width: 2.5rem;
+                    height: 2.5rem;
+                    border-radius: 8px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: none;
+                    color: white;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+
+                    i {
+                        font-size: 1.2rem;
+                    }
+
+                    &:hover {
+                        background: rgba(255, 255, 255, 0.2);
+                        transform: scale(1.05);
+                    }
+                }
+
                 .layout-topbar-logo {
                     display: flex;
                     align-items: center;
                     gap: 0.75rem;
                     text-decoration: none;
+                    transition: opacity 0.2s ease;
+
+                    &:hover {
+                        opacity: 0.9;
+                    }
 
                     .ups-logo {
-                        width: 45px;
-                        height: 45px;
+                        width: 48px;
+                        height: 48px;
                         background: white;
-                        border-radius: 8px;
+                        border-radius: 10px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 
                         i {
-                            font-size: 1.8rem;
+                            font-size: 2rem;
                             color: #8B4513;
                         }
                     }
@@ -183,114 +145,137 @@ import { Usuario } from '../../models/usuario.model';
                     .logo-text {
                         display: flex;
                         flex-direction: column;
+                        gap: 0.1rem;
 
                         .universidad {
-                            font-size: 1.5rem;
-                            font-weight: 700;
+                            font-size: 1.6rem;
+                            font-weight: 800;
                             color: white;
-                            line-height: 1.2;
+                            line-height: 1;
                             letter-spacing: 2px;
                         }
 
                         .subtitulo {
-                            font-size: 0.75rem;
-                            color: rgba(255, 255, 255, 0.9);
-                            font-weight: 500;
+                            font-size: 0.7rem;
+                            color: rgba(255, 255, 255, 0.85);
+                            font-weight: 600;
                             text-transform: uppercase;
-                            letter-spacing: 1px;
+                            letter-spacing: 1.5px;
                         }
                     }
                 }
             }
 
+            // ==================== ACCIONES ====================
             .layout-topbar-actions {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+
                 .usuario-info {
                     display: flex;
                     align-items: center;
                     gap: 1rem;
-                    padding: 0.5rem 1rem;
-                    background: rgba(255, 255, 255, 0.1);
+                    padding: 0.5rem 1.25rem;
+                    background: rgba(255, 255, 255, 0.12);
                     border-radius: 50px;
-                    margin-right: 1rem;
                     backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    transition: all 0.2s ease;
+
+                    &:hover {
+                        background: rgba(255, 255, 255, 0.18);
+                        border-color: rgba(255, 255, 255, 0.25);
+                    }
 
                     .usuario-detalles {
                         display: flex;
                         flex-direction: column;
+                        gap: 0.15rem;
 
                         .usuario-nombre {
-                            font-weight: 600;
+                            font-weight: 700;
                             color: white;
                             font-size: 0.95rem;
+                            line-height: 1.2;
                         }
 
                         .usuario-codigo {
-                            font-size: 0.75rem;
-                            color: rgba(255, 255, 255, 0.8);
+                            font-size: 0.7rem;
+                            color: rgba(255, 255, 255, 0.75);
                             font-family: 'Courier New', monospace;
                             display: flex;
                             align-items: center;
-                            gap: 0.25rem;
+                            gap: 0.3rem;
+                            font-weight: 500;
 
                             i {
-                                font-size: 0.7rem;
+                                font-size: 0.65rem;
                             }
+                        }
+                    }
+
+                    .usuario-avatar {
+                        ::ng-deep .p-avatar {
+                            width: 44px;
+                            height: 44px;
+                            font-size: 1.1rem;
+                            font-weight: 700;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                            border: 2px solid rgba(255, 255, 255, 0.3);
                         }
                     }
                 }
 
-                .layout-config-menu {
-                    .layout-topbar-action {
-                        color: white;
+                .btn-cerrar-sesion {
+                    width: 2.75rem;
+                    height: 2.75rem;
+                    border-radius: 50%;
+                    background: rgba(255, 59, 48, 0.2);
+                    border: 1px solid rgba(255, 59, 48, 0.3);
+                    color: white;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
 
-                        &.cerrar-sesion {
-                            background: rgba(255, 59, 48, 0.2);
-
-                            &:hover {
-                                background: rgba(255, 59, 48, 0.3);
-                            }
-                        }
-
-                        &:hover {
-                            background: rgba(255, 255, 255, 0.1);
-                        }
+                    i {
+                        font-size: 1.1rem;
                     }
-                }
-            }
 
-            // Override para botones del menú
-            .layout-menu-button {
-                color: white;
+                    &:hover {
+                        background: rgba(255, 59, 48, 0.35);
+                        border-color: rgba(255, 59, 48, 0.5);
+                        transform: scale(1.05);
+                    }
 
-                &:hover {
-                    background: rgba(255, 255, 255, 0.1);
-                }
-            }
-
-            .layout-topbar-menu {
-                .layout-topbar-menu-content {
-                    button {
-                        color: white;
-
-                        &:hover {
-                            background: rgba(255, 255, 255, 0.1);
-                        }
+                    &:active {
+                        transform: scale(0.95);
                     }
                 }
             }
         }
 
-        // Responsive
+        // ==================== RESPONSIVE ====================
         @media (max-width: 991px) {
             .layout-topbar {
+                padding: 0.75rem 1rem;
+
                 .layout-topbar-actions {
+                    gap: 0.75rem;
+
                     .usuario-info {
                         padding: 0.5rem;
-                        margin-right: 0.5rem;
 
                         .usuario-detalles {
                             display: none;
                         }
+                    }
+
+                    .btn-cerrar-sesion {
+                        width: 2.5rem;
+                        height: 2.5rem;
                     }
                 }
             }
@@ -298,11 +283,40 @@ import { Usuario } from '../../models/usuario.model';
 
         @media (max-width: 575px) {
             .layout-topbar {
+                padding: 0.5rem 0.75rem;
+
                 .layout-topbar-logo-container {
+                    gap: 0.5rem;
+
                     .layout-topbar-logo {
+                        .ups-logo {
+                            width: 40px;
+                            height: 40px;
+
+                            i {
+                                font-size: 1.6rem;
+                            }
+                        }
+
                         .logo-text {
+                            .universidad {
+                                font-size: 1.3rem;
+                            }
+
                             .subtitulo {
                                 display: none;
+                            }
+                        }
+                    }
+                }
+
+                .layout-topbar-actions {
+                    .usuario-info {
+                        .usuario-avatar {
+                            ::ng-deep .p-avatar {
+                                width: 38px;
+                                height: 38px;
+                                font-size: 0.95rem;
                             }
                         }
                     }
@@ -322,7 +336,6 @@ export class AppTopbar implements OnInit {
     ) {}
 
     ngOnInit() {
-        // Suscribirse a cambios en el usuario
         this.sesionService.usuario$.subscribe(usuario => {
             this.usuario = usuario;
         });
@@ -335,9 +348,6 @@ export class AppTopbar implements OnInit {
         }));
     }
 
-    /**
-     * Obtener iniciales del nombre para el avatar
-     */
     getIniciales(nombre: string): string {
         if (!nombre) return '?';
 
@@ -349,9 +359,6 @@ export class AppTopbar implements OnInit {
         return (palabras[0][0] + palabras[palabras.length - 1][0]).toUpperCase();
     }
 
-    /**
-     * Cerrar sesión
-     */
     cerrarSesion() {
         if (confirm('¿Estás seguro de cerrar sesión?')) {
             this.sesionService.cerrarSesion();

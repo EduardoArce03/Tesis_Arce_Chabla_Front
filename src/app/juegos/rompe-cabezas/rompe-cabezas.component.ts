@@ -915,7 +915,7 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     // ==================== MÉTODOS BACKEND ====================
 
     private obtenerJugadorId(): string {
-        let jugadorId = localStorage.getItem('jugadorId');
+        let jugadorId = this.sessionService.getUsuario()?.codigoJugador
         if (!jugadorId) {
             jugadorId = `jugador_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             localStorage.setItem('jugadorId', jugadorId);

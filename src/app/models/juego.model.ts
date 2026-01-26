@@ -122,6 +122,7 @@ export interface RankingResponse {
     categoria: CategoriasCultural;
     tiempoSegundos: number;
     fecha: string;
+    nombreJugador: string;
 }
 
 // Tarjeta para el juego (frontend only)

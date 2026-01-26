@@ -90,11 +90,13 @@ export class ExploracionService {
      * 🆕 Obtener las 4 capas de un punto específico con su progreso
      * GET /puntos/{puntoId}/capas?partidaId=X
      */
-    obtenerCapasPunto(puntoId: number, partidaId: number): Observable<CapaPuntoDTO[]> {
-        const params = new HttpParams().set('partidaId', partidaId.toString());
+    obtenerCapasPunto(puntoId: number, partidaId: number, usuarioId: number): Observable<CapaPuntoDTO[]> {
+        const params = new HttpParams()
+            .set('partidaId', partidaId.toString())
+            .set('usuarioId', usuarioId.toString()); // ⬅️ AGREGAR
 
         return this.http.get<CapaPuntoDTO[]>(
-            `${this.apiUrl}/puntos/${puntoId}/capas`,
+            `${this.apiUrl}/capas/${puntoId}`,
             { params }
         );
     }
