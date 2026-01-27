@@ -9,11 +9,6 @@ export default [
     },
 
     // ========== MISIONES ==========
-    {
-        path: 'misiones/:id/ejecutar',
-        loadComponent: () => import('./misiones/components/ejecutar-mision/ejecutar-mision.component')
-            .then(m => m.EjecutarMisionComponent)
-    },
 
     {
         path: 'misiones/:id',

@@ -1,653 +1,868 @@
-// mapa-ingapirca.component.scss - ESTILOS FLUJO COMPLETO
+// ============================================
+// VARIABLES Y TEMA
+// ============================================
+$color-primary: #8B4513;
+$color-secondary: #DAA520;
+$color-accent: #CD7F32;
+$color-success: #4CAF50;
+$color-info: #2196F3;
+$color-warning: #FF9800;
 
+$bg-main: linear-gradient(135deg, #f8f4e6 0%, #e8dcc4 100%);
+$bg-card: #ffffff;
+$bg-surface: #f9f7f1;
+$bg-hover: #fefefe;
+
+$border-color: #e0e0e0;
+$text-primary: #333;
+$text-secondary: #666;
+$text-muted: #999;
+
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-full: 50%;
+
+$transition-fast: 0.2s ease;
+$transition-normal: 0.3s ease;
+
+// ============================================
+// CONTENEDOR PRINCIPAL
+// ============================================
 .exploracion-container {
     padding: 2rem;
     min-height: 100vh;
-    background: linear-gradient(135deg, #f8f4e6 0%, #e8dcc4 100%);
+    background: $bg-main;
+    animation: fadeIn 0.5s ease;
+}
 
-    .header-exploracion {
-        margin-bottom: 2rem;
+// ============================================
+// HEADER CON PROGRESO
+// ============================================
+.header-exploracion {
+    margin-bottom: 2rem;
 
-        h2 {
-            margin: 0;
-            color: #8B4513;
-            font-size: 2rem;
-        }
+    ::ng-deep .p-card {
+        border: none;
+        box-shadow: $shadow-md;
+        border-radius: $radius-lg;
+        overflow: hidden;
 
-        .subtitle {
-            margin: 0.5rem 0 0 0;
-            color: #666;
-        }
-
-        .progreso-info {
-            text-align: right;
-            min-width: 250px;
-
-            .puntos-visitados {
-                display: block;
-                font-weight: 600;
-                color: #8B4513;
-                margin-bottom: 0.5rem;
-            }
+        .p-card-content {
+            padding: 1.5rem;
         }
     }
 
-    .mapa-container {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        padding: 2rem;
-        margin-bottom: 2rem;
+    h2 {
+        margin: 0;
+        color: $color-primary;
+        font-size: clamp(1.5rem, 4vw, 2rem);
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
 
-        .mapa-svg {
-            width: 100%;
-            height: auto;
-            max-height: 600px;
+    .subtitle {
+        margin: 0.5rem 0 0 0;
+        color: $text-secondary;
+        font-size: 0.95rem;
+    }
+
+    .progreso-info {
+        text-align: right;
+        min-width: 250px;
+
+        .puntos-visitados {
             display: block;
-            border-radius: 8px;
-            border: 3px solid #8B4513;
-
-            // ⬇️ HOVER SIN MOVIMIENTO - SOLO OPACIDAD Y SOMBRA
-            .punto-interes {
-                cursor: pointer;
-                transition: opacity 0.2s ease;
-
-                &.desbloqueado:hover {
-                    opacity: 0.9;
-
-                    .punto-circulo {
-                        filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
-                        transition: filter 0.2s ease;
-                    }
-                }
-
-                &.bloqueado {
-                    cursor: not-allowed;
-                    opacity: 0.5;
-                }
-
-                .punto-circulo {
-                    transition: filter 0.2s ease;
-                }
-
-                // ⬇️ ANIMACIÓN DE PULSO MÁS SUAVE
-                .glow-pulse {
-                    animation: pulse 2.5s ease-in-out infinite;
-                }
-            }
-        }
-    }
-
-    // ⬇️ ANIMACIÓN MEJORADA (sin cambio de tamaño)
-    @keyframes pulse {
-        0%, 100% {
-            opacity: 0.2;
-        }
-        50% {
-            opacity: 0.4;
-        }
-    }
-
-    .leyenda {
-        max-width: 800px;
-        margin: 0 auto;
-
-        .leyenda-items {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 1rem;
-
-            .leyenda-item {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-
-                .icono-leyenda {
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    border: 2px solid #8B4513;
-
-                    &.bloqueado {
-                        background: #cccccc;
-                    }
-                }
-            }
-        }
-    }
-
-    // MODAL HEADER
-    .dialog-header {
-        h2 {
-            margin: 0;
-            color: #8B4513;
+            font-weight: 600;
+            color: $color-primary;
+            margin-bottom: 0.5rem;
+            font-size: 1.05rem;
         }
 
-        .nombre-kichwa {
-            display: block;
-            color: #DAA520;
-            font-size: 1.1rem;
-            font-style: italic;
-            margin-top: 0.25rem;
-        }
-    }
-
-    // MODAL DE EXPLORACIÓN
-    .exploracion-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        gap: 2rem;
-
-        h2 {
-            margin: 0;
-            color: #8B4513;
-        }
-
-        .badge-capa {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: #8B4513;
-            color: white;
+        ::ng-deep .p-progressbar {
+            height: 12px;
             border-radius: 20px;
-            font-weight: bold;
-            margin-top: 0.5rem;
+            background: rgba($color-primary, 0.1);
+            overflow: hidden;
+
+            .p-progressbar-value {
+                background: linear-gradient(90deg, $color-primary 0%, $color-secondary 100%);
+                transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            }
         }
 
-        .progreso-capa {
-            min-width: 200px;
+        .stats-extra {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+
+            span {
+                font-size: 0.9rem;
+                color: $text-secondary;
+                background: $bg-surface;
+                padding: 0.35rem 0.75rem;
+                border-radius: $radius-sm;
+                font-weight: 500;
+                white-space: nowrap;
+            }
+        }
+    }
+}
+
+// ============================================
+// MAPA SVG
+// ============================================
+.mapa-container {
+    background: $bg-card;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-md;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, $color-primary 0%, $color-secondary 100%);
+    }
+
+    .mapa-svg {
+        width: 100%;
+        height: auto;
+        max-height: 600px;
+        display: block;
+        border-radius: $radius-md;
+        border: 3px solid $color-primary;
+        background: #f5f1e8;
+
+        .camino-punto {
+            stroke: $color-primary;
+            stroke-width: 2.5;
+            fill: none;
+            stroke-dasharray: 10, 5;
+            opacity: 0.25;
+            stroke-linecap: round;
+        }
+
+        .punto-interes {
+            cursor: pointer;
+            transition: all $transition-normal;
+
+            &:hover:not(.explorado) {
+                .punto-circulo {
+                    filter: drop-shadow(0 0 16px rgba($color-secondary, 0.8));
+                }
+            }
+
+            &.explorado {
+                .punto-circulo {
+                    fill: $color-primary;
+                    stroke: $color-secondary;
+                }
+            }
+
+            .glow-pulse {
+                animation: pulse 2.5s ease-in-out infinite;
+            }
+
+            .punto-circulo {
+                transition: filter $transition-normal;
+            }
+        }
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.2;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+// ============================================
+// MODAL: CAPAS DEL PUNTO
+// ============================================
+.dialog-header {
+    h2 {
+        margin: 0;
+        color: $color-primary;
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
+
+    p {
+        margin: 0.5rem 0 0 0;
+        color: $text-secondary;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+}
+
+.capas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
+
+    .capa-card {
+        background: $bg-card;
+        border-radius: $radius-lg;
+        padding: 1.75rem;
+        border: 2px solid $border-color;
+        transition: all $transition-normal;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, $color-primary, $color-secondary);
+            transform: scaleX(0);
+            transition: transform $transition-normal;
+        }
+
+        &:hover {
+            border-color: $color-primary;
+            box-shadow: $shadow-lg;
+            transform: translateY(-4px);
+
+            &::before {
+                transform: scaleX(1);
+            }
+        }
+
+        &.completada {
+            border-color: $color-success;
+            background: linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%);
+
+            &::before {
+                background: $color-success;
+                transform: scaleX(1);
+            }
+        }
+
+        &.desbloqueada:not(.completada) {
+            border-color: $color-secondary;
+        }
+
+        .capa-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+
+            .capa-icono {
+                font-size: 2.5rem;
+                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+            }
+
+            h3 {
+                margin: 0;
+                flex: 1;
+                color: $color-primary;
+                font-size: 1.2rem;
+                font-weight: 600;
+            }
+
+            .badge-bloqueado {
+                background: linear-gradient(135deg, #999 0%, #666 100%);
+                color: white;
+                padding: 0.35rem 0.75rem;
+                border-radius: $radius-sm;
+                font-size: 0.85rem;
+                font-weight: 600;
+            }
+        }
+
+        .capa-progreso {
+            margin-bottom: 1.25rem;
+
+            ::ng-deep .p-progressbar {
+                height: 10px;
+                border-radius: 10px;
+                background: rgba($color-primary, 0.1);
+                margin-bottom: 0.5rem;
+
+                .p-progressbar-value {
+                    background: linear-gradient(90deg, $color-primary, $color-secondary);
+                }
+            }
 
             span {
                 display: block;
-                font-weight: 600;
-                color: #666;
-                margin-bottom: 0.5rem;
+                text-align: center;
+                font-size: 0.9rem;
+                color: $text-secondary;
+                font-weight: 500;
             }
         }
-    }
 
-    .exploracion-content {
-        padding: 1rem 0;
-
-        // TABS PERSONALIZADOS
-        .tabs-navegacion {
+        .capa-stats {
             display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            border-bottom: 2px solid #e0e0e0;
-            overflow-x: auto;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
 
-            .tab-button {
-                padding: 0.75rem 1.5rem;
-                background: transparent;
-                border: none;
-                border-bottom: 3px solid transparent;
-                cursor: pointer;
-                font-weight: 600;
-                color: #666;
-                transition: all 0.3s ease;
-                white-space: nowrap;
+            .stat-item {
                 display: flex;
+                flex-direction: column;
                 align-items: center;
-                gap: 0.5rem;
+                gap: 0.35rem;
+                flex: 1;
 
-                .badge-tab {
-                    background: #e0e0e0;
-                    padding: 0.25rem 0.5rem;
-                    border-radius: 10px;
-                    font-size: 0.8rem;
+                i {
+                    color: $color-primary;
+                    font-size: 1.2rem;
                 }
 
-                &:hover {
-                    background: #f5f5f5;
-                    color: #8B4513;
-                }
-
-                &.active {
-                    color: #8B4513;
-                    border-bottom-color: #8B4513;
-                    background: #f9f7f1;
-
-                    .badge-tab {
-                        background: #8B4513;
-                        color: white;
-                    }
-                }
-            }
-        }
-
-        .tab-content {
-            min-height: 400px;
-            max-height: calc(85vh - 250px);
-            overflow-y: auto;
-            padding-right: 0.5rem;
-
-            // PANEL DE NARRATIVA
-            .narrativa-panel {
-                .imagen-punto {
-                    width: 100%;
-                    margin-bottom: 1.5rem;
-                    border-radius: 12px;
-                    overflow: hidden;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-
-                    img {
-                        width: 100%;
-                        height: 400px;
-                        object-fit: cover;
-                        display: block;
-                    }
-                }
-
-                .loading-narrativa {
+                span {
+                    font-size: 0.85rem;
+                    color: $text-secondary;
                     text-align: center;
-                    padding: 3rem 0;
 
-                    i {
-                        color: #8B4513;
-                        margin-bottom: 1rem;
-                    }
-
-                    p {
-                        color: #666;
-                    }
-                }
-
-                .narrativa-texto {
-                    padding: 1.5rem;
-                    background: #f9f7f1;
-                    border-radius: 8px;
-                    border-left: 4px solid #8B4513;
-                    cursor: pointer;
-
-                    p {
-                        font-size: 1.1rem;
-                        line-height: 1.8;
-                        color: #333;
-                        margin: 0;
-                        white-space: pre-line;
-                    }
-
-                    .hint {
-                        display: block;
-                        margin-top: 1rem;
-                        color: #999;
-                        font-style: italic;
-                        text-align: right;
-                    }
-                }
-
-                .narrativa-completada {
-                    margin-top: 1.5rem;
-                    padding: 1rem;
-                    background: #e8f5e9;
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-
-                    i {
-                        color: #4CAF50;
-                        font-size: 1.5rem;
-                    }
-
-                    p {
-                        margin: 0;
-                        color: #2e7d32;
+                    &.completado {
+                        color: $color-success;
                         font-weight: 600;
                     }
                 }
             }
+        }
 
-            // PANEL DE FOTOGRAFÍA
-            .fotografia-panel {
-                h3 {
-                    margin: 0 0 0.5rem 0;
-                    color: #8B4513;
-                }
+        .badge-completada {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: $color-success;
+            color: white;
+            border-radius: $radius-sm;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+    }
+}
 
-                .subtitle {
-                    color: #666;
-                    margin-bottom: 1.5rem;
-                }
+// ============================================
+// MODAL: EXPLORACIÓN DE CAPA
+// ============================================
+.exploracion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 2rem;
+    flex-wrap: wrap;
 
-                .objetivos-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-                    gap: 1rem;
+    h2 {
+        margin: 0;
+        color: $color-primary;
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
 
-                    .objetivo-card {
-                        background: white;
-                        border-radius: 12px;
-                        padding: 1.5rem;
-                        border: 2px solid #e0e0e0;
-                        transition: all 0.3s ease;
+    .badge-capa {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+        color: white;
+        border-radius: 20px;
+        font-weight: 600;
+        margin-top: 0.5rem;
+        box-shadow: $shadow-sm;
+    }
 
-                        &:hover {
-                            border-color: #8B4513;
-                            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                        }
+    .progreso-capa {
+        min-width: 220px;
 
-                        &.completada {
-                            border-color: #4CAF50;
-                            background: #f1f8f4;
-                        }
+        span {
+            display: block;
+            font-weight: 600;
+            color: $color-primary;
+            margin-bottom: 0.5rem;
+            text-align: right;
+        }
 
-                        .objetivo-header {
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            margin-bottom: 1rem;
+        ::ng-deep .p-progressbar {
+            height: 10px;
+            border-radius: 10px;
+            background: rgba($color-primary, 0.1);
 
-                            i {
-                                font-size: 1.5rem;
-                            }
-
-                            .rareza-badge {
-                                padding: 0.25rem 0.75rem;
-                                border-radius: 12px;
-                                font-size: 0.8rem;
-                                font-weight: bold;
-                                color: white;
-
-                                &.rareza-comun {
-                                    background: #9E9E9E;
-                                }
-
-                                &.rareza-poco_comun {
-                                    background: #4CAF50;
-                                }
-
-                                &.rareza-rara {
-                                    background: #2196F3;
-                                }
-
-                                &.rareza-epica {
-                                    background: #9C27B0;
-                                }
-
-                                &.rareza-legendaria {
-                                    background: #FF9800;
-                                }
-                            }
-                        }
-
-                        p {
-                            margin-bottom: 0.5rem;
-                            color: #333;
-                        }
-
-                        small {
-                            color: #DAA520;
-                            font-weight: bold;
-                        }
-
-                        .completado-badge {
-                            display: block;
-                            text-align: center;
-                            padding: 0.5rem;
-                            background: #4CAF50;
-                            color: white;
-                            border-radius: 8px;
-                            font-weight: bold;
-                            margin-top: 0.5rem;
-                        }
-                    }
-                }
-            }
-
-            // PANEL DE DIÁLOGO
-            .dialogo-panel {
-                .espiritu-avatar {
-                    text-align: center;
-                    margin-bottom: 2rem;
-
-                    .espiritu-icono {
-                        font-size: 4rem;
-                        display: block;
-                        margin-bottom: 1rem;
-                    }
-
-                    h3 {
-                        margin: 0;
-                        color: #8B4513;
-                    }
-
-                    .espiritu-nombre-kichwa {
-                        color: #DAA520;
-                        font-style: italic;
-                        margin-top: 0.25rem;
-                    }
-                }
-
-                .dialogo-stats {
-                    margin-bottom: 1.5rem;
-                    text-align: center;
-                    color: #666;
-                }
-
-                .dialogo-input {
-                    max-width: 600px;
-                    margin: 0 auto;
-
-                    textarea {
-                        width: 100%;
-                        padding: 1rem;
-                        border-radius: 8px;
-                        border: 2px solid #e0e0e0;
-                        font-family: inherit;
-                        font-size: 1rem;
-                        resize: vertical;
-                        margin-bottom: 1rem;
-
-                        &:focus {
-                            outline: none;
-                            border-color: #8B4513;
-                        }
-                    }
-                }
-            }
-
-            // PANEL DE MISIÓN
-            .mision-panel {
-                .mision-card {
-                    background: white;
-                    border-radius: 12px;
-                    padding: 2rem;
-                    border: 2px solid #8B4513;
-
-                    h3 {
-                        margin: 0 0 1rem 0;
-                        color: #8B4513;
-                    }
-
-                    p {
-                        margin-bottom: 1.5rem;
-                        color: #666;
-                        line-height: 1.6;
-                    }
-                }
-
-                .sin-mision {
-                    text-align: center;
-                    padding: 4rem 0;
-
-                    i {
-                        font-size: 3rem;
-                        color: #999;
-                        margin-bottom: 1rem;
-                    }
-
-                    p {
-                        color: #999;
-                        margin: 0;
-                    }
-                }
+            .p-progressbar-value {
+                background: linear-gradient(90deg, $color-primary, $color-secondary);
             }
         }
     }
+}
 
-    .footer-exploracion {
+.exploracion-content {
+    padding: 1rem 0;
+}
+
+// ============================================
+// TABS NAVEGACIÓN
+// ============================================
+.tabs-navegacion {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid $border-color;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: $color-primary;
+        border-radius: 10px;
+    }
+
+    .tab-button {
+        padding: 0.875rem 1.5rem;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-weight: 600;
+        color: $text-secondary;
+        transition: all $transition-normal;
+        white-space: nowrap;
         display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-    }
-}
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+        font-size: 0.95rem;
 
-// RESPONSIVE
-@media (max-width: 768px) {
-    .exploracion-container {
-        padding: 1rem;
-
-        .header-exploracion .flex {
-            flex-direction: column;
-            align-items: flex-start !important;
-            gap: 1rem;
+        .badge-tab {
+            background: $border-color;
+            padding: 0.25rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all $transition-normal;
         }
 
-        .mapa-container {
-            padding: 1rem;
+        &:hover {
+            background: $bg-surface;
+            color: $color-primary;
+        }
 
-            .mapa-svg {
-                max-height: 400px;
+        &.active {
+            color: $color-primary;
+            border-bottom-color: $color-primary;
+            background: $bg-surface;
+
+            .badge-tab {
+                background: $color-primary;
+                color: white;
             }
-        }
-
-        .exploracion-header {
-            flex-direction: column;
-            align-items: flex-start !important;
-        }
-
-        .tabs-navegacion {
-            .tab-button {
-                padding: 0.5rem 1rem;
-                font-size: 0.9rem;
-            }
-        }
-
-        .objetivos-grid {
-            grid-template-columns: 1fr !important;
         }
     }
 }
 
+// ============================================
+// TAB CONTENT
+// ============================================
+.tab-content {
+    min-height: 400px;
+    max-height: calc(85vh - 250px);
+    overflow-y: auto;
+    padding-right: 0.5rem;
+
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: $bg-surface;
+        border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: $color-primary;
+        border-radius: 10px;
+
+        &:hover {
+            background: darken($color-primary, 10%);
+        }
+    }
+}
+
+// ============================================
+// PANEL NARRATIVA
+// ============================================
+.narrativa-panel {
+    animation: slideUp 0.4s ease;
+
+    .imagen-punto {
+        width: 100%;
+        margin-bottom: 1.5rem;
+        border-radius: $radius-lg;
+        overflow: hidden;
+        box-shadow: $shadow-md;
+        position: relative;
+
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent);
+            pointer-events: none;
+        }
+
+        img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s ease;
+
+            &:hover {
+                transform: scale(1.05);
+            }
+        }
+    }
+
+    .loading-narrativa {
+        text-align: center;
+        padding: 3rem 0;
+        animation: pulse 1.5s ease-in-out infinite;
+
+        i {
+            color: $color-primary;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            color: $text-secondary;
+            font-style: italic;
+        }
+    }
+
+    .narrativa-texto {
+        padding: 2rem;
+        background: $bg-card;
+        border-radius: $radius-lg;
+        border-left: 4px solid $color-primary;
+        cursor: pointer;
+        transition: all $transition-normal;
+        box-shadow: $shadow-sm;
+
+        &:hover {
+            box-shadow: $shadow-md;
+            background: $bg-hover;
+        }
+
+        h3 {
+            margin: 0 0 1rem 0;
+            color: $color-primary;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        p {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: $text-primary;
+            margin: 0;
+            white-space: pre-line;
+        }
+
+        .hint {
+            display: block;
+            margin-top: 1rem;
+            color: $text-muted;
+            font-style: italic;
+            text-align: right;
+            font-size: 0.9rem;
+
+            i {
+                margin-right: 0.25rem;
+            }
+        }
+    }
+}
+
+// ============================================
+// PANEL FOTOGRAFÍA
+// ============================================
+.fotografia-panel {
+    animation: slideUp 0.4s ease;
+
+    h3 {
+        margin: 0 0 0.5rem 0;
+        color: $color-primary;
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .subtitle {
+        color: $text-secondary;
+        margin-bottom: 1.5rem;
+    }
+
+    .objetivos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+
+        .objetivo-card {
+            background: $bg-card;
+            border-radius: $radius-lg;
+            padding: 1.75rem;
+            border: 2px solid $border-color;
+            transition: all $transition-normal;
+            position: relative;
+            overflow: hidden;
+
+            &::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, $color-info, $color-primary);
+                transform: scaleX(0);
+                transition: transform $transition-normal;
+            }
+
+            &:hover {
+                border-color: $color-primary;
+                box-shadow: $shadow-md;
+                transform: translateY(-2px);
+
+                &::before {
+                    transform: scaleX(1);
+                }
+            }
+
+            &.completada {
+                border-color: $color-success;
+                background: linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%);
+
+                &::before {
+                    background: $color-success;
+                    transform: scaleX(1);
+                }
+            }
+
+            .objetivo-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+
+                i {
+                    font-size: 1.75rem;
+                    color: $color-primary;
+
+                    &.pi-check-circle {
+                        color: $color-success;
+                    }
+                }
+            }
+
+            p {
+                margin-bottom: 1rem;
+                color: $text-primary;
+                line-height: 1.6;
+            }
+
+            ::ng-deep .p-fileupload-choose {
+                width: 100%;
+                justify-content: center;
+                background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+                border: none;
+                padding: 0.75rem;
+                border-radius: $radius-sm;
+                font-weight: 600;
+                transition: all $transition-normal;
+
+                &:hover {
+                    transform: translateY(-2px);
+                    box-shadow: $shadow-md;
+                }
+            }
+
+            .completado-badge {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                padding: 0.75rem;
+                background: $color-success;
+                color: white;
+                border-radius: $radius-sm;
+                font-weight: 600;
+                margin-top: 0.5rem;
+            }
+        }
+    }
+}
+
+// ============================================
+// PANEL DIÁLOGO
+// ============================================
 .dialogo-panel {
+    animation: slideUp 0.4s ease;
+
     .espiritu-avatar {
         text-align: center;
         margin-bottom: 2rem;
-        padding: 2rem;
-        background: linear-gradient(135deg, #8B4513 0%, #DAA520 100%);
-        border-radius: 12px;
+        padding: 2.5rem;
+        background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+        border-radius: $radius-lg;
         color: white;
+        box-shadow: $shadow-lg;
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
 
         .espiritu-icono {
             font-size: 4rem;
             display: block;
             margin-bottom: 1rem;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+            position: relative;
+            z-index: 1;
         }
 
         h3 {
             margin: 0;
-            font-size: 1.5rem;
-        }
-
-        .espiritu-nombre-kichwa {
-            margin: 0.5rem 0 0 0;
-            font-style: italic;
-            opacity: 0.9;
+            font-size: 1.75rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
         }
     }
 
     .dialogo-stats {
         text-align: center;
         margin-bottom: 2rem;
-        padding: 1rem;
-        background: #f9f7f1;
-        border-radius: 8px;
+        padding: 1.25rem;
+        background: $bg-surface;
+        border-radius: $radius-md;
+        border: 1px solid $border-color;
 
         p {
             margin: 0;
-            color: #666;
+            color: $text-secondary;
+            font-size: 1rem;
         }
 
         strong {
-            color: #8B4513;
+            color: $color-primary;
+            font-size: 1.2rem;
         }
     }
 
     .dialogo-input {
+        max-width: 700px;
+        margin: 0 auto;
+
         label {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             margin-bottom: 0.75rem;
             font-weight: 600;
-            color: #8B4513;
-            font-size: 1rem;
-
-            i {
-                margin-right: 0.5rem;
-            }
+            color: $color-primary;
+            font-size: 1.05rem;
         }
 
         textarea {
             width: 100%;
-            padding: 1rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            padding: 1.25rem;
+            border: 2px solid $border-color;
+            border-radius: $radius-md;
             font-family: inherit;
             font-size: 1rem;
             resize: vertical;
             margin-bottom: 1rem;
-            transition: border-color 0.3s ease;
+            transition: all $transition-normal;
+            line-height: 1.6;
 
             &:focus {
                 outline: none;
-                border-color: #8B4513;
+                border-color: $color-primary;
+                box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
             }
 
             &:disabled {
-                background: #f5f5f5;
+                background: $bg-surface;
                 cursor: not-allowed;
-            }
-        }
-
-        .hint {
-            display: block;
-            margin-top: 0.75rem;
-            color: #666;
-            font-size: 0.9rem;
-            text-align: center;
-
-            i {
-                margin-right: 0.25rem;
-                color: #8B4513;
+                opacity: 0.6;
             }
         }
     }
 }
 
-// ========================================
-// DIÁLOGO MODAL DEL ESPÍRITU
-// ========================================
-
+// ============================================
+// MODAL RESPUESTA ESPÍRITU
+// ============================================
 ::ng-deep .dialogo-espiritu {
     .p-dialog-header {
-        background: linear-gradient(135deg, #8B4513 0%, #DAA520 100%);
+        background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
         color: white;
-        border-radius: 12px 12px 0 0;
+        border-radius: $radius-lg $radius-lg 0 0;
         padding: 1.5rem;
     }
 
     .p-dialog-content {
         padding: 2rem;
-        background: #f9f7f1;
+        background: $bg-surface;
     }
 
     .p-dialog-footer {
-        background: #f9f7f1;
-        border-top: 2px solid #e0e0e0;
+        background: $bg-surface;
+        border-top: 2px solid $border-color;
         padding: 1.5rem;
     }
 }
@@ -659,16 +874,17 @@
 
     .espiritu-avatar-modal {
         background: rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        width: 80px;
-        height: 80px;
+        border-radius: $radius-full;
+        width: 90px;
+        height: 90px;
         display: flex;
         align-items: center;
         justify-content: center;
         border: 3px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 
         .espiritu-icono-grande {
-            font-size: 3rem;
+            font-size: 3.5rem;
         }
     }
 
@@ -676,6 +892,7 @@
         margin: 0;
         font-size: 1.75rem;
         color: white;
+        font-weight: 700;
     }
 
     .espiritu-subtitulo {
@@ -688,39 +905,43 @@
 .dialogo-espiritu-content {
     .pregunta-usuario {
         margin-bottom: 2rem;
-        padding: 1.25rem;
-        background: white;
-        border-left: 4px solid #3498db;
-        border-radius: 8px;
+        padding: 1.5rem;
+        background: $bg-card;
+        border-left: 4px solid $color-info;
+        border-radius: $radius-md;
+        box-shadow: $shadow-sm;
 
         .pregunta-label {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             margin-bottom: 0.75rem;
-            color: #3498db;
+            color: $color-info;
             font-weight: 600;
             font-size: 0.95rem;
         }
 
         p {
             margin: 0;
-            color: #333;
+            color: $text-primary;
             font-style: italic;
-            line-height: 1.6;
+            line-height: 1.7;
+            font-size: 1.05rem;
         }
     }
 
     .respuesta-espiritu {
-        padding: 1.5rem;
-        background: white;
-        border-left: 4px solid #8B4513;
-        border-radius: 8px;
+        padding: 1.75rem;
+        background: $bg-card;
+        border-left: 4px solid $color-primary;
+        border-radius: $radius-md;
         cursor: pointer;
-        transition: background 0.3s ease;
+        transition: all $transition-normal;
+        box-shadow: $shadow-sm;
 
         &:hover {
-            background: #fefefe;
+            background: $bg-hover;
+            box-shadow: $shadow-md;
         }
 
         .respuesta-label {
@@ -728,7 +949,7 @@
             align-items: center;
             gap: 0.5rem;
             margin-bottom: 1rem;
-            color: #8B4513;
+            color: $color-primary;
             font-weight: 600;
             font-size: 0.95rem;
         }
@@ -738,20 +959,20 @@
             padding: 2rem 0;
 
             i {
-                color: #8B4513;
+                color: $color-primary;
                 margin-bottom: 1rem;
             }
 
             p {
                 margin: 0;
-                color: #666;
+                color: $text-secondary;
                 font-style: italic;
             }
         }
 
         .texto-respuesta {
             margin: 0;
-            color: #333;
+            color: $text-primary;
             line-height: 1.8;
             font-size: 1.05rem;
             white-space: pre-wrap;
@@ -760,7 +981,7 @@
         .hint-click {
             display: block;
             margin-top: 1rem;
-            color: #8B4513;
+            color: $color-primary;
             font-style: italic;
             text-align: right;
             font-size: 0.9rem;
@@ -772,56 +993,150 @@
     }
 }
 
-.foto-upload-container {
-    .hint-manual {
-        display: block;
-        margin-top: 0.5rem;
-        text-align: center;
-        color: #666;
-        font-size: 0.85rem;
+// ============================================
+// FOOTER EXPLORACIÓN
+// ============================================
+.footer-exploracion {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
 
-        i {
-            margin-right: 0.25rem;
-            color: #f39c12;
+// ============================================
+// ANIMACIONES
+// ============================================
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+@media (max-width: 768px) {
+    .exploracion-container {
+        padding: 1rem;
+    }
+
+    .header-exploracion {
+        ::ng-deep .p-card-content {
+            padding: 1rem;
+        }
+
+        .flex {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+        }
+
+        .progreso-info {
+            width: 100%;
+            text-align: left;
+
+            .stats-extra {
+                justify-content: flex-start;
+            }
+        }
+    }
+
+    .mapa-container {
+        padding: 1rem;
+
+        .mapa-svg {
+            max-height: 400px;
+        }
+    }
+
+    .capas-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .exploracion-header {
+        flex-direction: column;
+        gap: 1rem;
+
+        .progreso-capa {
+            width: 100%;
+
+            span {
+                text-align: left;
+            }
+        }
+    }
+
+    .tabs-navegacion {
+        .tab-button {
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+
+    .objetivos-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .dialogo-panel {
+        .dialogo-input {
+            max-width: 100%;
+        }
+    }
+
+    .dialogo-espiritu-header {
+        flex-direction: column;
+        text-align: center;
+
+        .espiritu-avatar-modal {
+            width: 70px;
+            height: 70px;
+
+            .espiritu-icono-grande {
+                font-size: 2.5rem;
+            }
         }
     }
 }
 
-.completado-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-
-    .completado-badge {
-        background: #4CAF50;
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+@media (max-width: 480px) {
+    .exploracion-container {
+        padding: 0.75rem;
     }
 
-    .validacion-badge {
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-size: 0.85rem;
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
+    .mapa-container {
+        padding: 0.75rem;
+    }
 
-        &.ia-badge {
-            background: #e3f2fd;
-            color: #1976d2;
-            border: 1px solid #1976d2;
-        }
+    .header-exploracion h2 {
+        font-size: 1.25rem;
+    }
 
-        &.manual-badge {
-            background: #fff3e0;
-            color: #f57c00;
-            border: 1px solid #f57c00;
+    .narrativa-panel .imagen-punto img {
+        height: 250px;
+    }
+
+    .footer-exploracion {
+        flex-direction: column;
+
+        button {
+            width: 100%;
         }
     }
 }

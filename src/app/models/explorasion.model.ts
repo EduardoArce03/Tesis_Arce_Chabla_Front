@@ -146,6 +146,7 @@ export interface NivelCapaDTO {
 export interface MarcarObjetivoManualRequest {
     partidaId: number;
     objetivoId: number;
+    jugadorId: number;
 }
 
 export interface MarcarObjetivoManualResponse {
@@ -158,7 +159,7 @@ export interface MarcarObjetivoManualResponse {
  * Este DTO viene del backend ExploracionCapasService
  */
 export interface CapaPuntoDTO {
-    id: number;
+    id?: number;
     nivelCapa: NivelCapa;
     nombre: string;
     descripcion: string;
@@ -183,6 +184,7 @@ export interface CapaPuntoDTO {
     // Recompensas
     puntosGanados: number;
     recompensaFinal: RecompensaDTO | null;
+    completada: boolean;
 }
 
 /**
@@ -242,12 +244,14 @@ export interface RecompensaDTO {
 export interface DescubrirPuntoRequest {
     partidaId: number;
     puntoId: number;
+    jugadorId: number;
 }
 
 /**
  * ✅ Request para descubrir una capa de un punto
  */
 export interface DescubrirCapaPuntoRequest {
+    jugadorId: number;
     partidaId: number;
     puntoId: number;
     nivelCapa: NivelCapa;

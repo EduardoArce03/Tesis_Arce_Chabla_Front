@@ -1,9 +1,9 @@
-// mapa-ingapirca.component.ts - FLUJO COMPLETO CON CAPAS
+// mapa-ingapirca.component.ts - REFACTORIZADO CON PERSISTENCIA
 
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, interval } from 'rxjs';
 import { MessageService } from 'primeng/api';
 
 // PrimeNG
@@ -13,26 +13,22 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DialogModule } from 'primeng/dialog';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { ToastModule } from 'primeng/toast';
-
-// Componentes
+import { FileUpload } from 'primeng/fileupload';
 
 // Servicios
-import { ExploracionService } from '@/services/exploracion_final.service';
-
-// Modelos
 import {
-    PuntoInteresDTO,
-    CapaPuntoDTO,
-    NivelCapa,
-    NivelDescubrimiento,
-    CategoriaPunto
-} from '../../models/explorasion.model';
-import { CapasPuntoComponent } from '@/components/capas-punto.component';
-import { FileSelectEvent, FileUpload, FileUploadHandlerEvent } from 'primeng/fileupload';
-import { DialogarEspirituRequest } from '@/models/exploracion_final.model';
+    ExploracionService,
+    MapaDTO,
+    PuntoDTO,
+    CapaDTO,
+    CapaNivel,
+    ExplorarCapaRequest,
+    CapturarFotoRequest,
+    DialogarRequest,
+    ObjetivoFotoDTO,
+    NarrativaDTO
+} from '@/services/exploracion_final.service';
 import { SesionService } from '@/services/sesion.service';
-import { CategoriasCultural, NivelDificultad } from '@/models/juego.model';
-import { GuardarPartidaRequest, PartidaService } from '@/services/partida.service';
 import { TextToSpeechService } from '@/components/text-to-speech.service';
 
 @Component({
@@ -47,7 +43,6 @@ import { TextToSpeechService } from '@/components/text-to-speech.service';
         DialogModule,
         ProgressBarModule,
         ToastModule,
-        CapasPuntoComponent,
         FileUpload
     ],
     providers: [MessageService],
@@ -56,33 +51,36 @@ import { TextToSpeechService } from '@/components/text-to-speech.service';
 })
 export class MapaIngapircaComponent implements OnInit, OnDestroy {
     @Input() puntoDestacado: number | null = null;
-    @Input() modoVisita = false;
-    @Input() puntosDisponibles: number[] = [];
     @Output() puntoVisitado = new EventEmitter<number>();
 
-    // Estado del mapa
-    puntos: PuntoInteresDTO[] = [];
+    // ==================== ESTADO GLOBAL ====================
+    partidaId: number | null = null;
+    jugadorId: number = 0;
+    mapa: MapaDTO | null = null;
 
-    // MODAL 1: Capas del punto
+    // ==================== MODAL 1: CAPAS DEL PUNTO ====================
     mostrarModalCapas = false;
-    puntoSeleccionado: PuntoInteresDTO | null = null;
-    capasPunto: CapaPuntoDTO[] = [];
+    puntoSeleccionado: PuntoDTO | null = null;
 
-    // MODAL 2: Exploración de capa
+    // ==================== MODAL 2: EXPLORACIÓN DE CAPA ====================
     mostrarModalExploracion = false;
-    capaActiva: CapaPuntoDTO | null = null;
+    capaActiva: CapaDTO | null = null;
     tabActivo = 0;
 
-    // Narrativa
-    cargandoNarrativa = false;
-    narrativaActual = '';
+    // Narrativa actual
+    narrativaActual: NarrativaDTO | null = null;
     narrativaVisible = '';
     narrativaCompleta = false;
+    cargandoNarrativa = false;
     typingInterval: any;
+
+    // Objetivos fotográficos
+    objetivosFotograficos: ObjetivoFotoDTO[] = [];
+    cargandoFoto = false;
 
     // Diálogo
     preguntaDialogo = '';
-    preguntaActual = '';  // ⬅️ AGREGAR ESTA
+    preguntaActual = '';
     mostrarRespuestaEspiritu = false;
     respuestaEspiritu = '';
     respuestaEspirituVisible = '';
@@ -91,52 +89,149 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     typingIntervalEspiritu: any;
     respuestaCompletaEspiritu = false;
 
-    // IDs
-    partidaId = 1;
-    usuarioId: number = 0;
+    // Caminos SVG
+    caminosSVG: string[] = [];
 
-    tiempoInicio!: Date;
-    puntuacionTotal = 0;
-    puntosExplorados = 0;
-    fotografiasCapturadas = 0;
-    dialogosRealizados = 0;
-    nivelSeleccionado = NivelDificultad.FACIL; // Ajusta según tu lógica
-    categoriaSeleccionada = CategoriasCultural.LUGARES;
-    exploracionCompletada = false;
-
+    // Auto-refresh para sincronizar estado
+    private autoRefresh$ = interval(5000); // cada 5 segundos
     private destroy$ = new Subject<void>();
 
     // Enums para template
-    NivelCapa = NivelCapa;
-    NivelDescubrimiento = NivelDescubrimiento;
-    CategoriaPunto = CategoriaPunto;
+    CapaNivel = CapaNivel;
+
+    // Storage keys
+    private readonly STORAGE_PARTIDA_ID = 'ingapirca_partida_id';
+    private readonly STORAGE_JUGADOR_ID = 'ingapirca_jugador_id';
 
     constructor(
         private exploracionService: ExploracionService,
         private messageService: MessageService,
         private sesionService: SesionService,
-        private guardarPartidaService: PartidaService,
         private tts: TextToSpeechService
     ) {}
 
+    // ==================== LIFECYCLE ====================
+
     ngOnInit(): void {
-        this.inicializar();
-        console.log('xd')
-        this.tts.narrar('Esto es una prueba. Proceso a iniciar exploración de Ingapirca');
-        this.usuarioId = this.sesionService.getUsuario()?.id || 0;
+        console.log('🚀 Inicializando componente...');
+
+        this.jugadorId = this.sesionService.getUsuario()?.id || 0;
+
+        if (this.jugadorId === 0) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No hay usuario en sesión'
+            });
+            return;
+        }
+
+        // Intentar recuperar partida existente
+        this.recuperarPartidaExistente();
+
+        // Auto-refresh del mapa
+        this.autoRefresh$
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(() => {
+                if (this.partidaId && !this.mostrarModalExploracion) {
+                    this.cargarMapaSilencioso();
+                }
+            });
     }
 
-        // ==================== INICIALIZACIÓN ====================
+    ngOnDestroy(): void {
+        this.destroy$.next();
+        this.destroy$.complete();
 
-    inicializar(): void {
-        this.tiempoInicio = new Date(); // ⬅️ AGREGAR
-        this.puntuacionTotal = 0;
-        this.exploracionCompletada = false;
-        this.exploracionService.inicializarExploracion(this.partidaId, this.usuarioId)
+        if (this.typingInterval) {
+            clearInterval(this.typingInterval);
+        }
+
+        if (this.typingIntervalEspiritu) {
+            clearInterval(this.typingIntervalEspiritu);
+        }
+    }
+
+    // ==================== PERSISTENCIA ====================
+
+    private recuperarPartidaExistente(): void {
+        const partidaGuardada = localStorage.getItem(this.STORAGE_PARTIDA_ID);
+        const jugadorGuardado = localStorage.getItem(this.STORAGE_JUGADOR_ID);
+
+        console.log('🔍 Verificando partida guardada:', { partidaGuardada, jugadorGuardado });
+
+        if (partidaGuardada && jugadorGuardado === this.jugadorId.toString()) {
+            this.partidaId = parseInt(partidaGuardada);
+            console.log('✅ Recuperando partida existente:', this.partidaId);
+            this.cargarMapa();
+        } else {
+            console.log('🆕 Iniciando nueva partida');
+            this.iniciarPartida();
+        }
+    }
+
+    private guardarPartidaEnStorage(): void {
+        if (this.partidaId) {
+            localStorage.setItem(this.STORAGE_PARTIDA_ID, this.partidaId.toString());
+            localStorage.setItem(this.STORAGE_JUGADOR_ID, this.jugadorId.toString());
+            console.log('💾 Partida guardada en localStorage');
+        }
+    }
+
+    // ==================== INICIALIZACIÓN ====================
+
+    iniciarPartida(): void {
+        console.log('🎮 Iniciando partida para jugador:', this.jugadorId);
+
+        this.exploracionService.iniciarPartida(this.jugadorId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: () => {
-                    this.cargarPuntos();
+                next: (partida) => {
+                    this.partidaId = partida.id;
+                    console.log('✅ Partida creada:', this.partidaId);
+
+                    // Guardar en storage
+                    this.guardarPartidaEnStorage();
+
+                    this.cargarMapa();
+                },
+                error: (error) => {
+                    console.error('❌ Error iniciando partida:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo iniciar la partida'
+                    });
+                }
+            });
+    }
+
+    cargarMapa(): void {
+        if (!this.partidaId) return;
+
+        console.log('🗺️ Cargando mapa de partida:', this.partidaId);
+
+        this.exploracionService.obtenerMapa(this.partidaId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (mapa) => {
+                    this.mapa = mapa;
+                    console.log('✅ Mapa cargado:', {
+                        puntos: mapa.puntos.length,
+                        explorados: mapa.puntosExplorados,
+                        fotos: mapa.fotografiasCapturadas,
+                        dialogos: mapa.dialogosRealizados
+                    });
+
+                    // Actualizar progreso en la UI si hay capa activa
+                    if (this.capaActiva && this.puntoSeleccionado) {
+                        this.actualizarCapaActiva();
+                    }
+
+                    // Generar caminos SVG
+                    this.generarCaminos();
+
+                    // Si hay punto destacado, seleccionarlo
                     if (this.puntoDestacado) {
                         setTimeout(() => {
                             this.seleccionarPuntoAutomaticamente(this.puntoDestacado!);
@@ -144,136 +239,163 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                     }
                 },
                 error: (error) => {
-                    console.error('Error inicializando:', error);
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'No se pudo inicializar la exploración'
-                    });
+                    console.error('❌ Error cargando mapa:', error);
+
+                    // Si falla, limpiar storage y reintentar
+                    if (error.status === 404) {
+                        console.log('⚠️ Partida no encontrada, iniciando nueva...');
+                        localStorage.removeItem(this.STORAGE_PARTIDA_ID);
+                        this.partidaId = null;
+                        this.iniciarPartida();
+                    } else {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: 'No se pudo cargar el mapa'
+                        });
+                    }
                 }
             });
     }
 
-    cargarPuntos(): void {
-        this.exploracionService.obtenerPuntosDisponibles(this.partidaId)
+    private cargarMapaSilencioso(): void {
+        if (!this.partidaId) return;
+
+        this.exploracionService.obtenerMapa(this.partidaId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: (puntos) => {
-                    this.puntos = puntos;
-                    if (this.modoVisita && this.puntosDisponibles.length > 0) {
-                        this.puntos.forEach(punto => {
-                            punto.desbloqueado = this.puntosDisponibles.includes(punto.id);
-                        });
+                next: (mapa) => {
+                    this.mapa = mapa;
+
+                    // Actualizar capa activa si existe
+                    if (this.capaActiva && this.puntoSeleccionado) {
+                        this.actualizarCapaActiva();
                     }
                 },
-                error: (error) => {
-                    console.error('Error cargando puntos:', error);
+                error: () => {
+                    // Silencioso - no mostrar error
                 }
             });
+    }
+
+    private actualizarCapaActiva(): void {
+        if (!this.mapa || !this.puntoSeleccionado || !this.capaActiva) return;
+
+        const puntoActualizado = this.mapa.puntos.find(p => p.id === this.puntoSeleccionado!.id);
+
+        if (puntoActualizado) {
+            const capaActualizada = puntoActualizado.capas.find(
+                c => c.nivel === this.capaActiva!.nivel
+            );
+
+            if (capaActualizada) {
+                // Actualizar progreso
+                this.capaActiva = capaActualizada;
+
+                // Actualizar objetivos fotográficos
+                this.actualizarObjetivosFotograficos(capaActualizada);
+
+                console.log('🔄 Capa activa actualizada:', {
+                    narrativa: capaActualizada.narrativaLeida,
+                    fotos: `${capaActualizada.fotografiasCompletadas}/${capaActualizada.fotografiasRequeridas}`,
+                    dialogos: capaActualizada.dialogosRealizados,
+                    porcentaje: capaActualizada.porcentaje.toFixed(0) + '%'
+                });
+            }
+        }
+    }
+
+    private actualizarObjetivosFotograficos(capa: CapaDTO): void {
+        // Mantener el estado de completadas
+        this.objetivosFotograficos.forEach(objetivo => {
+            const estadoActual = capa.fotografiasCompletadas;
+            // Aquí necesitarías lógica adicional del backend que devuelva qué objetivos específicos están completados
+        });
     }
 
     seleccionarPuntoAutomaticamente(puntoId: number): void {
-        const punto = this.puntos.find(p => p.id === puntoId);
-        if (punto && punto.desbloqueado) {
+        if (!this.mapa) return;
+
+        const punto = this.mapa.puntos.find(p => p.id === puntoId);
+        if (punto) {
             this.seleccionarPunto(punto);
         }
     }
 
     // ==================== FLUJO: SELECCIONAR PUNTO → MODAL CAPAS ====================
 
-    seleccionarPunto(punto: PuntoInteresDTO): void {
-        if (!punto.desbloqueado) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Punto Bloqueado',
-                detail: 'Necesitas explorar más puntos para desbloquear este lugar'
-            });
-            return;
-        }
-
-        // ⬇️ AGREGAR ESTOS LOGS
-        console.log('============================================');
-        console.log('🎯 PUNTO SELECCIONADO:', punto.nombre, 'ID:', punto.id);
-        console.log('============================================');
+    seleccionarPunto(punto: PuntoDTO): void {
+        console.log('📍 Punto seleccionado:', punto.nombre);
 
         this.puntoSeleccionado = punto;
         this.mostrarModalCapas = true;
-        if (!punto.visitado) {
-            this.puntosExplorados++; // ⬅️ AGREGAR
-            this.puntuacionTotal += 10; // ⬅️ AGREGAR
-            punto.visitado = true;
-        }
-        // ⬇️ AGREGAR ESTE LOG
-        console.log('📤 Llamando a obtenerCapasPunto con:');
-        console.log('   - puntoId:', punto.id);
-        console.log('   - partidaId:', this.partidaId);
-        console.log('usuarioId:', this.usuarioId);
-        // Cargar las 4 capas del punto
-        this.exploracionService.obtenerCapasPunto(punto.id, this.partidaId, this.usuarioId )
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (capas) => {
-                    // ⬇️ AGREGAR ESTOS LOGS CRÍTICOS
-                    console.log('✅ CAPAS RECIBIDAS para punto', punto.nombre, ':', capas);
-                    console.log('   Total de capas:', capas.length);
-                    capas.forEach((capa, index) => {
-                        console.log(`   Capa ${index + 1}:`, capa.nombre,
-                            '- Desbloqueada:', capa.desbloqueada,
-                            '- Fotos:', capa.fotografiasCompletadas + '/' + capa.fotografiasRequeridas);
-                    });
-                    console.log('============================================');
 
-                    this.capasPunto = capas;
-                },
-                error: (error) => {
-                    console.error('❌ ERROR cargando capas:', error);
-                }
-            });
+        // Emitir evento
+        this.puntoVisitado.emit(punto.id);
     }
 
     cerrarModalCapas(): void {
         if (!this.mostrarModalExploracion) {
-        this.puntoSeleccionado = null;
-        this.capasPunto = [];
-    }
+            this.puntoSeleccionado = null;
+        }
     }
 
     // ==================== FLUJO: EXPLORAR CAPA → MODAL EXPLORACIÓN ====================
 
-    abrirExploracionCapa(capa: CapaPuntoDTO): void {
-        console.log('Explorando capa:', capa);
+    abrirExploracionCapa(capa: CapaDTO): void {
+        console.log('🔍 Explorando capa:', capa.nombre);
 
-        // Descubrir/entrar a la capa en el backend
-        this.exploracionService.descubrirCapaPunto({
+        if (!capa.desbloqueada) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Capa Bloqueada',
+                detail: 'Debes completar la capa anterior primero'
+            });
+            return;
+        }
+
+        if (!this.partidaId || !this.puntoSeleccionado) return;
+
+        const request: ExplorarCapaRequest = {
             partidaId: this.partidaId,
-            puntoId: this.puntoSeleccionado!.id,
-            nivelCapa: capa.nivelCapa
-        }).pipe(takeUntil(this.destroy$))
+            puntoId: this.puntoSeleccionado.id,
+            capaNivel: capa.nivel
+        };
+
+        this.exploracionService.explorarCapa(request)
+            .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (response) => {
+                    console.log('✅ Capa explorada:', response);
+
                     if (response.exito) {
-                        // Cerrar modal de capas
                         this.mostrarModalCapas = false;
-
-                        // Abrir modal de exploración
                         this.capaActiva = response.capa;
+                        this.narrativaActual = response.narrativa;
+                        this.objetivosFotograficos = response.objetivosFotograficos;
                         this.mostrarModalExploracion = true;
-                        this.tabActivo = 0; // Reset a tab de narrativa
+                        this.tabActivo = 0;
 
-                        // Cargar narrativa si es nueva
-                        if (response.narrativaNueva || !response.capa.narrativaLeida) {
-                            this.cargarNarrativa(response.capa);
+                        // Cargar narrativa
+                        if (response.primerDescubrimiento || !response.capa.narrativaLeida) {
+                            this.cargarNarrativa(response.narrativa);
+                        } else {
+                            this.narrativaVisible = response.narrativa.texto;
+                            this.narrativaCompleta = true;
                         }
+
+                        // Recargar mapa para reflejar cambios
+                        this.cargarMapa();
                     } else {
                         this.messageService.add({
                             severity: 'warn',
                             summary: 'Error',
-                            detail: response.mensaje
+                            detail: response.mensaje || 'No se pudo explorar la capa'
                         });
                     }
                 },
                 error: (error) => {
-                    console.error('Error al entrar a capa:', error);
+                    console.error('❌ Error explorando capa:', error);
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
@@ -290,6 +412,8 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     volverACapas(): void {
         this.mostrarModalExploracion = false;
         this.capaActiva = null;
+        this.narrativaActual = null;
+        this.objetivosFotograficos = [];
         this.tabActivo = 0;
 
         if (this.typingInterval) {
@@ -299,74 +423,37 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         // Reabrir modal de capas
         this.mostrarModalCapas = true;
 
-        // Recargar capas para ver progreso actualizado
-        if (this.puntoSeleccionado) {
-            this.exploracionService.obtenerCapasPunto(this.puntoSeleccionado.id, this.partidaId, this.usuarioId)
-                .pipe(takeUntil(this.destroy$))
-                .subscribe({
-                    next: (capas) => {
-                        this.capasPunto = capas;
-                    }
-                });
-        }
-        this.verificarExploracionCompleta(); // ⬅️ AGREGAR
+        // Recargar mapa
+        this.cargarMapa();
     }
 
     cerrarModalExploracion(): void {
         this.mostrarModalExploracion = false;
         this.capaActiva = null;
+        this.narrativaActual = null;
+        this.objetivosFotograficos = [];
         this.tabActivo = 0;
 
         if (this.typingInterval) {
             clearInterval(this.typingInterval);
         }
 
-        // Recargar puntos para actualizar progreso en el mapa
-        this.cargarPuntos();
-        this.verificarExploracionCompleta(); // ⬅️ AGREGAR
-
-    }
-
-    private guardarPartidaIncompleta(): void {
-        const usuario = this.sesionService.getUsuario();
-        if (!usuario) return;
-
-        const tiempoSegundos = Math.floor((new Date().getTime() - this.tiempoInicio.getTime()) / 1000);
-
-        const datosPartida: GuardarPartidaRequest = {
-            jugadorId: usuario.id.toString(),
-            nivel: this.nivelSeleccionado,
-            categoria: this.categoriaSeleccionada,
-            puntuacion: this.puntuacionTotal,
-            intentos: this.puntosExplorados,
-            tiempoSegundos: tiempoSegundos,
-            completada: false // ⬅️ Incompleta
-        };
-
-        console.log('💾 Guardando exploración incompleta:', datosPartida);
-
-        this.guardarPartidaService.guardarPartida(datosPartida).subscribe();
+        // Recargar mapa
+        this.cargarMapa();
     }
 
     // ==================== NARRATIVA ====================
 
-     cargarNarrativa(capa: CapaPuntoDTO): void {
+    cargarNarrativa(narrativa: NarrativaDTO): void {
         this.cargandoNarrativa = true;
         this.narrativaVisible = '';
         this.narrativaCompleta = false;
 
-        // Simular carga (en producción viene del backend)
         setTimeout(() => {
             this.cargandoNarrativa = false;
-            this.narrativaActual = capa.narrativaTexto || this.generarNarrativaFallback(capa);
-            this.animarTexto(this.narrativaActual);
-            this.tts.narrar(this.narrativaActual);
+            this.animarTexto(narrativa.texto);
+            this.tts.narrar(narrativa.texto);
         }, 1500);
-    }
-
-    private generarNarrativaFallback(capa: CapaPuntoDTO): string {
-        const nombrePunto = this.puntoSeleccionado?.nombre || 'este lugar';
-        return `Has descubierto ${nombrePunto} en la capa ${capa.nombre}. ${capa.descripcion}`;
     }
 
     animarTexto(texto: string): void {
@@ -390,25 +477,170 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     }
 
     saltarAnimacion(): void {
-        if (this.typingInterval) {
+        if (this.typingInterval && this.narrativaActual) {
             clearInterval(this.typingInterval);
-            this.narrativaVisible = this.narrativaActual;
+            this.narrativaVisible = this.narrativaActual.texto;
             this.narrativaCompleta = true;
         }
+    }
+
+    // ==================== FOTOGRAFÍA ====================
+
+    async procesarFotografia(event: any, objetivo: ObjetivoFotoDTO): Promise<void> {
+        if (!event.files || event.files.length === 0 || !this.partidaId || !this.capaActiva) {
+            return;
+        }
+
+        const file = event.files[0] as File;
+
+        console.log('📸 Procesando fotografía:', {
+            nombre: file.name,
+            objetivo: objetivo.id
+        });
+
+        if (!this.exploracionService.validarFormatoImagen(file)) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Formato Inválido',
+                detail: 'Solo se permiten imágenes JPG, PNG o WebP'
+            });
+            return;
+        }
+
+        if (!this.exploracionService.validarTamanoImagen(file, 5)) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Archivo muy Grande',
+                detail: 'La imagen no debe superar 5MB'
+            });
+            return;
+        }
+
+        this.cargandoFoto = true;
+
+        try {
+            const imagenBase64 = await this.exploracionService.convertirImagenABase64(file);
+
+            const request: CapturarFotoRequest = {
+                partidaId: this.partidaId,
+                progresoCapaId: this.capaActiva.id,
+                objetivoId: objetivo.id,
+                imagenBase64: imagenBase64
+            };
+
+            this.exploracionService.capturarFotografia(request)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                    next: (response) => {
+                        this.cargandoFoto = false;
+
+                        if (response.exito) {
+                            // Marcar objetivo localmente INMEDIATAMENTE
+                            objetivo.completada = true;
+
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: '📸 ¡Fotografía Capturada!',
+                                detail: response.mensaje,
+                                life: 5000
+                            });
+
+                            if (response.puntos) {
+                                setTimeout(() => {
+                                    this.messageService.add({
+                                        severity: 'success',
+                                        summary: '🎁 Recompensa',
+                                        detail: `+${response.puntos} puntos`,
+                                        life: 3000
+                                    });
+                                }, 1000);
+                            }
+
+                            // Recargar mapa
+                            this.cargarMapa();
+
+                            // Verificar completitud
+                            const todasCompletadas = this.objetivosFotograficos.every(obj => obj.completada);
+                            if (todasCompletadas) {
+                                setTimeout(() => {
+                                    this.messageService.add({
+                                        severity: 'success',
+                                        summary: '✨ ¡Todas las Fotos Capturadas!',
+                                        detail: 'Continúa con el diálogo para completar la capa',
+                                        life: 5000
+                                    });
+                                }, 2000);
+                            }
+
+                        } else {
+                            this.messageService.add({
+                                severity: 'warn',
+                                summary: 'Fotografía no Válida',
+                                detail: response.mensaje,
+                                life: 5000
+                            });
+                        }
+                    },
+                    error: (error) => {
+                        this.cargandoFoto = false;
+                        console.error('❌ Error:', error);
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: 'No se pudo procesar la fotografía'
+                        });
+                    }
+                });
+
+        } catch (error) {
+            this.cargandoFoto = false;
+            console.error('❌ Error leyendo archivo:', error);
+        }
+    }
+
+    marcarCompletadoManual(objetivo: ObjetivoFotoDTO): void {
+        const confirmado = window.confirm(
+            '¿Marcar este objetivo como completado sin validación?\n\n' +
+            '⚠️ Recibirás menos recompensas.\n\n' +
+            'Presiona OK para continuar.'
+        );
+
+        if (!confirmado || !this.partidaId || !this.capaActiva) {
+            return;
+        }
+
+        const request: CapturarFotoRequest = {
+            partidaId: this.partidaId,
+            progresoCapaId: this.capaActiva.id,
+            objetivoId: objetivo.id
+        };
+
+        this.exploracionService.capturarFotografia(request)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    if (response.exito) {
+                        objetivo.completada = true;
+
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: '✅ Objetivo Completado',
+                            detail: 'Objetivo marcado como completado'
+                        });
+
+                        this.cargarMapa();
+                    }
+                },
+                error: (error) => {
+                    console.error('❌ Error:', error);
+                }
+            });
     }
 
     // ==================== DIÁLOGO ====================
 
     enviarPregunta(): void {
-        console.log('🔍 DEBUG enviarPregunta:', {
-            pregunta: this.preguntaDialogo,
-            capaActiva: this.capaActiva,
-            puntoSeleccionado: this.puntoSeleccionado
-        });
-
-        // Validar datos
-        if (!this.preguntaDialogo.trim() || !this.capaActiva || !this.puntoSeleccionado) {
-            console.warn("Faltan datos: No hay punto seleccionado o capa activa.");
+        if (!this.preguntaDialogo.trim() || !this.partidaId || !this.capaActiva) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Datos incompletos',
@@ -418,148 +650,49 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         }
 
         this.preguntaActual = this.preguntaDialogo;
-
-        // ⬇️ ESTRUCTURA CORRECTA DEL REQUEST
-        const request: {
-            jugadorId: string;
-            capaId: any;
-            pregunta: string;
-            partidaId: number;
-            nivelCapa: NivelCapa;
-            puntoInteresId: number
-        } = {
-            jugadorId: this.usuarioId.toString(),  // String
-            capaId: this.capaActiva.id,            // Long (number en TS)
-            pregunta: this.preguntaDialogo,        // String
-            partidaId: this.partidaId,             // Long (number en TS)
-            nivelCapa: this.capaActiva.nivelCapa,  // NivelCapa (enum)
-            puntoInteresId: this.puntoSeleccionado.id  // Long (number en TS)
-        };
-
-        console.log('📤 Enviando request de diálogo:', request);
-
         this.cargandoRespuesta = true;
 
-        this.exploracionService.dialogarConEspiritu(request)
+        const request: DialogarRequest = {
+            partidaId: this.partidaId,
+            progresoCapaId: this.capaActiva.id,
+            pregunta: this.preguntaDialogo
+        };
+
+        this.exploracionService.dialogar(request)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (response) => {
-                    console.log('✅ Respuesta de diálogo:', response);
                     this.cargandoRespuesta = false;
-                    if (response.exito && response.respuestaEspiritu) {
-                        this.dialogosRealizados++; // ⬅️ AGREGAR
-                        this.puntuacionTotal += 15; // ⬅️ AGREGAR
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: '🌟 Espíritu Ancestral',  // ⬅️ CORREGIDO
-                            detail: response.respuestaEspiritu,
-                            life: 10000
-                        });
 
-                        // Incrementar contador de diálogos
-                        if (this.capaActiva) {
-                            this.capaActiva.dialogosRealizados++;
-                        }
-
-                        // Verificar conocimiento desbloqueado
-                        if (response.conocimientoDesbloqueado) {
-
-                        }
-
-                        // Limpiar pregunta
-                        this.respuestaEspiritu = response.respuestaEspiritu;
-                        this.nombreEspirituActual = this.obtenerNombreEspiritu(this.capaActiva?.nivelCapa);
+                    if (response.exito) {
+                        this.respuestaEspiritu = response.respuesta;
+                        this.nombreEspirituActual = response.nombreEspiritu;
                         this.mostrarRespuestaEspiritu = true;
 
-                        // Animar texto typewriter
-                        this.animarRespuestaEspiritu(response.respuestaEspiritu);
-
-                        // Incrementar contador
-                        if (this.capaActiva) {
-                            this.capaActiva.dialogosRealizados++;
-                        }
-
-                        // Conocimiento desbloqueado
-                        if (response.conocimientoDesbloqueado) {
-                        }
-
-                        // Limpiar pregunta
+                        this.animarRespuestaEspiritu(response.respuesta);
                         this.preguntaDialogo = '';
+
+                        // Recargar mapa
+                        this.cargarMapa();
 
                     } else {
                         this.messageService.add({
                             severity: 'warn',
-                            summary: 'Sin respuesta',
-                            detail: response.mensaje || 'El espíritu no pudo responder',
-                            life: 5000
+                            summary: 'Sin Respuesta',
+                            detail: response.mensaje || 'El espíritu no pudo responder'
                         });
                     }
                 },
                 error: (error) => {
-                    console.error('❌ Error en diálogo:', error);
+                    this.cargandoRespuesta = false;
+                    console.error('❌ Error:', error);
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: error.error?.message || 'No se pudo comunicar con el espíritu',
-                        life: 5000
+                        detail: 'No se pudo comunicar con el espíritu'
                     });
-                    this.cargandoRespuesta = false;
-
                 }
             });
-    }
-
-    verificarExploracionCompleta(): void {
-        const todosPuntosExplorados = this.puntos.every(p => p.visitado);
-
-        if (todosPuntosExplorados && !this.exploracionCompletada) {
-            this.exploracionCompletada = true;
-            this.guardarPartidaCompletada();
-
-            this.messageService.add({
-                severity: 'success',
-                summary: '🎉 ¡Exploración Completa!',
-                detail: 'Has explorado todos los puntos de Ingapirca',
-                life: 5000
-            });
-        }
-    }
-
-    private guardarPartidaCompletada(): void {
-        const usuario = this.sesionService.getUsuario();
-        if (!usuario) {
-            console.warn('⚠️ No hay usuario en sesión');
-            return;
-        }
-
-        const tiempoSegundos = Math.floor((new Date().getTime() - this.tiempoInicio.getTime()) / 1000);
-
-        const datosPartida: GuardarPartidaRequest = {
-            jugadorId: usuario.id.toString(),
-            nivel: this.nivelSeleccionado,
-            categoria: this.categoriaSeleccionada,
-            puntuacion: this.puntuacionTotal,
-            intentos: this.puntosExplorados, // Puntos explorados como "intentos"
-            tiempoSegundos: tiempoSegundos,
-            completada: true
-        };
-
-        console.log('💾 Guardando exploración completada:', datosPartida);
-
-        this.guardarPartidaService.guardarPartida(datosPartida).subscribe({
-            next: (response) => {
-                console.log('✅ Exploración guardada:', response);
-                this.messageService.add({
-                    severity: 'success',
-                    summary: '💾 Progreso Guardado',
-                    detail: 'Tu exploración ha sido guardada exitosamente',
-                    life: 3000
-                });
-            },
-            error: (error) => {
-                console.error('❌ Error al guardar:', error);
-            }
-        });
     }
 
     private animarRespuestaEspiritu(texto: string): void {
@@ -579,10 +712,9 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                 clearInterval(this.typingIntervalEspiritu);
                 this.respuestaCompletaEspiritu = true;
             }
-        }, 30); // 30ms por carácter
+        }, 30);
     }
 
-    // ⬇️ NUEVO: Saltar animación
     saltarAnimacionEspiritu(): void {
         if (this.typingIntervalEspiritu) {
             clearInterval(this.typingIntervalEspiritu);
@@ -591,7 +723,6 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         }
     }
 
-    // ⬇️ NUEVO: Cerrar diálogo
     cerrarRespuestaEspiritu(): void {
         this.mostrarRespuestaEspiritu = false;
 
@@ -600,305 +731,77 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         }
     }
 
-    // ⬇️ NUEVO: Obtener nombre del espíritu
-    protected obtenerNombreEspiritu(nivel: NivelCapa | undefined): string {
-        const nombres: Record<NivelCapa, string> = {
-            [NivelCapa.SUPERFICIE]: 'Guardián de la Superficie',
-            [NivelCapa.INCA]: 'Espíritu del Inti',
-            [NivelCapa.CANARI]: 'Amawta Cañari',
-            [NivelCapa.ANCESTRAL]: 'Espíritu Primordial'
-        };
-        return nombres[nivel as keyof typeof nombres] || 'Espíritu Ancestral';
-    }
-
-
     // ==================== UTILIDADES ====================
 
     puntosVisitados(): number {
-        return this.puntos.filter(p => p.visitado).length;
+        if (!this.mapa) return 0;
+        return this.mapa.puntos.filter(p => p.explorado).length;
     }
 
     porcentajeVisitados(): number {
-        if (this.puntos.length === 0) return 0;
-        return (this.puntosVisitados() / this.puntos.length) * 100;
+        if (!this.mapa || this.mapa.puntos.length === 0) return 0;
+        return (this.puntosVisitados() / this.mapa.puntos.length) * 100;
+    }
+
+    obtenerNombreEspiritu(nivel: CapaNivel | undefined): string {
+        if (!nivel) return 'Espíritu Ancestral';
+
+        const nombres: Record<CapaNivel, string> = {
+            [CapaNivel.ACTUAL]: 'Guardián de Ingapirca',
+            [CapaNivel.CANARI]: 'Amawta Cañari'
+        };
+
+        return nombres[nivel] || 'Espíritu Ancestral';
+    }
+
+    obtenerIconoCapa(nivel: CapaNivel | undefined): string {
+        if (!nivel) return '📜';
+
+        const iconos: Record<CapaNivel, string> = {
+            [CapaNivel.ACTUAL]: '🏛️',
+            [CapaNivel.CANARI]: '🌙'
+        };
+
+        return iconos[nivel] || '📜';
     }
 
     onImageError(event: any): void {
         event.target.src = 'https://upload.wikimedia.org/wikipedia/commons/0/03/Ecuador_ingapirca_inca_ruins.jpg';
     }
 
-    obtenerColorNivel(nivel: NivelDescubrimiento | NivelCapa | null): string {
-        if (!nivel) return '#999999';
-
-        if (Object.values(NivelDescubrimiento).includes(nivel as any)) {
-            const colores: Record<NivelDescubrimiento, string> = {
-                [NivelDescubrimiento.NO_VISITADO]: '#999999',
-                [NivelDescubrimiento.BRONCE]: '#CD7F32',
-                [NivelDescubrimiento.PLATA]: '#C0C0C0',
-                [NivelDescubrimiento.ORO]: '#FFD700'
-            };
-            return colores[nivel as NivelDescubrimiento];
-        }
-
-        return '#8B4513';
-    }
-
-    obtenerEmojiCategoria(categoria: CategoriaPunto): string {
-        const emojis: Record<CategoriaPunto, string> = {
-            [CategoriaPunto.TEMPLO]: '☀️',
-            [CategoriaPunto.PLAZA]: '🗺️',
-            [CategoriaPunto.VIVIENDA]: '🏠',
-            [CategoriaPunto.DEPOSITO]: '📦',
-            [CategoriaPunto.OBSERVATORIO]: '👁️',
-            [CategoriaPunto.CEREMONIAL]: '💧',
-            [CategoriaPunto.CAMINO]: '🛤️'
+    protected mapearCoordenadasVisuales(punto: PuntoDTO): { x: number; y: number } {
+        const coordenadasVisuales: Record<number, { x: number, y: number }> = {
+            1: { x: 30, y: 35 },
+            2: { x: 55, y: 25 },
+            3: { x: 75, y: 45 }
         };
-        return emojis[categoria] || '✨';
+
+        return coordenadasVisuales[punto.id] || { x: 50, y: 35 };
     }
 
-    obtenerIconoCapa(nivelCapa: NivelCapa | undefined): string {
-        const iconos: Record<NivelCapa, string> = {
-            [NivelCapa.SUPERFICIE]: '🏛️',
-            [NivelCapa.INCA]: '☀️',
-            [NivelCapa.CANARI]: '🌙',
-            [NivelCapa.ANCESTRAL]: '⭐'
-        };
-        return iconos[nivelCapa as keyof typeof iconos] || '📜';
-    }
-
-    ngOnDestroy(): void {
-        if (this.tiempoInicio && !this.exploracionCompletada && this.puntosExplorados > 0) {
-            console.log('⚠️ Abandonó la exploración');
-            this.guardarPartidaIncompleta();
-        }
-        this.destroy$.next();
-        this.destroy$.complete();
-
-        if (this.typingInterval) {
-            clearInterval(this.typingInterval);
-        }
-    }
-
-    cargandoFoto = false;
-
-    subirFotografia(event: FileSelectEvent, objetivo: any): void {
-        console.log('📸 Archivo seleccionado:', event.files[0]);
-
-        // No hacer nada aquí, el procesamiento real ocurre en uploadHandler
-        // Este método es solo informativo
-    }
-
-    procesarFotografia(event: FileUploadHandlerEvent, objetivo: any): void {
-        if (!event.files || event.files.length === 0) {
+    generarCaminos(): void {
+        if (!this.mapa || this.mapa.puntos.length === 0) {
+            this.caminosSVG = [];
             return;
         }
-
-        const file = event.files[0];
-
-        const objetivoRef = objetivo; // Guardar referencia
-
-        console.log('📸 Procesando fotografía:', {
-            nombre: file.name,
-            tamaño: file.size,
-            tipo: file.type,
-            objetivo: objetivoRef // Verificar que existe
-        });
-
-        console.log('📸 Procesando fotografía:', {
-            nombre: file.name,
-            tamaño: file.size,
-            tipo: file.type
-        });
-
-        // Validar tamaño (máximo 5MB)
-        if (file.size > 5000000) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Archivo muy grande',
-                detail: 'La imagen no debe superar 5MB'
-            });
-            return;
-        }
-
-        // Validar tipo
-        if (!file.type.startsWith('image/')) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Formato inválido',
-                detail: 'Solo se permiten archivos de imagen'
-            });
-            return;
-        }
-
-        this.cargandoFoto = true;
-
-        // Convertir a Base64
-        const reader = new FileReader();
-
-        reader.onload = () => {
-            const base64String = reader.result as string;
-
-            // Enviar al backend
-            this.capturarFotografia(objetivo, base64String);
-        };
-
-        reader.onerror = (error) => {
-            console.error('Error leyendo archivo:', error);
-            this.cargandoFoto = false;
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudo leer el archivo'
-            });
-        };
-
-        reader.readAsDataURL(file);
-    }
-
-    private capturarFotografia(objetivo: any, imagenBase64: string): void {
-        if (!this.capaActiva) {
-            this.cargandoFoto = false;
-            return;
-        }
-
-        // Preparar request
-        const request = {
-            partidaId: this.partidaId,
-            objetivoId: objetivo.id,
-            imagenBase64: imagenBase64,
-            descripcionUsuario: null // Opcional: podrías pedir al usuario que describa la foto
-        };
-
-        console.log('📤 Enviando fotografía al backend...');
-
-        this.exploracionService.capturarFotografia(request)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.cargandoFoto = false;
-
-                    if (response.exito) {
-                        objetivo.completada = true;
-                        this.fotografiasCapturadas++; // ⬅️ AGREGAR
-                        this.puntuacionTotal += 25;
-                        // Marcar objetivo como completado
-                        objetivo.completada = true;
-
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: '📸 ¡Fotografía Capturada!',
-                            detail: response.mensaje,
-                            life: 5000
-                        });
-
-                        // Mostrar análisis de IA
-                        if (response.analisisIA) {
-                            setTimeout(() => {
-                                this.messageService.add({
-                                    severity: 'info',
-                                    summary: '🤖 Análisis IA',
-                                    detail: response.analisisIA.descripcionIA,
-                                    life: 8000
-                                });
-                            }, 1000);
-                        }
-
-                        // Mostrar recompensas
-                        if (response.recompensas && response.recompensas.length > 0) {
-                            setTimeout(() => {
-                                const recompensasTexto = response.recompensas
-                                    .map(r => `${r.tipo}: +${r.cantidad}`)
-                                    .join(', ');
-
-                                this.messageService.add({
-                                    severity: 'success',
-                                    summary: '🎁 Recompensas',
-                                    detail: recompensasTexto,
-                                    life: 6000
-                                });
-                            }, 2000);
-                        }
-
-                        // Actualizar progreso de la capa
-                        if (this.capaActiva) {
-                            this.capaActiva.fotografiasCompletadas++;
-
-                            // Verificar si completó todas las fotos
-                            const todasCapturadas = this.capaActiva.fotografiasPendientes
-                                .every(obj => obj.completada);
-
-                            if (todasCapturadas) {
-                                setTimeout(() => {
-                                    this.messageService.add({
-                                        severity: 'success',
-                                        summary: '✨ ¡Capa Completada!',
-                                        detail: 'Has capturado todas las fotografías de esta capa',
-                                        life: 5000
-                                    });
-                                }, 3000);
-                            }
-                        }
-
-                    } else {
-                        // Error: no cumple criterios
-                        this.messageService.add({
-                            severity: 'warn',
-                            summary: 'Fotografía no válida',
-                            detail: response.mensaje,
-                            life: 5000
-                        });
-
-                        if (response.analisisIA) {
-                            setTimeout(() => {
-                                this.messageService.add({
-                                    severity: 'info',
-                                    summary: '💡 Sugerencia IA',
-                                    detail: response.analisisIA.descripcionIA,
-                                    life: 8000
-                                });
-                            }, 1000);
-                        }
-                    }
-                },
-                error: (error) => {
-                    this.cargandoFoto = false;
-                    console.error('❌ Error capturando fotografía:', error);
-
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'No se pudo procesar la fotografía. Intenta de nuevo.',
-                        life: 5000
-                    });
-                }
-            });
-    }
-
-    caminosSVG: string[] = [];
-
-
-
-    // ⬇️ MÉTODO MEJORADO - Genera caminos consistentes
-    generarCaminos(): string[] {
-        if (!this.puntos || this.puntos.length === 0) return [];
 
         const caminos: string[] = [];
-        const puntosOrdenados = [...this.puntos].sort((a, b) => a.id - b.id);
+        const puntos = [...this.mapa.puntos].sort((a, b) => a.id - b.id);
 
-        // Conectar puntos consecutivos con curvas suaves
-        for (let i = 0; i < puntosOrdenados.length - 1; i++) {
-            const punto1 = puntosOrdenados[i];
-            const punto2 = puntosOrdenados[i + 1];
+        for (let i = 0; i < puntos.length - 1; i++) {
+            const punto1 = puntos[i];
+            const punto2 = puntos[i + 1];
 
-            const x1 = punto1.coordenadaX * 10;
-            const y1 = punto1.coordenadaY * 10;
-            const x2 = punto2.coordenadaX * 10;
-            const y2 = punto2.coordenadaY * 10;
+            const coords1 = this.mapearCoordenadasVisuales(punto1);
+            const coords2 = this.mapearCoordenadasVisuales(punto2);
 
-            // ⬇️ PUNTO DE CONTROL BASADO EN POSICIÓN (consistente)
-            // Usamos un hash simple basado en las coordenadas
-            const seed = (punto1.id + punto2.id) * 0.123; // Seed consistente
-            const offsetX = Math.sin(seed) * 80; // -80 a 80
+            const x1 = coords1.x * 10;
+            const y1 = coords1.y * 10;
+            const x2 = coords2.x * 10;
+            const y2 = coords2.y * 10;
+
+            const seed = (punto1.id + punto2.id) * 0.123;
+            const offsetX = Math.sin(seed) * 80;
             const offsetY = Math.cos(seed) * 80;
 
             const ctrlX = (x1 + x2) / 2 + offsetX;
@@ -907,173 +810,20 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
             caminos.push(`M ${x1},${y1} Q ${ctrlX},${ctrlY} ${x2},${y2}`);
         }
 
-        return caminos;
+        this.caminosSVG = caminos;
     }
 
-    // ⬇️ OPCIONAL: Método para generar caminos entre puntos específicos
-    generarCaminosConectados(): string[] {
-        if (!this.puntos || this.puntos.length < 2) return [];
-
-        const caminos: string[] = [];
-
-        // Definir conexiones específicas entre puntos
-        const conexiones = this.obtenerConexionesPuntos();
-
-        conexiones.forEach(conexion => {
-            const punto1 = this.puntos.find(p => p.id === conexion.desde);
-            const punto2 = this.puntos.find(p => p.id === conexion.hasta);
-
-            if (punto1 && punto2) {
-                const x1 = punto1.coordenadaX * 10;
-                const y1 = punto1.coordenadaY * 10;
-                const x2 = punto2.coordenadaX * 10;
-                const y2 = punto2.coordenadaY * 10;
-
-                // Curvatura basada en la distancia
-                const distancia = Math.hypot(x2 - x1, y2 - y1);
-                const curvatura = distancia * 0.3; // 30% de la distancia
-
-                // Calcular punto de control perpendicular
-                const midX = (x1 + x2) / 2;
-                const midY = (y1 + y2) / 2;
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-
-                // Perpendicular
-                const perpX = -dy / distancia * curvatura;
-                const perpY = dx / distancia * curvatura;
-
-                const ctrlX = midX + perpX;
-                const ctrlY = midY + perpY;
-
-                caminos.push(`M ${x1},${y1} Q ${ctrlX},${ctrlY} ${x2},${y2}`);
-            }
-        });
-
-        return caminos;
-    }
-
-    // ⬇️ Define qué puntos conectar (ajusta según tu lógica)
-    private obtenerConexionesPuntos(): Array<{desde: number, hasta: number}> {
-        // Si tus puntos tienen un orden lógico, conéctalos en secuencia
-        const conexiones: Array<{desde: number, hasta: number}> = [];
-
-        const puntosOrdenados = [...this.puntos]
-            .filter(p => p.desbloqueado)
-            .sort((a, b) => a.id - b.id);
-
-        for (let i = 0; i < puntosOrdenados.length - 1; i++) {
-            conexiones.push({
-                desde: puntosOrdenados[i].id,
-                hasta: puntosOrdenados[i + 1].id
-            });
-        }
-
-        return conexiones;
-    }
-
-    marcarCompletadoManual(objetivo: any): void {
-        console.log('✋ Marcando objetivo manualmente:', objetivo);
-
-        // ⬇️ CONFIRMACIÓN NATIVA (no requiere ConfirmationService)
+    // Método para reiniciar juego manualmente
+    reiniciarJuego(): void {
         const confirmado = window.confirm(
-            '¿Estás seguro de marcar este objetivo como completado sin validación de IA?\n\n' +
-            '⚠️ Recibirás menos recompensas (50% del valor normal).\n\n' +
-            'Presiona OK para continuar o Cancelar para volver.'
+            '¿Estás seguro de reiniciar el juego?\n\n' +
+            'Se perderá todo el progreso actual.'
         );
 
-        if (!confirmado) {
-            return;
+        if (confirmado) {
+            localStorage.removeItem(this.STORAGE_PARTIDA_ID);
+            localStorage.removeItem(this.STORAGE_JUGADOR_ID);
+            window.location.reload();
         }
-
-        // Si confirmó, proceder
-        this.confirmarCompletadoManual(objetivo);
-    }
-
-    private confirmarCompletadoManual(objetivo: any): void {
-        if (!this.capaActiva) {
-            return;
-        }
-
-        const request = {
-            partidaId: this.partidaId,
-            objetivoId: objetivo.id
-        };
-
-        console.log('📤 Enviando marcado manual:', request);
-
-        this.exploracionService.marcarObjetivoCompletadoManual(request)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    console.log('✅ Objetivo marcado:', response);
-
-                    if (response.exito) {
-                        // Marcar como completado
-                        objetivo.completada = true;
-                        objetivo.validadaPorIA = false;  // No fue validada por IA
-
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: '✅ Objetivo Completado',
-                            detail: response.mensaje,
-                            life: 5000
-                        });
-
-                        // Mostrar recompensas si las hay
-                        if (response.recompensas && response.recompensas.length > 0) {
-                            setTimeout(() => {
-                                const recompensasTexto = response.recompensas
-                                    .map(r => `${r.tipo}: +${r.cantidad}`)
-                                    .join(', ');
-
-                                this.messageService.add({
-                                    severity: 'info',
-                                    summary: '🎁 Recompensas',
-                                    detail: recompensasTexto,
-                                    life: 6000
-                                });
-                            }, 1000);
-                        }
-
-                        // Actualizar contador
-                        if (this.capaActiva) {
-                            this.capaActiva.fotografiasCompletadas++;
-
-                            // Verificar si completó todas
-                            const todasCapturadas = this.capaActiva.fotografiasPendientes
-                                .every(obj => obj.completada);
-
-                            if (todasCapturadas) {
-                                setTimeout(() => {
-                                    this.messageService.add({
-                                        severity: 'success',
-                                        summary: '✨ ¡Capa Completada!',
-                                        detail: 'Has completado todos los objetivos fotográficos',
-                                        life: 5000
-                                    });
-                                }, 2000);
-                            }
-                        }
-
-                    } else {
-                        this.messageService.add({
-                            severity: 'warn',
-                            summary: 'No se pudo completar',
-                            detail: response.mensaje,
-                            life: 5000
-                        });
-                    }
-                },
-                error: (error) => {
-                    console.error('❌ Error marcando objetivo:', error);
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'No se pudo marcar el objetivo como completado',
-                        life: 5000
-                    });
-                }
-            });
     }
 }

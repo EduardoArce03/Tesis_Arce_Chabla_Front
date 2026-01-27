@@ -86,7 +86,8 @@ import {
                                         <div class="progreso-section">
                                             <div class="flex justify-content-between mb-2">
                                                 <span>Progreso General</span>
-                                                <span class="font-bold">{{ capa.porcentajeCompletitud.toFixed(0) }}%</span>
+                                                <span class="font-bold">{{ formatearPorcentaje(capa.porcentajeCompletitud) }}
+                                                    </span>
                                             </div>
                                             <p-progressBar
                                                 [value]="capa.porcentajeCompletitud"
@@ -111,7 +112,7 @@ import {
                                                 <i class="pi"
                                                    [class.pi-check-circle]="capa.fotografiasCompletadas === capa.fotografiasRequeridas"
                                                    [class.pi-circle]="capa.fotografiasCompletadas < capa.fotografiasRequeridas"></i>
-                                                <span>Fotografías: {{ capa.fotografiasCompletadas }}/{{ capa.fotografiasRequeridas }}</span>
+                                                <span>Fotografías: {{ capa.fotografiasCompletadas ?? 0 }}/{{ capa.fotografiasRequeridas ?? 0 }}</span>
                                                 @if (capa.fotografiasCompletadas < capa.fotografiasRequeridas) {
                                                     <p-tag severity="warn"
                                                            [value]="'Faltan ' + (capa.fotografiasRequeridas - capa.fotografiasCompletadas)">
@@ -412,8 +413,14 @@ export class CapasPuntoComponent {
     NivelDescubrimiento = NivelDescubrimiento;
     NivelCapa = NivelCapa;
 
+    // capas-punto.component.ts
+
+    // capas-punto.component.ts
+
     get capasCompletadas(): number {
-        return this.capas.filter(c => c.porcentajeCompletitud === 100).length;
+        return this.capas.filter(c =>
+            Math.round(c.porcentajeCompletitud) === 100
+        ).length;
     }
 
     obtenerIconoCapa(nivelCapa: NivelCapa): string {
@@ -434,5 +441,9 @@ export class CapasPuntoComponent {
             [NivelDescubrimiento.ORO]: '🥇'
         };
         return emojis[nivel] || '';
+    }
+
+    formatearPorcentaje(porcentaje: number | undefined): string {
+        return (porcentaje || 0).toFixed(0) + '%';
     }
 }

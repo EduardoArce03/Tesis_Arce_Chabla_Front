@@ -118,6 +118,7 @@ export interface NivelCapaDTO {
 export interface DescubrirPuntoRequest {
     partidaId: number;
     puntoId: number;
+
 }
 
 /**
@@ -151,7 +152,7 @@ export interface RecompensaDTO {
  * Capa de un punto con progreso detallado
  */
 export interface CapaPuntoDTO {
-    id: number;
+    id?: number;
     nivel: 'SUPERFICIE' | 'INCA' | 'CANARI' | 'ANCESTRAL';
     nombreNivel: string;
     epoca: string;
@@ -176,6 +177,7 @@ export interface CapaPuntoDTO {
     misionActiva?: string;
     misionProgreso?: number;
     mision?: MisionDTO;
+    completada: boolean;
 }
 
 /**

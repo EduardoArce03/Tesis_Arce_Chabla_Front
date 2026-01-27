@@ -1,4 +1,4 @@
-<!-- mapa-ingapirca.component.html - FLUJO COMPLETO CON CAPAS -->
+<!-- mapa-ingapirca.component.html - ADAPTADO -->
 
 <div class="exploracion-container">
     <!-- Header con progreso -->
@@ -9,153 +9,130 @@
                     <h2>Exploración de Ingapirca</h2>
                     <p class="subtitle">Descubre los secretos del complejo arqueológico Cañari-Inca</p>
                 </div>
-                <div class="progreso-info">
-                    <span class="puntos-visitados">
-                        {{ puntosVisitados() }} / {{ puntos.length }} puntos visitados
-                    </span>
-                    <p-progressBar
-                        [value]="porcentajeVisitados()"
-                        [showValue]="false">
-                    </p-progressBar>
-                </div>
+                @if (mapa) {
+                    <div class="progreso-info">
+                        <span class="puntos-visitados">
+                            {{ puntosVisitados() }} / {{ mapa.puntos.length }} puntos visitados
+                        </span>
+                        <p-progressBar
+                            [value]="porcentajeVisitados()"
+                            [showValue]="false">
+                        </p-progressBar>
+                        <div class="stats-extra mt-2">
+                            <span>📸 {{ mapa.fotografiasCapturadas }} fotos</span>
+                            <span>💬 {{ mapa.dialogosRealizados }} diálogos</span>
+                            <span>🏆 {{ mapa.puntuacionTotal }} puntos</span>
+                        </div>
+                    </div>
+                }
             </div>
         </p-card>
     </div>
 
     <!-- Mapa SVG -->
-    <div class="mapa-container">
-        <svg viewBox="0 0 1000 700" class="mapa-svg" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <pattern id="terreno" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-                    <rect width="100" height="100" fill="#e8dcc4"/>
-                    <circle cx="10" cy="10" r="2" fill="#d4c4a8" opacity="0.3"/>
-                    <circle cx="50" cy="50" r="2" fill="#d4c4a8" opacity="0.3"/>
-                </pattern>
+    @if (mapa) {
+        <div class="mapa-container">
+            <svg viewBox="0 0 1000 700" class="mapa-svg">
+                <defs>
+                    <pattern id="terreno" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                        <rect width="100" height="100" fill="#e8dcc4"/>
+                        <circle cx="10" cy="10" r="2" fill="#d4c4a8" opacity="0.3"/>
+                        <circle cx="50" cy="50" r="2" fill="#d4c4a8" opacity="0.3"/>
+                    </pattern>
 
-                <radialGradient id="glowBronce">
-                    <stop offset="0%" stop-color="#CD7F32" stop-opacity="0.4"/>
-                    <stop offset="100%" stop-color="#CD7F32" stop-opacity="0"/>
-                </radialGradient>
-            </defs>
+                    <radialGradient id="glowBronce">
+                        <stop offset="0%" stop-color="#CD7F32" stop-opacity="0.4"/>
+                        <stop offset="100%" stop-color="#CD7F32" stop-opacity="0"/>
+                    </radialGradient>
+                </defs>
 
-            <rect width="1000" height="700" fill="url(#terreno)"/>
+                <rect width="1000" height="700" fill="url(#terreno)"/>
 
-            <!-- ⬇️ CAMINOS DINÁMICOS -->
-            @for (camino of caminosSVG; track $index) {
-                <path
-                    [attr.d]="camino"
-                    stroke="#8B4513"
-                    stroke-width="2.5"
-                    fill="none"
-                    stroke-dasharray="10,5"
-                    opacity="0.25"
-                    stroke-linecap="round"
-                    class="camino-punto"/>
-            }
+                <!-- Caminos -->
+                @for (camino of caminosSVG; track $index) {
+                    <path
+                        [attr.d]="camino"
+                        stroke="#8B4513"
+                        stroke-width="2.5"
+                        fill="none"
+                        stroke-dasharray="10,5"
+                        opacity="0.25"
+                        stroke-linecap="round"
+                        class="camino-punto"/>
+                }
 
-            <!-- Puntos de interés -->
-            @for (punto of puntos; track punto.id) {
-                <g class="punto-interes"
-                   [class.desbloqueado]="punto.desbloqueado"
-                   [class.visitado]="punto.visitado"
-                   [class.bloqueado]="!punto.desbloqueado"
-                   (click)="seleccionarPunto(punto)"
-                   [pTooltip]="punto.nombre"
-                   tooltipPosition="top">
+                <!-- Puntos -->
+                @for (punto of mapa.puntos; track punto.id) {
+                    @let coords = mapearCoordenadasVisuales(punto);
 
-                    <!-- Glow effect -->
-                    @if (punto.desbloqueado && !punto.visitado) {
-                        <circle
-                            [attr.cx]="punto.coordenadaX * 10"
-                            [attr.cy]="punto.coordenadaY * 10"
-                            r="35"
-                            fill="url(#glowBronce)"
-                            class="glow-pulse"
-                            pointer-events="none"/>
-                    }
+                    <g class="punto-interes"
+                       [class.explorado]="punto.explorado"
+                       (click)="seleccionarPunto(punto)"
+                       [pTooltip]="punto.nombre"
+                       tooltipPosition="top">
 
-                    <!-- Círculo principal -->
-                    <circle
-                        [attr.cx]="punto.coordenadaX * 10"
-                        [attr.cy]="punto.coordenadaY * 10"
-                        r="25"
-                        [attr.fill]="punto.desbloqueado ? '#8B4513' : '#cccccc'"
-                        [attr.stroke]="punto.visitado ? '#FFD700' : '#8B4513'"
-                        stroke-width="3"
-                        class="punto-circulo"/>
-
-                    <!-- Icono -->
-                    <text
-                        [attr.x]="punto.coordenadaX * 10"
-                        [attr.y]="punto.coordenadaY * 10 + 8"
-                        text-anchor="middle"
-                        font-size="24"
-                        [attr.fill]="punto.desbloqueado ? '#ffffff' : '#666666'"
-                        pointer-events="none">
-                        {{ obtenerEmojiCategoria(punto.categoria) }}
-                    </text>
-
-                    <!-- Badge visitado -->
-                    @if (punto.visitado) {
-                        <g pointer-events="none">
+                        <!-- Glow effect -->
+                        @if (!punto.explorado) {
                             <circle
-                                [attr.cx]="punto.coordenadaX * 10 + 20"
-                                [attr.cy]="punto.coordenadaY * 10 - 20"
-                                r="12"
-                                fill="#FFD700"
-                                stroke="#fff"
-                                stroke-width="2"/>
-                            <text
-                                [attr.x]="punto.coordenadaX * 10 + 20"
-                                [attr.y]="punto.coordenadaY * 10 - 15"
-                                text-anchor="middle"
-                                font-size="14"
-                                font-weight="bold"
-                                fill="#fff">V</text>
-                        </g>
-                    }
+                                [attr.cx]="coords.x * 10"
+                                [attr.cy]="coords.y * 10"
+                                r="35"
+                                fill="url(#glowBronce)"
+                                class="glow-pulse"
+                                pointer-events="none"/>
+                        }
 
-                    <!-- Candado -->
-                    @if (!punto.desbloqueado) {
+                        <!-- Círculo principal -->
+                        <circle
+                            [attr.cx]="coords.x * 10"
+                            [attr.cy]="coords.y * 10"
+                            r="25"
+                            fill="#8B4513"
+                            [attr.stroke]="punto.explorado ? '#FFD700' : '#8B4513'"
+                            stroke-width="3"
+                            class="punto-circulo"/>
+
+                        <!-- Icono -->
                         <text
-                            [attr.x]="punto.coordenadaX * 10"
-                            [attr.y]="punto.coordenadaY * 10 + 8"
+                            [attr.x]="coords.x * 10"
+                            [attr.y]="coords.y * 10 + 8"
                             text-anchor="middle"
-                            font-size="20"
-                            pointer-events="none">🔒</text>
-                    }
-                </g>
-            }
-        </svg>
-    </div>
+                            font-size="24"
+                            fill="#ffffff"
+                            pointer-events="none">
+                            🏛️
+                        </text>
 
-    <!-- Leyenda -->
-    <div class="leyenda">
-        <p-card>
-            <div class="leyenda-items">
-                <div class="leyenda-item">
-                    <span class="icono-leyenda" style="background: #CD7F32;"></span>
-                    <span>Bronce</span>
-                </div>
-                <div class="leyenda-item">
-                    <span class="icono-leyenda" style="background: #C0C0C0;"></span>
-                    <span>Plata</span>
-                </div>
-                <div class="leyenda-item">
-                    <span class="icono-leyenda" style="background: #FFD700;"></span>
-                    <span>Oro</span>
-                </div>
-            </div>
-        </p-card>
-    </div>
+                        <!-- Badge visitado -->
+                        @if (punto.explorado) {
+                            <g pointer-events="none">
+                                <circle
+                                    [attr.cx]="coords.x * 10 + 20"
+                                    [attr.cy]="coords.y * 10 - 20"
+                                    r="12"
+                                    fill="#FFD700"
+                                    stroke="#fff"
+                                    stroke-width="2"/>
+                                <text
+                                    [attr.x]="coords.x * 10 + 20"
+                                    [attr.y]="coords.y * 10 - 15"
+                                    text-anchor="middle"
+                                    font-size="14"
+                                    font-weight="bold"
+                                    fill="#fff">✓</text>
+                            </g>
+                        }
+                    </g>
+                }
+            </svg>
+        </div>
+    }
 
-    <!-- ========================================
-         MODAL 1: CAPAS DEL PUNTO (NUEVO)
-         ======================================== -->
+    <!-- MODAL 1: CAPAS DEL PUNTO -->
     <p-dialog
         [(visible)]="mostrarModalCapas"
         [modal]="true"
-        [style]="{width: '90vw', maxWidth: '1000px'}"
+        [style]="{width: '90vw', maxWidth: '800px'}"
         [closable]="true"
         (onHide)="cerrarModalCapas()">
 
@@ -163,27 +140,61 @@
             @if (puntoSeleccionado) {
                 <div class="dialog-header">
                     <h2>{{ puntoSeleccionado.nombre }}</h2>
-                    @if (puntoSeleccionado.nombreKichwa) {
-                        <span class="nombre-kichwa">{{ puntoSeleccionado.nombreKichwa }}</span>
-                    }
+                    <p>{{ puntoSeleccionado.descripcion }}</p>
                 </div>
             }
         </ng-template>
 
         @if (puntoSeleccionado) {
-            <!-- Usar componente de capas -->
-            <app-capas-punto
-                [nombrePunto]="puntoSeleccionado.nombre"
-                [capas]="capasPunto"
-                (explorarCapa)="abrirExploracionCapa($event)"
-                (volver)="cerrarModalCapas()">
-            </app-capas-punto>
+            <div class="capas-grid">
+                @for (capa of puntoSeleccionado.capas; track capa.id) {
+                    <div class="capa-card"
+                         [class.desbloqueada]="capa.desbloqueada"
+                         [class.completada]="capa.completada"
+                         (click)="abrirExploracionCapa(capa)">
+
+                        <div class="capa-header">
+                            <span class="capa-icono">{{ obtenerIconoCapa(capa.nivel) }}</span>
+                            <h3>{{ capa.nombre }}</h3>
+                            @if (!capa.desbloqueada) {
+                                <span class="badge-bloqueado">🔒 Bloqueada</span>
+                            }
+                        </div>
+
+                        <div class="capa-progreso">
+                            <p-progressBar [value]="capa.porcentaje" [showValue]="false"></p-progressBar>
+                            <span>{{ capa.porcentaje.toFixed(0) }}% completado</span>
+                        </div>
+
+                        <div class="capa-stats">
+                            <div class="stat-item">
+                                <i class="pi pi-book"></i>
+                                <span [class.completado]="capa.narrativaLeida">Narrativa</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="pi pi-camera"></i>
+                                <span>{{ capa.fotografiasCompletadas }}/{{ capa.fotografiasRequeridas }}</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="pi pi-comments"></i>
+                                <span>{{ capa.dialogosRealizados }}</span>
+                            </div>
+                        </div>
+
+                        @if (capa.desbloqueada && !capa.completada) {
+                            <p-button label="Explorar" icon="pi pi-arrow-right" styleClass="w-full"></p-button>
+                        }
+
+                        @if (capa.completada) {
+                            <span class="badge-completada">✓ Completada</span>
+                        }
+                    </div>
+                }
+            </div>
         }
     </p-dialog>
 
-    <!-- ========================================
-         MODAL 2: EXPLORACIÓN DE CAPA (NUEVO)
-         ======================================== -->
+    <!-- MODAL 2: EXPLORACIÓN DE CAPA -->
     <p-dialog
         [(visible)]="mostrarModalExploracion"
         [modal]="true"
@@ -197,12 +208,12 @@
                     <div>
                         <h2>{{ puntoSeleccionado?.nombre }}</h2>
                         <span class="badge-capa">
-                            {{ obtenerIconoCapa(capaActiva.nivelCapa) }} {{ capaActiva.nombre }}
+                            {{ obtenerIconoCapa(capaActiva.nivel) }} {{ capaActiva.nombre }}
                         </span>
                     </div>
                     <div class="progreso-capa">
-                        <span>{{ capaActiva.porcentajeCompletitud }}% completado</span>
-                        <p-progressBar [value]="capaActiva.porcentajeCompletitud" [showValue]="false"></p-progressBar>
+                        <span>{{ capaActiva.porcentaje.toFixed(0) }}% completado</span>
+                        <p-progressBar [value]="capaActiva.porcentaje" [showValue]="false"></p-progressBar>
                     </div>
                 </div>
             }
@@ -210,7 +221,7 @@
 
         @if (capaActiva) {
             <div class="exploracion-content">
-                <!-- Navegación de Tabs -->
+                <!-- Tabs -->
                 <div class="tabs-navegacion">
                     <button class="tab-button" [class.active]="tabActivo === 0" (click)="cambiarTab(0)">
                         📖 Narrativa
@@ -226,15 +237,9 @@
                         💬 Diálogo
                         <span class="badge-tab">{{ capaActiva.dialogosRealizados }}</span>
                     </button>
-                    <button class="tab-button" [class.active]="tabActivo === 3" (click)="cambiarTab(3)">
-                        🎯 Misión
-                        @if (capaActiva.misionAsociada?.estado) {
-                            <i class="pi pi-flag-fill ml-2"></i>
-                        }
-                    </button>
                 </div>
 
-                <!-- Contenido de Tabs -->
+                <!-- Tab Content -->
                 <div class="tab-content">
                     <!-- TAB 1: NARRATIVA -->
                     @if (tabActivo === 0) {
@@ -249,21 +254,15 @@
                             @if (cargandoNarrativa) {
                                 <div class="loading-narrativa">
                                     <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-                                    <p>Generando narrativa con IA...</p>
+                                    <p>Generando narrativa...</p>
                                 </div>
-                            } @else {
+                            } @else if (narrativaActual) {
                                 <div class="narrativa-texto" (click)="saltarAnimacion()">
+                                    <h3>{{ narrativaActual.titulo }}</h3>
                                     <p>{{ narrativaVisible }}</p>
-                                    @if (narrativaVisible !== narrativaActual) {
+                                    @if (!narrativaCompleta) {
                                         <small class="hint"><i class="pi pi-forward"></i> Click para mostrar todo</small>
                                     }
-                                </div>
-                            }
-
-                            @if (narrativaCompleta && !capaActiva.narrativaLeida) {
-                                <div class="narrativa-completada">
-                                    <i class="pi pi-check-circle"></i>
-                                    <p>¡Narrativa completada! Nivel Bronce alcanzado</p>
                                 </div>
                             }
                         </div>
@@ -273,22 +272,17 @@
                     @if (tabActivo === 1) {
                         <div class="fotografia-panel">
                             <h3>Objetivos Fotográficos</h3>
-                            <p class="subtitle">Captura {{ capaActiva.fotografiasRequeridas }} fotografías para completar esta actividad</p>
+                            <p class="subtitle">Captura {{ capaActiva.fotografiasRequeridas }} fotografías para completar</p>
 
                             <div class="objetivos-grid">
-                                @for (foto of capaActiva.fotografiasPendientes; track foto.id) {
+                                @for (foto of objetivosFotograficos; track foto.id) {
                                     <div class="objetivo-card" [class.completada]="foto.completada">
                                         <div class="objetivo-header">
                                             <i class="pi" [ngClass]="foto.completada ? 'pi-check-circle' : 'pi-camera'"></i>
-                                            <span class="rareza-badge" [class]="'rareza-' + foto.rareza.toLowerCase()">
-                                                {{ foto.rareza }}
-                                            </span>
                                         </div>
                                         <p>{{ foto.descripcion }}</p>
-                                        <small>+{{ foto.descripcion }} puntos</small>
 
                                         @if (!foto.completada) {
-                                            <p-button label="Tomar Foto" icon="pi pi-camera" size="small" class="mt-2"></p-button>
                                             <p-fileUpload
                                                 mode="basic"
                                                 name="fotografia"
@@ -296,14 +290,13 @@
                                                 [maxFileSize]="5000000"
                                                 [auto]="true"
                                                 chooseLabel="📷 Subir Foto"
-                                                chooseIcon="pi pi-upload"
-                                                (onSelect)="subirFotografia($event, foto)"
                                                 [customUpload]="true"
                                                 (uploadHandler)="procesarFotografia($event, foto)">
                                             </p-fileUpload>
+
                                             <p-button
-                                                label="Marcar como Completado"
-                                                icon="pi pi-check-circle"
+                                                label="Marcar Manual"
+                                                icon="pi pi-check"
                                                 severity="secondary"
                                                 [outlined]="true"
                                                 size="small"
@@ -322,11 +315,12 @@
                     <!-- TAB 3: DIÁLOGO -->
                     @if (tabActivo === 2) {
                         <div class="dialogo-panel">
-                            <div class="espiritu-avatar">
-                                <span class="espiritu-icono">{{ obtenerIconoCapa(capaActiva.nivelCapa) }}</span>
-                                <h3>{{ obtenerNombreEspiritu(capaActiva.nivelCapa) }}</h3>
-                                <p class="espiritu-nombre-kichwa">{{ capaActiva.nombre }}</p>
-                            </div>
+                            @if (narrativaActual) {
+                                <div class="espiritu-avatar">
+                                    <span class="espiritu-icono">{{ obtenerIconoCapa(capaActiva.nivel) }}</span>
+                                    <h3>{{ narrativaActual.nombreEspiritu }}</h3>
+                                </div>
+                            }
 
                             <div class="dialogo-stats">
                                 <p>Diálogos realizados: <strong>{{ capaActiva.dialogosRealizados }}</strong></p>
@@ -339,10 +333,10 @@
                                 <textarea
                                     id="pregunta-espiritu"
                                     [(ngModel)]="preguntaDialogo"
-                                    placeholder="Pregunta sobre este lugar sagrado, su historia, ceremonias, significado cultural..."
+                                    placeholder="Pregunta sobre este lugar sagrado..."
                                     rows="4"
                                     [disabled]="cargandoRespuesta">
-            </textarea>
+                                </textarea>
 
                                 <p-button
                                     label="Consultar al Espíritu"
@@ -352,96 +346,7 @@
                                     [loading]="cargandoRespuesta"
                                     styleClass="w-full">
                                 </p-button>
-
-                                <small class="hint">
-                                    <i class="pi pi-info-circle"></i>
-                                    El espíritu ancestral responderá tus dudas sobre la cultura Cañari
-                                </small>
                             </div>
-                        </div>
-                    }
-
-                    <!-- ⬇️ DIÁLOGO DE RESPUESTA DEL ESPÍRITU -->
-                    <p-dialog
-                        [(visible)]="mostrarRespuestaEspiritu"
-                        [modal]="true"
-                        [style]="{width: '90vw', maxWidth: '700px'}"
-                        [closable]="true"
-                        [dismissableMask]="false"
-                        styleClass="dialogo-espiritu"
-                        (onHide)="cerrarRespuestaEspiritu()">
-
-                        <ng-template pTemplate="header">
-                            <div class="dialogo-espiritu-header">
-                                <div class="espiritu-avatar-modal">
-                                    <span class="espiritu-icono-grande">{{ obtenerIconoCapa(capaActiva?.nivelCapa) }}</span>
-                                </div>
-                                <div>
-                                    <h2>{{ nombreEspirituActual }}</h2>
-                                    <p class="espiritu-subtitulo">Espíritu Ancestral Cañari</p>
-                                </div>
-                            </div>
-                        </ng-template>
-
-                        <div class="dialogo-espiritu-content">
-                            <!-- Pregunta del usuario -->
-                            <div class="pregunta-usuario">
-                                <div class="pregunta-label">
-                                    <i class="pi pi-user"></i>
-                                    <span>Tu pregunta:</span>
-                                </div>
-                                <p>"{{ preguntaActual || 'Sin pregunta' }}"</p>
-                            </div>
-
-                            <!-- Respuesta del espíritu -->
-                            <div class="respuesta-espiritu" (click)="saltarAnimacionEspiritu()">
-                                <div class="respuesta-label">
-                                    <i class="pi pi-star"></i>
-                                    <span>Respuesta del espíritu:</span>
-                                </div>
-
-                                @if (cargandoRespuesta) {
-                                    <div class="loading-respuesta">
-                                        <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-                                        <p>El espíritu está meditando tu pregunta...</p>
-                                    </div>
-                                } @else {
-                                    <p class="texto-respuesta">{{ respuestaEspirituVisible }}</p>
-
-                                    @if (!respuestaCompletaEspiritu) {
-                                        <small class="hint-click">
-                                            <i class="pi pi-hand-pointer"></i> Click para mostrar todo
-                                        </small>
-                                    }
-                                }
-                            </div>
-                        </div>
-
-                        <ng-template pTemplate="footer">
-                            <p-button
-                                label="Entendido"
-                                icon="pi pi-check"
-                                (onClick)="cerrarRespuestaEspiritu()"
-                                styleClass="w-full">
-                            </p-button>
-                        </ng-template>
-                    </p-dialog>
-
-                    <!-- TAB 4: MISIÓN -->
-                    @if (tabActivo === 3) {
-                        <div class="mision-panel">
-                            @if (capaActiva.misionAsociada) {
-                                <div class="mision-card">
-                                    <h3>{{ capaActiva.misionAsociada.titulo }}</h3>
-                                    <p>{{ capaActiva.misionAsociada.descripcion }}</p>
-                                    <p-progressBar [value]="capaActiva.misionAsociada.progreso" [showValue]="true"></p-progressBar>
-                                </div>
-                            } @else {
-                                <div class="sin-mision">
-                                    <i class="pi pi-info-circle"></i>
-                                    <p>No hay misiones asociadas a esta capa temporal</p>
-                                </div>
-                            }
                         </div>
                     }
                 </div>
@@ -456,7 +361,68 @@
         </ng-template>
     </p-dialog>
 
+    <!-- MODAL: RESPUESTA ESPÍRITU -->
+    <p-dialog
+        [(visible)]="mostrarRespuestaEspiritu"
+        [modal]="true"
+        [style]="{width: '90vw', maxWidth: '700px'}"
+        [closable]="true"
+        styleClass="dialogo-espiritu"
+        (onHide)="cerrarRespuestaEspiritu()">
+
+        <ng-template pTemplate="header">
+            <div class="dialogo-espiritu-header">
+                <div class="espiritu-avatar-modal">
+                    <span class="espiritu-icono-grande">{{ obtenerIconoCapa(capaActiva?.nivel) }}</span>
+                </div>
+                <div>
+                    <h2>{{ nombreEspirituActual }}</h2>
+                    <p class="espiritu-subtitulo">Espíritu Ancestral</p>
+                </div>
+            </div>
+        </ng-template>
+
+        <div class="dialogo-espiritu-content">
+            <div class="pregunta-usuario">
+                <div class="pregunta-label">
+                    <i class="pi pi-user"></i>
+                    <span>Tu pregunta:</span>
+                </div>
+                <p>"{{ preguntaActual }}"</p>
+            </div>
+
+            <div class="respuesta-espiritu" (click)="saltarAnimacionEspiritu()">
+                <div class="respuesta-label">
+                    <i class="pi pi-star"></i>
+                    <span>Respuesta del espíritu:</span>
+                </div>
+
+                @if (cargandoRespuesta) {
+                    <div class="loading-respuesta">
+                        <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+                        <p>El espíritu está meditando...</p>
+                    </div>
+                } @else {
+                    <p class="texto-respuesta">{{ respuestaEspirituVisible }}</p>
+
+                    @if (!respuestaCompletaEspiritu) {
+                        <small class="hint-click">
+                            <i class="pi pi-hand-pointer"></i> Click para mostrar todo
+                        </small>
+                    }
+                }
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <p-button
+                label="Entendido"
+                icon="pi pi-check"
+                (onClick)="cerrarRespuestaEspiritu()"
+                styleClass="w-full">
+            </p-button>
+        </ng-template>
+    </p-dialog>
+
     <p-toast />
-    <script
-        src="https://code.responsivevoice.org/responsivevoice.js?key=Lb9v6u8X"></script>
 </div>
