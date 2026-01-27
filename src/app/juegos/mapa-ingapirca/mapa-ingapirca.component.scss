@@ -1140,3 +1140,441 @@ $transition-normal: 0.3s ease;
         }
     }
 }
+
+// ============================================
+// MODAL RESULTADO FOTO
+// ============================================
+
+::ng-deep .resultado-foto-dialog {
+    .p-dialog-header {
+        background: linear-gradient(135deg, #f8f4e6 0%, #e8dcc4 100%);
+        border-bottom: 3px solid $color-primary;
+        padding: 1.5rem;
+    }
+
+    .p-dialog-content {
+        padding: 2rem;
+        background: $bg-surface;
+    }
+
+    .p-dialog-footer {
+        background: $bg-surface;
+        border-top: 2px solid $border-color;
+        padding: 1.5rem;
+    }
+}
+
+.resultado-foto-header {
+    width: 100%;
+
+    .header-exito,
+    .header-rechazo {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+
+        .icon-grande {
+            font-size: 4rem;
+            line-height: 1;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .subtitulo-header {
+            margin: 0.5rem 0 0 0;
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+    }
+
+    .header-exito {
+        color: $color-success;
+
+        h2 {
+            color: $color-success;
+        }
+    }
+
+    .header-rechazo {
+        color: #f44336;
+
+        h2 {
+            color: #f44336;
+        }
+    }
+}
+
+.resultado-foto-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+
+    .foto-preview {
+        position: relative;
+        width: 100%;
+        border-radius: $radius-lg;
+        overflow: hidden;
+        box-shadow: $shadow-lg;
+
+        .foto-capturada {
+            width: 100%;
+            height: 350px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .badge-aprobada {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: $color-success;
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: $radius-sm;
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: $shadow-md;
+            animation: badge-pulse 2s ease-in-out infinite;
+        }
+    }
+
+    .objetivo-info {
+        background: $bg-card;
+        padding: 1.5rem;
+        border-radius: $radius-md;
+        border-left: 4px solid $color-primary;
+
+        h3 {
+            margin: 0 0 0.75rem 0;
+            color: $color-primary;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .objetivo-descripcion {
+            margin: 0;
+            color: $text-primary;
+            line-height: 1.6;
+        }
+    }
+
+    .analisis-ia-card {
+        background: $bg-card;
+        padding: 1.75rem;
+        border-radius: $radius-lg;
+        border: 2px solid $border-color;
+        transition: all $transition-normal;
+
+        &.exito {
+            border-color: $color-success;
+            background: linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%);
+        }
+
+        .analisis-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+
+            i {
+                font-size: 1.5rem;
+                color: $color-secondary;
+            }
+
+            h3 {
+                margin: 0;
+                color: $color-primary;
+                font-size: 1.1rem;
+                font-weight: 600;
+            }
+        }
+
+        .analisis-descripcion {
+            padding: 1rem;
+            background: rgba($color-primary, 0.05);
+            border-radius: $radius-sm;
+            margin-bottom: 1.25rem;
+
+            p {
+                margin: 0;
+                color: $text-primary;
+                line-height: 1.7;
+                font-size: 1rem;
+            }
+        }
+
+        .confianza-section {
+            .confianza-label {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.75rem;
+                font-weight: 600;
+                color: $text-secondary;
+
+                .confianza-porcentaje {
+                    font-size: 1.25rem;
+                    color: $color-primary;
+                    font-weight: 700;
+                }
+            }
+
+            .confianza-barra {
+                width: 100%;
+                height: 12px;
+                background: $border-color;
+                border-radius: 20px;
+                overflow: hidden;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+
+                .confianza-progreso {
+                    height: 100%;
+                    border-radius: 20px;
+                    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                }
+            }
+        }
+    }
+
+    .recompensa-card {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        background: linear-gradient(135deg, #fff3e0 0%, #ffffff 100%);
+        padding: 1.75rem;
+        border-radius: $radius-lg;
+        border: 2px solid #ffa726;
+        box-shadow: $shadow-md;
+        animation: recompensa-appear 0.6s ease-out;
+
+        .recompensa-icono {
+            font-size: 4rem;
+            line-height: 1;
+            animation: recompensa-bounce 2s ease-in-out infinite;
+        }
+
+        .recompensa-info {
+            flex: 1;
+
+            h3 {
+                margin: 0 0 0.5rem 0;
+                color: #f57c00;
+                font-size: 1.1rem;
+                font-weight: 600;
+            }
+
+            .puntos-ganados {
+                display: flex;
+                align-items: baseline;
+                gap: 0.5rem;
+
+                .puntos-numero {
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    color: #f57c00;
+                    line-height: 1;
+                }
+
+                .puntos-texto {
+                    font-size: 1.1rem;
+                    color: $text-secondary;
+                    font-weight: 600;
+                }
+            }
+        }
+    }
+
+    .progreso-fotos {
+        background: $bg-card;
+        padding: 1.5rem;
+        border-radius: $radius-md;
+        border: 1px solid $border-color;
+
+        .progreso-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: $color-primary;
+
+            i {
+                font-size: 1.2rem;
+            }
+        }
+
+        .progreso-stats {
+            .progreso-numeros {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: 600;
+                color: $text-secondary;
+                text-align: right;
+            }
+
+            ::ng-deep .p-progressbar {
+                height: 10px;
+                border-radius: 10px;
+                background: rgba($color-primary, 0.1);
+
+                .p-progressbar-value {
+                    background: linear-gradient(90deg, $color-primary, $color-secondary);
+                }
+            }
+        }
+    }
+
+    .sugerencias-card {
+        background: #fff3e0;
+        padding: 1.75rem;
+        border-radius: $radius-lg;
+        border-left: 4px solid #ff9800;
+
+        .sugerencias-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+
+            i {
+                font-size: 1.5rem;
+                color: #ff9800;
+            }
+
+            h3 {
+                margin: 0;
+                color: #f57c00;
+                font-size: 1.1rem;
+                font-weight: 600;
+            }
+        }
+
+        .sugerencias-lista {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+
+            li {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.75rem;
+                padding: 0.75rem 0;
+                color: $text-primary;
+                line-height: 1.6;
+
+                &:not(:last-child) {
+                    border-bottom: 1px solid rgba(#f57c00, 0.2);
+                }
+
+                i {
+                    color: #ff9800;
+                    margin-top: 0.25rem;
+                    flex-shrink: 0;
+                }
+            }
+        }
+    }
+}
+
+.footer-resultado-foto {
+    width: 100%;
+
+    ::ng-deep .p-button {
+        font-size: 1.1rem;
+        font-weight: 600;
+        padding: 1rem;
+        transition: all $transition-normal;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: $shadow-lg;
+        }
+    }
+}
+
+// ============================================
+// ANIMACIONES
+// ============================================
+
+@keyframes badge-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes recompensa-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes recompensa-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+
+@media (max-width: 768px) {
+    .resultado-foto-content {
+        gap: 1rem;
+
+        .foto-preview {
+            .foto-capturada {
+                height: 250px;
+            }
+
+            .badge-aprobada {
+                font-size: 0.9rem;
+                padding: 0.5rem 1rem;
+            }
+        }
+
+        .recompensa-card {
+            flex-direction: column;
+            text-align: center;
+
+            .recompensa-icono {
+                font-size: 3rem;
+            }
+
+            .puntos-ganados {
+                justify-content: center;
+            }
+        }
+    }
+
+    .resultado-foto-header {
+        .header-exito,
+        .header-rechazo {
+            flex-direction: column;
+            text-align: center;
+
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    }
+}

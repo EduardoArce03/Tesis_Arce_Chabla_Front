@@ -78,6 +78,10 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     objetivosFotograficos: ObjetivoFotoDTO[] = [];
     cargandoFoto = false;
 
+    // Modal resultado foto
+    mostrarResultadoFoto = false;
+    resultadoFotoAnalisis: any = null;
+
     // Diálogo
     preguntaDialogo = '';
     preguntaActual = '';
@@ -534,29 +538,26 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                     next: (response) => {
                         this.cargandoFoto = false;
 
+                        // Guardar resultado para el modal
+                        this.resultadoFotoAnalisis = {
+                            exito: response.exito,
+                            mensaje: response.mensaje,
+                            objetivo: objetivo,
+                            descripcionIA: response.descripcionIA || 'Sin descripción disponible',
+                            puntos: response.puntos || 0,
+                            fotografiasCompletadas: response.fotografiasCompletadas,
+                            fotografiasRequeridas: response.fotografiasRequeridas,
+                            imagenBase64: imagenBase64
+                        };
+
+                        // Mostrar modal con resultado
+                        this.mostrarResultadoFoto = true;
+
                         if (response.exito) {
                             // Marcar objetivo localmente INMEDIATAMENTE
                             objetivo.completada = true;
 
-                            this.messageService.add({
-                                severity: 'success',
-                                summary: '📸 ¡Fotografía Capturada!',
-                                detail: response.mensaje,
-                                life: 5000
-                            });
-
-                            if (response.puntos) {
-                                setTimeout(() => {
-                                    this.messageService.add({
-                                        severity: 'success',
-                                        summary: '🎁 Recompensa',
-                                        detail: `+${response.puntos} puntos`,
-                                        life: 3000
-                                    });
-                                }, 1000);
-                            }
-
-                            // Recargar mapa
+                            // Recargar mapa en background
                             this.cargarMapa();
 
                             // Verificar completitud
@@ -571,14 +572,6 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                                     });
                                 }, 2000);
                             }
-
-                        } else {
-                            this.messageService.add({
-                                severity: 'warn',
-                                summary: 'Fotografía no Válida',
-                                detail: response.mensaje,
-                                life: 5000
-                            });
                         }
                     },
                     error: (error) => {
@@ -596,6 +589,25 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
             this.cargandoFoto = false;
             console.error('❌ Error leyendo archivo:', error);
         }
+    }
+
+    cerrarResultadoFoto(): void {
+        this.mostrarResultadoFoto = false;
+        this.resultadoFotoAnalisis = null;
+    }
+
+    obtenerPorcentajeConfianza(): number {
+        if (!this.resultadoFotoAnalisis) return 0;
+        // Calcular porcentaje basado en puntos
+        const maxPuntos = 50;
+        return Math.min((this.resultadoFotoAnalisis.puntos / maxPuntos) * 100, 100);
+    }
+
+    obtenerColorConfianza(): string {
+        const porcentaje = this.obtenerPorcentajeConfianza();
+        if (porcentaje >= 80) return '#4CAF50'; // Verde
+        if (porcentaje >= 60) return '#FFC107'; // Amarillo
+        return '#FF5722'; // Rojo
     }
 
     marcarCompletadoManual(objetivo: ObjetivoFotoDTO): void {

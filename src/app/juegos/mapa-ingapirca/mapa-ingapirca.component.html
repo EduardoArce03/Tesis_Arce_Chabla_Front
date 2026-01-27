@@ -425,4 +425,154 @@
     </p-dialog>
 
     <p-toast />
+    <p-dialog
+        [(visible)]="mostrarResultadoFoto"
+        [modal]="true"
+        [style]="{width: '90vw', maxWidth: '700px'}"
+        [closable]="true"
+        styleClass="resultado-foto-dialog"
+        (onHide)="cerrarResultadoFoto()">
+
+        <ng-template pTemplate="header">
+            <div class="resultado-foto-header">
+                @if (resultadoFotoAnalisis?.exito) {
+                    <div class="header-exito">
+                        <span class="icon-grande">✅</span>
+                        <div>
+                            <h2>¡Fotografía Aceptada!</h2>
+                            <p class="subtitulo-header">El análisis IA ha validado tu captura</p>
+                        </div>
+                    </div>
+                } @else {
+                    <div class="header-rechazo">
+                        <span class="icon-grande">❌</span>
+                        <div>
+                            <h2>Fotografía Rechazada</h2>
+                            <p class="subtitulo-header">La imagen no cumple con el objetivo</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </ng-template>
+
+        @if (resultadoFotoAnalisis) {
+            <div class="resultado-foto-content">
+                <!-- Imagen capturada -->
+                <div class="foto-preview">
+                    <img
+                        [src]="'data:image/jpeg;base64,' + resultadoFotoAnalisis.imagenBase64"
+                        alt="Fotografía capturada"
+                        class="foto-capturada">
+
+                    @if (resultadoFotoAnalisis.exito) {
+                        <div class="badge-aprobada">
+                            <i class="pi pi-check"></i>
+                            APROBADA
+                        </div>
+                    }
+                </div>
+
+                <!-- Objetivo -->
+                <div class="objetivo-info">
+                    <h3>📸 Objetivo Fotográfico</h3>
+                    <p class="objetivo-descripcion">{{ resultadoFotoAnalisis.objetivo.descripcion }}</p>
+                </div>
+
+                <!-- Análisis IA -->
+                <div class="analisis-ia-card" [class.exito]="resultadoFotoAnalisis.exito">
+                    <div class="analisis-header">
+                        <i class="pi pi-sparkles"></i>
+                        <h3>Análisis de Inteligencia Artificial</h3>
+                    </div>
+
+                    <div class="analisis-descripcion">
+                        <p>{{ resultadoFotoAnalisis.descripcionIA }}</p>
+                    </div>
+
+                    <!-- Barra de confianza -->
+                    @if (resultadoFotoAnalisis.exito) {
+                        <div class="confianza-section">
+                            <div class="confianza-label">
+                                <span>Nivel de Confianza</span>
+                                <span class="confianza-porcentaje">{{ obtenerPorcentajeConfianza().toFixed(0) }}%</span>
+                            </div>
+                            <div class="confianza-barra">
+                                <div
+                                    class="confianza-progreso"
+                                    [style.width.%]="obtenerPorcentajeConfianza()"
+                                    [style.background]="obtenerColorConfianza()">
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Recompensa -->
+                @if (resultadoFotoAnalisis.exito) {
+                    <div class="recompensa-card">
+                        <div class="recompensa-icono">🎁</div>
+                        <div class="recompensa-info">
+                            <h3>Recompensa Obtenida</h3>
+                            <div class="puntos-ganados">
+                                <span class="puntos-numero">+{{ resultadoFotoAnalisis.puntos }}</span>
+                                <span class="puntos-texto">puntos</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progreso -->
+                    <div class="progreso-fotos">
+                        <div class="progreso-label">
+                            <i class="pi pi-camera"></i>
+                            <span>Progreso de Fotografías</span>
+                        </div>
+                        <div class="progreso-stats">
+                        <span class="progreso-numeros">
+                            {{ resultadoFotoAnalisis.fotografiasCompletadas }} / {{ resultadoFotoAnalisis.fotografiasRequeridas }}
+                        </span>
+                            <p-progressBar
+                                [value]="(resultadoFotoAnalisis.fotografiasCompletadas / resultadoFotoAnalisis.fotografiasRequeridas) * 100"
+                                [showValue]="false">
+                            </p-progressBar>
+                        </div>
+                    </div>
+                } @else {
+                    <!-- Sugerencias para mejorar -->
+                    <div class="sugerencias-card">
+                        <div class="sugerencias-header">
+                            <i class="pi pi-lightbulb"></i>
+                            <h3>Sugerencias para Mejorar</h3>
+                        </div>
+                        <ul class="sugerencias-lista">
+                            <li><i class="pi pi-arrow-right"></i> Intenta capturar desde un mejor ángulo</li>
+                            <li><i class="pi pi-arrow-right"></i> Asegúrate de que el objetivo esté bien iluminado</li>
+                            <li><i class="pi pi-arrow-right"></i> Acércate más al elemento que deseas fotografiar</li>
+                            <li><i class="pi pi-arrow-right"></i> Verifica que el objetivo esté completo en la imagen</li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        }
+
+        <ng-template pTemplate="footer">
+            <div class="footer-resultado-foto">
+                @if (resultadoFotoAnalisis?.exito) {
+                    <p-button
+                        label="¡Continuar Explorando!"
+                        icon="pi pi-check-circle"
+                        (onClick)="cerrarResultadoFoto()"
+                        styleClass="w-full p-button-lg">
+                    </p-button>
+                } @else {
+                    <p-button
+                        label="Intentar de Nuevo"
+                        icon="pi pi-refresh"
+                        severity="warn"
+                        (onClick)="cerrarResultadoFoto()"
+                        styleClass="w-full p-button-lg">
+                    </p-button>
+                }
+            </div>
+        </ng-template>
+    </p-dialog>
 </div>
