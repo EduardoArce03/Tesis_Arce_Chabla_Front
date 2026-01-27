@@ -99,6 +99,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     // Auto-refresh para sincronizar estado
     private autoRefresh$ = interval(5000); // cada 5 segundos
     private destroy$ = new Subject<void>();
+    cargandoExploracion = false;
 
     // Enums para template
     CapaNivel = CapaNivel;
@@ -359,6 +360,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         }
 
         if (!this.partidaId || !this.puntoSeleccionado) return;
+        this.cargandoExploracion = true;
 
         const request: ExplorarCapaRequest = {
             partidaId: this.partidaId,
@@ -370,6 +372,8 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (response) => {
+                    this.cargandoExploracion = false;
+
                     console.log('✅ Capa explorada:', response);
 
                     if (response.exito) {
@@ -391,6 +395,8 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                         // Recargar mapa para reflejar cambios
                         this.cargarMapa();
                     } else {
+                        this.cargandoExploracion = false;
+
                         this.messageService.add({
                             severity: 'warn',
                             summary: 'Error',

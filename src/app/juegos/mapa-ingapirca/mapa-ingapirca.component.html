@@ -182,7 +182,14 @@
                         </div>
 
                         @if (capa.desbloqueada && !capa.completada) {
-                            <p-button label="Explorar" icon="pi pi-arrow-right" styleClass="w-full"></p-button>
+                            <p-button
+                                label="Explorar"
+                                icon="pi pi-arrow-right"
+                                styleClass="w-full"
+                                [loading]="cargandoExploracion"
+                                [disabled]="cargandoExploracion"
+                                (onClick)="abrirExploracionCapa(capa)">
+                            </p-button>
                         }
 
                         @if (capa.completada) {

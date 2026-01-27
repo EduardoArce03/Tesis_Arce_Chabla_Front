@@ -1518,19 +1518,106 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     private activarVisionCondor(duracion: number): void {
-        if (!this.puzzle?.gameCanvas) return;
+        if (!this.puzzle?.gameCanvas || !this.puzzleContainer) return;
 
-        this.puzzle.gameCanvas.style.display = 'block';
-        this.puzzle.gameCanvas.style.opacity = '0.8';
-        this.puzzle.gameCanvas.style.zIndex = '1000';
+        console.log('👁️ Activando Visión del Cóndor (overlay) por', duracion, 'segundos');
 
+        // CREAR UN OVERLAY DEDICADO
+        const overlay = document.createElement('div');
+        overlay.className = 'vision-condor-overlay';
+        overlay.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+        pointer-events: none;
+    `;
+
+        // CREAR IMAGEN CLONADA
+        const imgClone = document.createElement('canvas');
+        imgClone.width = this.puzzle.gameCanvas.width;
+        imgClone.height = this.puzzle.gameCanvas.height;
+        imgClone.style.cssText = `
+        max-width: 90%;
+        max-height: 90%;
+        border: 5px solid gold;
+        border-radius: 10px;
+        box-shadow: 0 0 50px rgba(255, 215, 0, 0.9),
+                    inset 0 0 30px rgba(255, 215, 0, 0.3);
+    `;
+
+        const ctx = imgClone.getContext('2d');
+        if (ctx) {
+            ctx.drawImage(this.puzzle.gameCanvas, 0, 0);
+        }
+
+        overlay.appendChild(imgClone);
+        this.puzzleContainer.nativeElement.appendChild(overlay);
+
+        // Fade in
         setTimeout(() => {
-            if (this.puzzle?.gameCanvas) {
-                this.puzzle.gameCanvas.style.display = 'none';
-                this.puzzle.gameCanvas.style.opacity = '1';
-                this.puzzle.gameCanvas.style.zIndex = '500';
+            overlay.style.opacity = '1';
+        }, 50);
+
+        // Contador visual en la imagen
+        const contador = document.createElement('div');
+        contador.style.cssText = `
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: gold;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 24px;
+        font-weight: bold;
+        border: 2px solid gold;
+    `;
+        overlay.appendChild(contador);
+
+        let tiempoRestante = duracion;
+        contador.textContent = `${tiempoRestante}s`;
+
+        const interval = setInterval(() => {
+            tiempoRestante--;
+            contador.textContent = `${tiempoRestante}s`;
+
+            if (tiempoRestante <= 0) {
+                clearInterval(interval);
             }
+        }, 1000);
+
+        // Remover después de la duración
+        setTimeout(() => {
+            overlay.style.opacity = '0';
+
+            setTimeout(() => {
+                overlay.remove();
+                clearInterval(interval);
+
+                this.messageService.add({
+                    severity: 'info',
+                    summary: '👁️ Visión finalizada',
+                    detail: 'La imagen de referencia se ha ocultado',
+                    life: 2000
+                });
+            }, 500);
         }, duracion * 1000);
+
+        this.messageService.add({
+            severity: 'success',
+            summary: '👁️ Visión del Cóndor',
+            detail: `Imagen visible por ${duracion} segundos`,
+            life: 3000
+        });
     }
 
     private activarTiempoPachamama(duracion: number): void {
@@ -1877,32 +1964,24 @@ export class RompeCabezasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     loadImage(imageUrl: string): void {
-        if (!this.puzzle) {
-            console.error('❌ Puzzle no inicializado');
-            return;
-        }
+        if (!this.puzzle) return;
 
-        console.log('🖼️ Cargando imagen:', imageUrl);
+        // Añadimos un timestamp para evitar el caché conflictivo
+        const cleanUrl = `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
 
         this.puzzle.srcImage = new Image();
-        this.puzzle.srcImage.crossOrigin = 'anonymous';
+        this.puzzle.srcImage.crossOrigin = 'anonymous'; // Esto es vital para poder usar la imagen en un <canvas>
 
         this.puzzle.srcImage.onload = () => {
-            console.log('✅ Imagen cargada:', this.puzzle!.srcImage.naturalWidth, 'x', this.puzzle!.srcImage.naturalHeight);
             this.puzzle!.imageLoaded = true;
             this.setupPuzzle();
         };
 
         this.puzzle.srcImage.onerror = (error) => {
-            console.error('❌ Error al cargar imagen:', error);
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudo cargar la imagen'
-            });
+            console.error('❌ Error al cargar:', error);
         };
 
-        this.puzzle.srcImage.src = imageUrl;
+        this.puzzle.srcImage.src = cleanUrl;
     }
 
     setupPuzzle(): void {
