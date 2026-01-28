@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { EstadisticasDetalladasResponse } from '@/models/estadisticas.model';
-import { environment } from '../../enviroments/environment';
+import { environment } from '../../environments/environment';
 
 @Injectable({
     providedIn: 'root'
