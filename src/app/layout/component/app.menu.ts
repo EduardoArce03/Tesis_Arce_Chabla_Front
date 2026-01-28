@@ -1,10 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { AppMenuitem } from './app.menuitem';
 import { BadgeModule } from 'primeng/badge';
 import { TooltipModule } from 'primeng/tooltip';
+import { EstadisticasService } from '@/services/estadisticas.service';
+import { SesionService } from '@/services/sesion.service';
+import { takeUntil } from 'rxjs';
+import { PartidaService } from '@/components/partida.service';
 
 @Component({
     selector: 'app-menu',
@@ -21,12 +25,12 @@ import { TooltipModule } from 'primeng/tooltip';
                 <div class="user-level">
                     <span class="level-badge">
                         <i class="pi pi-star-fill"></i>
-                        Nivel 5
+                        Nivel {{nivel}}
                     </span>
                     <div class="exp-bar">
-                        <div class="exp-fill" [style.width]="'65%'"></div>
+                        <div class="exp-fill" [style.width]="'{{nivel}}'"></div>
                     </div>
-                    <span class="exp-text">650 / 1000 XP</span>
+                    <span class="exp-text">{{xp}}/1000 XP</span>
                 </div>
             </div>
 
@@ -80,14 +84,14 @@ import { TooltipModule } from 'primeng/tooltip';
                 <div class="stat-item">
                     <i class="pi pi-play-circle"></i>
                     <div class="stat-info">
-                        <span class="stat-value">15</span>
+                        <span class="stat-value">{{partidas}}</span>
                         <span class="stat-label">Partidas</span>
                     </div>
                 </div>
                 <div class="stat-item">
                     <i class="pi pi-trophy"></i>
                     <div class="stat-info">
-                        <span class="stat-value">#23</span>
+                        <span class="stat-value">#{{ranking}}</span>
                         <span class="stat-label">Ranking</span>
                     </div>
                 </div>
@@ -493,8 +497,44 @@ import { TooltipModule } from 'primeng/tooltip';
 })
 export class AppMenu implements OnInit {
     model: any[] = [];
-
+    private estadisticasService = inject(EstadisticasService);
+    private sesionService = inject(SesionService);
+    private partidaService = inject(PartidaService);
+    nivel: number = 1;
+    xp: number = 1;
+    partidas: number = 0;
+    ranking: number = 0;
     ngOnInit() {
+        const usuario = this.sesionService.getUsuario();
+
+        if (!usuario) {
+            console.warn('⚠️ No se encontró sesión de usuario');
+            return;
+        }
+
+        // 1. Cargar Estadísticas Detalladas
+        this.estadisticasService.obtenerEstadisticasDetalladas(usuario.id)
+            .pipe()
+            .subscribe({
+                next: (data) => {
+                    this.nivel = data.resumenGeneral.nivelFavorito?.length || 1;
+                    this.xp = data.resumenGeneral.puntuacionTotal;
+                    this.partidas = data.resumenGeneral.totalPartidas;
+                },
+                error: (err) => console.error('❌ Error Stats:', err)
+            });
+
+        // 2. Cargar Ranking Global
+        this.partidaService.obtenerRankingGlobal()
+            .pipe()
+            .subscribe({
+                next: (data) => {
+                    // Normalización de tipos (String)
+                    const index = data.findIndex(u => String(u.jugadorId) === String(usuario.id));
+                    this.ranking = index >= 0 ? index + 1 : 0;
+                },
+                error: (err) => console.error('❌ Error Ranking:', err)
+            });
         this.model = [
             {
                 emoji: '🏠',
