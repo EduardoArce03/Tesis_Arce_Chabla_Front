@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '@/env/environment';
+import { environment } from '../../enviroments/environment';
 
 export interface DesafioGenerado {
     desafioId: number;

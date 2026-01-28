@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
-import { environment } from '@/env/environment';
+import { environment } from '../../enviroments/environment';
 import { NivelDificultad, CategoriasCultural } from '@/models/juego.model';
 
 // Modelo para guardar partida

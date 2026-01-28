@@ -11,7 +11,7 @@ import {
     EstadisticasMisionesDTO,
     ColeccionInsigniasResponse
 } from '../models/mision.model';
-import { environment } from '@/env/environment';
+import { environment } from '../../../../enviroments/environment';
 
 @Injectable({
     providedIn: 'root'

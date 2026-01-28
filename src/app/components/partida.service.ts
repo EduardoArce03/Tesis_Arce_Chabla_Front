@@ -20,7 +20,7 @@ import {
     ResponderPreguntaResponse,
     FinalizarPartidaResponse
 } from '@/models/juego.model';
-import { environment } from '@/env/environment';
+import { environment } from '../../enviroments/environment';
 
 @Injectable({
     providedIn: 'root'

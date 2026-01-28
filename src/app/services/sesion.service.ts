@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { CrearUsuarioRequest, LoginConCodigoRequest, Usuario, UsuarioResponse } from '@/models/usuario.model';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '@/env/environment';
+import { environment } from '../../enviroments/environment';
 import { tap } from 'rxjs/operators';
 
 @Injectable({
