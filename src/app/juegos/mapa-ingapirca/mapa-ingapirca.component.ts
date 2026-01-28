@@ -1,9 +1,9 @@
 // mapa-ingapirca.component.ts - REFACTORIZADO CON PERSISTENCIA
 
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, takeUntil, interval } from 'rxjs';
+import { interval, Subject, takeUntil } from 'rxjs';
 import { MessageService } from 'primeng/api';
 
 // PrimeNG
@@ -17,19 +17,21 @@ import { FileUpload } from 'primeng/fileupload';
 
 // Servicios
 import {
-    ExploracionService,
-    MapaDTO,
-    PuntoDTO,
     CapaDTO,
     CapaNivel,
-    ExplorarCapaRequest,
     CapturarFotoRequest,
     DialogarRequest,
+    ExploracionService,
+    ExplorarCapaRequest,
+    MapaDTO,
+    NarrativaDTO,
     ObjetivoFotoDTO,
-    NarrativaDTO
+    PuntoDTO
 } from '@/services/exploracion_final.service';
 import { SesionService } from '@/services/sesion.service';
 import { TextToSpeechService } from '@/components/text-to-speech.service';
+import { GuardarPartidaRequest, PartidaService } from '@/services/partida.service';
+import { CategoriasCultural, NivelDificultad } from '@/models/juego.model';
 
 @Component({
     selector: 'app-mapa-ingapirca',
@@ -61,7 +63,10 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
     // ==================== MODAL 1: CAPAS DEL PUNTO ====================
     mostrarModalCapas = false;
     puntoSeleccionado: PuntoDTO | null = null;
+    private tiempoInicioPartida?: Date;
 
+// Flag para verificar si ya se guardó
+    private partidaGuardada = false;
     // ==================== MODAL 2: EXPLORACIÓN DE CAPA ====================
     mostrarModalExploracion = false;
     capaActiva: CapaDTO | null = null;
@@ -112,7 +117,8 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         private exploracionService: ExploracionService,
         private messageService: MessageService,
         private sesionService: SesionService,
-        private tts: TextToSpeechService
+        private tts: TextToSpeechService,
+        private partidaService: PartidaService
     ) {}
 
     // ==================== LIFECYCLE ====================
@@ -155,6 +161,11 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
         if (this.typingIntervalEspiritu) {
             clearInterval(this.typingIntervalEspiritu);
         }
+
+        if (this.mapa && !this.partidaGuardada && this.mapa.puntuacionTotal > 0) {
+            console.log('⚠️ Usuario abandonó la exploración, guardando progreso...');
+            this.guardarPartidaIncompleta();
+        }
     }
 
     // ==================== PERSISTENCIA ====================
@@ -181,13 +192,52 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
             localStorage.setItem(this.STORAGE_JUGADOR_ID, this.jugadorId.toString());
             console.log('💾 Partida guardada en localStorage');
         }
+        this.guardarPartidaCompleta();
     }
+
+    private guardarPartidaCompleta(): void {
+        const datosPartida: GuardarPartidaRequest = {
+            categoria: CategoriasCultural.FESTIVIDADES,
+            completada: true,
+            intentos: 1,
+            jugadorId: this.jugadorId.toString(),
+            nivel: NivelDificultad.MEDIO,
+            puntuacion: this.mapa?.puntuacionTotal ?? 0,
+            tiempoSegundos: 110
+        }
+
+        this.partidaService.guardarPartida(datosPartida).subscribe({
+            next: (response) => {
+                console.log('✅ Partida guardada:', response);
+                this.partidaGuardada = true;
+
+                this.messageService.add({
+                    severity: 'success',
+                    summary: '🎉 ¡Progreso Guardado!',
+                    detail: `Has ganado ${datosPartida.puntuacion} puntos`,
+                    life: 5000
+                });
+            },
+            error: (error) => {
+                console.error('❌ Error al guardar partida:', error);
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Advertencia',
+                    detail: 'No se pudo guardar el progreso',
+                    life: 4000
+                });
+            }
+        });
+    }
+
+
 
     // ==================== INICIALIZACIÓN ====================
 
     iniciarPartida(): void {
         console.log('🎮 Iniciando partida para jugador:', this.jugadorId);
-
+        this.tiempoInicioPartida = new Date();
+        this.partidaGuardada = false;
         this.exploracionService.iniciarPartida(this.jugadorId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
@@ -211,6 +261,46 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
             });
     }
 
+    private guardarPartidaIncompleta(): void {
+        if (this.partidaGuardada || !this.mapa || !this.tiempoInicioPartida) {
+            return;
+        }
+
+        console.log('💾 Guardando partida incompleta');
+
+        const usuario = this.sesionService.getUsuario();
+        if (!usuario) {
+            console.warn('⚠️ No hay usuario en sesión, no se puede guardar');
+            return;
+        }
+
+        const tiempoSegundos = Math.floor(
+            (new Date().getTime() - this.tiempoInicioPartida.getTime()) / 1000
+        );
+
+        const datosPartida: GuardarPartidaRequest = {
+            categoria: CategoriasCultural.FESTIVIDADES,
+            completada: true,
+            intentos: 3,
+            jugadorId: this.jugadorId.toString(),
+            nivel: NivelDificultad.MEDIO,
+            puntuacion: (this.mapa?.puntuacionTotal ?? 0) / 2,
+            tiempoSegundos: 110
+        }
+
+        console.log('📋 Datos de partida incompleta:', datosPartida);
+
+        this.partidaService.guardarPartida(datosPartida).subscribe({
+            next: (response) => {
+                console.log('✅ Partida incompleta guardada:', response);
+                this.partidaGuardada = true;
+            },
+            error: (error) => {
+                console.error('❌ Error al guardar partida incompleta:', error);
+            }
+        });
+    }
+
     cargarMapa(): void {
         if (!this.partidaId) return;
 
@@ -220,6 +310,7 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (mapa) => {
+                    const partidaAntesCompletada = this.mapa?.completada || false;
                     this.mapa = mapa;
                     console.log('✅ Mapa cargado:', {
                         puntos: mapa.puntos.length,
@@ -227,6 +318,12 @@ export class MapaIngapircaComponent implements OnInit, OnDestroy {
                         fotos: mapa.fotografiasCapturadas,
                         dialogos: mapa.dialogosRealizados
                     });
+                    if (mapa.completada && !partidaAntesCompletada && !this.partidaGuardada) {
+                        console.log('🎉 ¡Partida completada! Guardando...');
+                        setTimeout(() => {
+                            this.guardarPartidaCompleta();
+                        }, 1000);
+                    }
 
                     // Actualizar progreso en la UI si hay capa activa
                     if (this.capaActiva && this.puntoSeleccionado) {
