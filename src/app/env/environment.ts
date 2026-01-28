@@ -7,5 +7,5 @@ export const environment = {
 // src/environments/environment.prod.ts
 export const environmentProd = {
   production: true,
-  apiUrl: 'https://tu-servidor-produccion.com/api'
+  apiUrl: 'tesis_arce_chabla_back.railway.internal'
 };
