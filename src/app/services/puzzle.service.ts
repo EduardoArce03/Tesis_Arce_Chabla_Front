@@ -11,12 +11,13 @@ import {
     FinalizarPuzzleResponse,
     ProgresoJugador
 } from '@/models/puzzle.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
     providedIn: 'root'
 })
 export class PuzzleService {
-    private baseUrl = 'http://localhost:18080/api/puzzle';
+    private baseUrl = environment.apiUrl + '/puzzle';
 
     constructor(private http: HttpClient) {}
 
